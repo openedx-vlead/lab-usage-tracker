@@ -29,20 +29,12 @@ def fetch_analytics(analytics):
 	data_dict["LAB_NAME"] = data_list[5]
 	data_dict["IP_ADDRESS"] = request.environ.get('HTTP_X_REAL_IP',request.remote_addr)
 
-    	#json_data = json.dumps(data_dict)
 	try:
 		es = Elasticsearch([{'host':'elk-stack.vlabs.ac.in', 'port':9200}])
 		es.index(index="vlabs", doc_type="usage", body=data_dict)
 	except Exception as e:
 		print e
 	
-	#try:
-  	#	fp = open("/home/ubuntu/vlabs-tracking/filename.json","a")
-        # 	fp.write(json_data)
-    	# 	fp.write("\n")
-	#	fp.close()
-    	#except Exception as e:
-	#	return e
 
 	return "Hello {}!".format(analytics) 
 
