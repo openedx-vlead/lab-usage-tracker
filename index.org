@@ -1,4 +1,4 @@
-#+Title: Vlabs Analytics Server for Open edX
+#+Title: Vlabs Analytics API for Open edX
 #+Date: Tuesday, September 20, 2016 
 #+Author: VLEAD Systems team
 
