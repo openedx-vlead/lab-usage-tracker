@@ -1,0 +1,111 @@
+{
+    "lab": {
+        "build_requirements": {
+            "platform": {
+                "arch": "i386",
+                "build_steps": {
+                    "build": [],
+                    "configure": [],
+                    "post_build": [],
+                    "pre_build": [],
+                    "status": []
+                },
+                "installer": [],
+                "os": "ubuntu",
+                "osVersion": "12",
+                "service_pack": ""
+            }
+        },
+        "description": {
+            "developer": [
+                {
+                    "contact": {
+                        "alternate_email": "",
+                        "email": "",
+                        "mobile_number": "",
+                        "office_number": ""
+                    },
+                    "department": "",
+                    "institute": "",
+                    "name": "",
+                    "organization": "",
+                    "role": "",
+                    "title": "",
+                    "web": ""
+                },
+                {
+                    "contact": {
+                        "alternate_email": "",
+                        "email": "",
+                        "mobile_number": "",
+                        "office_number": ""
+                    },
+                    "department": "",
+                    "institute": "",
+                    "name": "",
+                    "organization": "",
+                    "role": "",
+                    "title": "",
+                    "web": ""
+                }
+            ],
+            "discipline": [
+                ""
+            ],
+            "id": "elk-stack-analytics",
+            "integration_level": 1,
+            "name": "Analytics ELK server",
+            "server-side": true,
+            "status": "Not Released",
+            "type": "Service"
+        },
+        "runtime_requirements": {
+            "platform": {
+                "arch": "i386",
+                "hosting": "dedicated",
+                "installer": [
+                  "sudo apt-get update",
+		  "sudo apt-get -y install build-essential",
+		  "sudo apt-get -y install binutils",
+                  "sudo apt-get -y install binutils-doc",
+                  "sudo apt-get -y install python-dev python3-dev",
+                  "sudo apt-get -y install python-pip",
+                  "sudo apt-get -y install git",
+                  "sudo apt-get install nginx apache2-utils",
+                  "pip install Flask",
+                  "pip install -U flask-cors",
+                  "sudo apt-get update"
+                  "pip install elasticsearch",
+                  "sudo apt-get update",
+                  "sudo apt-get install supervisor",
+                  "sudo service supervisor start",
+                  "sudo service nginx start"
+                ],
+                "lab_actions": {
+                    "backup": [],
+                    "clean": [],
+                    "init": [],
+                    "pause": [],
+                    "publish": [],
+                    "restore": ["./restore"],
+                    "resume": [],
+                    "shutdown": [],
+                    "start": ["./start"],
+                    "stats": [],
+                    "stop": ["./stop"]
+                },
+                "memory": {
+                    "max_required": "2gb",
+                    "min_required": "256mb"
+                },
+                "os": "ubuntu",
+                "osVersion": "12",
+                "servicepack": "",
+                "storage": {
+                    "min_required": "10gb"
+                }
+            }
+        }
+    },
+    "template": "1.0"
+}
