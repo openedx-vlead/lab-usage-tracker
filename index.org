@@ -141,109 +141,7 @@
 
 
 
-* Source code 
-  + Flask API for capturing analytics from openedx ::
-    #+BEGIN_SRC command
-    
-import os
-import json
-from flask import Flask
-from flask import send_from_directory
-from flask import request
-from elasticsearch import Elasticsearch
 
-app = Flask(__name__)
-# app.config.from_object(os.environ['APP_SETTINGS'])
-
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
-
-
-@app.route('/<analytics>',methods= ['GET'])
-def fetch_analytics(analytics):
-    	data = request.data
-    	fetch_data = name
-    	data_list = fetch_data.split(",") 
-    	data_dict = {}
-
-    	data_dict["STUDENT_LONG_ID"] = data_list[0]
-    	data_dict["COURSE_ID"] = data_list[1]
-    	data_dict["DATE_OF_EXPERIMENT"] = data_list[2]	   
-    	data_dict["TIME_OF_EXPERIMENT"] = data_list[3]
-	data_dict["EXPERIMENT_NAME"] = data_list[4]
-	data_dict["LAB_NAME"] = data_list[5]
-	data_dict["IP_ADDRESS"] = request.environ.get('HTTP_X_REAL_IP',request.remote_addr)
-
-	try:
-		es = Elasticsearch([{'host':'elk-stack.vlabs.ac.in', 'port':9200}])
-		es.index(index="vlabs", doc_type="usage", body=data_dict)
-	except Exception as e:
-		print e
-	
-
-	return "Hello {}!".format(analytics) 
-
-if __name__ == '__main__':
-    app.run()
-
-    #+END_SRC
-    
-  + Javascript/Ajax posting values to analytics API ::
-    #+BEGIN_SRC python
-//This javascript should not be edited. Just use it.
-//Nothing in this must be edited 
-//
- var today = new Date();
- var dd = today.getDate();
- var mm = today.getMonth() + 1;
- var yy = today.getFullYear()
-
-
- var hours = today.getHours();
- var minutes = today.getMinutes();
- var date_today = dd + "-" + mm + "-" + yy
- var time_now = hours + ":" + minutes
- var long_usrid = "%%USER_ID%%"; //get the User ID as a string  
-
- var server_url = "http://vlabs-analytics.vlabs.ac.in:4000/"
-
- var xhttp = new XMLHttpRequest();
- var urlstr = server_url + long_usrid + "," + courseid + "," + date_today + "," + time_now + "," + experiment_name + "," + lab_name
- xhttp.open("GET", urlstr, true);
- xhttp.send();
-
-    #+END_SRC
-  + Javascript to set values of paramaters ::
-    #+BEGIN_SRC command
-    <script type="text/javascript">
-    var courseid = "blockv1UniversityYPS01Anytime";
-    var experiment_name = "Optimal Foraging Pollinators"
-    var lab_name = "Population Ecology II"
-    </script>
-    #+END_SRC
-  + Sample javascript code with Iframe in openedx ::
-    #+BEGIN_SRC command
-<p><button onclick="popup()">Full Screen</button></p>
-<p><iframe src="https://ial-coep.vlabs.ac.in/Expt2/AnalogDigital.html" height="602" width="802"> </iframe></p>
-<script>// <![CDATA[
-function popup(){
-  window.open('https://ial-coep.vlabs.ac.in/Expt2/AnalogDigital.html', '_blank', 'toolbar=0,location=0,menubar=0');
- }
-// ]]></script>
-
- <script type="text/javascript">
-  var courseid = "blockv1UniversityYPS01Anytime";
-  var experiment_name = "Optimal Foraging Pollinators"
-  var lab_name = "Population Ecology II"
-  
- </script>
-<script src="https://github.com/openedx-vlead/lab-usage-tracker/blob/master/src/common.js"></script>
-
-
-    #+END_SRC
-       
 * JSON formed to be written in elasticsearch 
   #+BEGIN_SRC command
   {
@@ -274,7 +172,7 @@ function popup(){
  }
   #+END_SRC 
 
-* Sample visalizations
+
 
 
 
