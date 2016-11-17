@@ -49,8 +49,8 @@ def fetch_analytics(analytics):
     	json_data = json.dumps(data_dict)
         try:
                 pass
-    #		es = Elasticsearch([{'host':'some-server.domain', 'port':some-port}])
-    #		es.index(index="some-indexx", doc_type="some-doc-type", body=data_dict)
+    		es = Elasticsearch([{'host':'some-server.domain', 'port':some-port}])
+    		es.index(index="some-indexx", doc_type="some-doc-type", body=data_dict)
         except Exception as e:
                 print e
 

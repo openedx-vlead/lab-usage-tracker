@@ -10,10 +10,10 @@
   This document illustrates building of the REST API.
 
   
-* REST
-
+* Analytics
+  
 ** Fetch analytis 
-    Analytics 
+   Route/API to fetch analytics. 
 
  #+NAME: get_analytics
  #+BEGIN_SRC python
@@ -69,10 +69,10 @@ def hello():
  #+END_SRC
 
 
- * Infra                                                         :boilerplate:
+* Infra 							:boilerplate:
 
- ** sources
- *** Imports 
+** sources
+*** Imports 
  #+name: imports_for_sources
  #+BEGIN_SRC python
 

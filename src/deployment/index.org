@@ -112,7 +112,7 @@ exit 0;
 
 * Deploying the application
 
-#+BEGIN_SRC python :tangle feedback.wsgi :eval no
+#+BEGIN_SRC python :tangle analytics.wsgi :eval no
 
 import sys, os
 
