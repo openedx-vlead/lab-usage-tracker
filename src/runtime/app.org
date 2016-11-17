@@ -13,26 +13,24 @@
 * Run Server
 #+NAME: run_server
 #+BEGIN_SRC python
-
+    
 if __name__ == '__main__':
-    app.run(host = "0.0.0.0")
+     app.run(host = "0.0.0.0")
 #+END_SRC
 
 * Infra
 ** sources
 
 *** Imports
-   #+name: imports_for_sources
-   #+BEGIN_SRC python
- 
-    from flask import Flask
-    from flask_cors import CORS, cross_origin
-    from api import *
-
-    app = Flask(__name__)
-    CORS(app)
-
-    #+END_SRC
+#+name: imports_for_sources
+#+BEGIN_SRC python
+from flask import Flask
+from flask_cors import CORS, cross_origin
+from api import *
+app = Flask(__name__)
+CORS(app)
+       
+#+END_SRC
 * Tangle                                                        :boilerplate:
 #+BEGIN_SRC python :tangle app.py :eval no :noweb yes
 <<imports_for_sources>>
