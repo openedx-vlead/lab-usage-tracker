@@ -12,7 +12,7 @@
   [[https://github.com/openedx-vlead/port-labs-to-openedx/blob/develop/src/analytics-setup/presentations/sprint2/images/VLABS%20Open%20edx%20Architecture%20Diagram.jpg][VLABS architecture diagram]]
 
   OpenedX server ---- POST ---->> Analytics API ---- POST ---->> Elasticsearch
-
+  
 * Design
   + As per the design, students will visit VLABS OpenedX and will
     access a Lab. When a student clicks an experiment section to
@@ -26,7 +26,8 @@
     format.
   + Kibana using its visualization then represents the graphs
     obtained.
-  
+  + Information on implementation of ELK node can be [[https://github.com/openedx-vlead/elk-stack-for-analytics][read here]]
+
 * Definitions 
   + Usages ::
     + A student performing an experiments of a lab is considered to be
@@ -39,8 +40,7 @@
   + Python Flask 
   + Apache web server 
  
-
-* Steps to install and configure Analytics API and other packages 
+* Steps to install and configure Analytics Server 
 ** Installing server components 
 *** Install required packages, libraries 
    #+BEGIN_SRC command
@@ -155,8 +155,6 @@
      #+END_SRC
 
 
-
-
 * JSON formed to be written in elasticsearch 
   #+BEGIN_SRC command
   {
@@ -192,11 +190,9 @@
 
 
 
-
 * References
-  + Install Redis - https://hostpresto.com/community/tutorials/how-to-install-and-configure-redis-on-ubuntu-14-04/
-  + Install ELK and Nginx - https://www.digitalocean.com/community/tutorials/how-to-install-elasticsearch-logstash-and-kibana-elk-stack-on-ubuntu-14-04
-  + Install Flask CORS - https://flask-cors.readthedocs.io/en/latest/
-  + Install Flask - http://flask.pocoo.org/docs/0.11/installation/
-  + Learn ELK - https://www.elastic.co/products
+  + [[https://hostpresto.com/community/tutorials/how-to-install-and-configure-redis-on-ubuntu-14-04/][Install Redis]]
+  + [[https://flask-cors.readthedocs.io/en/latest/][Install Flask CORS]]
+  + [[http://flask.pocoo.org/docs/0.11/installation/][Install Flask]]
+
    
