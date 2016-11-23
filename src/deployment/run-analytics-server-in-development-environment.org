@@ -1,4 +1,4 @@
-#+TITLE: UserDirectory
+#+TITLE: Analytics API Server on user machine development environment
 #+Author: VLEAD
 #+Date: [2016-05-05 Thu]
 #+PROPERTY: results output
@@ -6,37 +6,11 @@
 #+SETUPFILE: ./org-templates/level-0.org
 #+options: ^:nil
 
-* Creation of database
-  - Login to mysql
-    #+BEGIN_EXAMPLE
-    mysql -u <username> -p<password>
-    #+END_EXAMPLE
-  - Show all databases
-    #+BEGIN_EXAMPLE
-    show databases;
-    #+END_EXAMPLE
-  - If <userdirectory> database is not present, create it
-    #+BEGIN_EXAMPLE
-    create database outreach
-    #+END_EXAMPLE
-  
-    Exit our of the mysql console
-
-* Creation of Virtual Environment
-
-  + Create Virtual Environemnt in the =outreach= directory
-  #+BEGIN_EXAMPLE
-  virtualenv venv
-  #+END_EXAMPLE
-  + Activate the Virtual Environment
-  #+BEGIN_EXAMPLE
-  source venv/bin/activate
-  #+END_EXAMPLE
 
 
 * Setting up dependencies
 
-  Install all the dependencies for running the =outreach= applciation.
+  Install all the dependencies for running the =analytics server= application.
   The =setup.py= script is in the =build/code= directory
   #+BEGIN_EXAMPLE
   cd <path to build/code directory>
@@ -44,19 +18,11 @@
   #+END_EXAMPLE
 
 
-* Set SQLALCHEMY_DATABASE_URI
-  The variable =SQLALCHEMY_DATABASE_URI= has to be set to proper value in
-  =build/code/src/config.py= so that the application can use the database.
-  #+BEGIN_EXAMPLE
-  SQLALCHEMY_DATABASE_URI = 'mysql+oursql://root:mysql@localhost/userdirectory'
-  #+END_EXAMPLE
-
-* Insert Dafault data
-  Run db_setup.py to insert roles and an admin user. 
-  #+BEGIN_EXAMPLE
-  cd build/code
-  python db_setup.py
-  #+END_EXAMPLE
+* Install Elasticsearch database in your development machine 
+  Analytics API server connects with Elasticsearch and write logs to
+  elasticsearch database. To setup a development environment, user
+  must install elasticsearch database.  Refer [[https://github.com/openedx-vlead/elk-stack-for-analytics/blob/master/src/index.org#install-elk][to install Elasticsearch]]
+  
 
 * Run the application
   
