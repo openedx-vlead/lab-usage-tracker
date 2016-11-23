@@ -31,10 +31,6 @@ ABS_PATH_DS=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
 update_app_config () {
   CONFIG_FILE="../runtime/config/flask_app_config.py"
-  DB_USER="root"
-  DB_PASS=$(cat db_pass.txt)
-  DB_NAME="feedback"
-  DB_SERVER="localhost"
 
   # the list of white-listed IPs for POST/PUT requests to data service
   WHITELIST_IPS="['127.0.0.1']"
@@ -44,12 +40,6 @@ update_app_config () {
 
   echo "Updating config.py.."
   # Update parts of the DB URI
-  sed -i "s/<userid>/$DB_USER/" $ABS_PATH_DS/$CONFIG_FILE
-  sed -i "s/<password>/$DB_PASS/" $ABS_PATH_DS/$CONFIG_FILE
-  sed -i "s/<servername>/$DB_SERVER/" $ABS_PATH_DS/$CONFIG_FILE
-  sed -i "s/<db_name>/$DB_NAME/" $ABS_PATH_DS/$CONFIG_FILE
-  # update SQLALCHEMY_ECHO
-  sed -i "s/^SQLALCHEMY_ECHO.*$/SQLALCHEMY_ECHO = False/" $ABS_PATH_DS/$CONFIG_FILE
   # update WHITELIST_IPS
   #sed -i "s/^WHITELIST_IPS.*$/WHITELIST_IPS = $WHITELIST_IPS/" $CONFIG_FILE
   # update ALLOWED_ORIGINS
@@ -61,8 +51,8 @@ update_app_config () {
 }
 
 update_apache_config() {
-  PROC_NAME="feedback"
-  WSGI_SCRIPT="feedback.wsgi"
+  PROC_NAME="analytics"
+  WSGI_SCRIPT="analytics.wsgi"
   APACHE_VHOST_FILE="/etc/apache2/sites-available/default"
 
   sed -i "/<\/VirtualHost>/i \
@@ -80,16 +70,6 @@ update_apache_config() {
   #    Allow from all
   #  </Directory>
   #' $APACHE_VHOST_FILE
-
-}
-
-setup_db() {
-  echo "Creating database: $DB_NAME"
-  mysql -u $DB_USER -p$DB_PASS -Bse "create database $DB_NAME;"
-  if [[ $? -ne 0 ]]; then
-    echo "Failed to create database $DB_NAME"
-    exit 1;
-  fi
 
 }
 
