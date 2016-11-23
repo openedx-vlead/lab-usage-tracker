@@ -1,109 +1,102 @@
+
 {
-    "lab": {
-        "build_requirements": {
-            "platform": {
-                "arch": "i386",
-                "build_steps": {
-                    "build": [],
-                    "configure": [],
-                    "post_build": [],
-                    "pre_build": [],
-                    "status": []
-                },
-                "installer": [],
-                "os": "ubuntu",
-                "osVersion": "12",
-                "service_pack": ""
-            }
+  "lab": {
+    "description": {
+      "name": "Analytics API Server",
+      "id": "analyticsv1",
+      "status": "working code",
+      "discipline": [],
+      "type": "",
+      "server-side": true,
+      "integration_level": 6,
+      "developer": [
+        {
+          "name": "Ashay Maheshwari",
+          "title": "",
+          "role": "Project Engineer",
+          "organization": "VLEAD",
+          "institute": "IIIT Hyderabad",
+          "web": "",
+          "department": "Software Engg Research Lab (SERL)",
+          "contact": {
+            "email": "ashay@vlabs.ac.in",
+            "alternate_email": "",
+            "mobile_number": "",
+            "office_number": ""
+          }
         },
-        "description": {
-            "developer": [
-                {
-                    "contact": {
-                        "alternate_email": "",
-                        "email": "",
-                        "mobile_number": "",
-                        "office_number": ""
-                    },
-                    "department": "",
-                    "institute": "",
-                    "name": "",
-                    "organization": "",
-                    "role": "",
-                    "title": "",
-                    "web": ""
-                },
-                {
-                    "contact": {
-                        "alternate_email": "",
-                        "email": "",
-                        "mobile_number": "",
-                        "office_number": ""
-                    },
-                    "department": "",
-                    "institute": "",
-                    "name": "",
-                    "organization": "",
-                    "role": "",
-                    "title": "",
-                    "web": ""
-                }
-            ],
-            "discipline": [
-                ""
-            ],
-            "id": "elk-stack-analytics",
-            "integration_level": 1,
-            "name": "Analytics ELK server",
-            "server-side": true,
-            "status": "Not Released",
-            "type": "Service"
-        },
-        "runtime_requirements": {
-            "platform": {
-                "arch": "i386",
-                "hosting": "dedicated",
-                "installer": [
-                  "sudo apt-get update",
-		  "sudo apt-get -y install build-essential",
-		  "sudo apt-get -y install binutils",
-                  "sudo apt-get -y install binutils-doc",
-                  "sudo apt-get -y install python-dev python3-dev",
-                  "sudo apt-get -y install python-pip",
-                  "sudo apt-get -y install git",
-                  "sudo apt-get -y install nginx apache2-utils",
-                  "pip install Flask",
-                  "pip install -U flask-cors",
-                  "sudo apt-get update",
-                  "pip install elasticsearch",
-                  "sudo apt-get update",
-                  "sudo apt-get -y install supervisor"
-                  ],
-                "lab_actions": {
-                    "backup": [],
-                    "clean": [],
-                    "init": [],
-                    "pause": [],
-                    "publish": [],
-                    "restore": ["./restore"],
-                    "resume": [],
-                    "shutdown": [],
-                    "start": ["./start"],
-                    "stats": [],
-                    "stop": ["./stop"]
-                },
-                "memory": {
-                    "max_required": "2gb",
-                    "min_required": "256mb"
-                },
-                "os": "ubuntu",
-                "osVersion": "12",
-                "servicepack": "",
-                "storage": {
-                    "min_required": "10gb"
-                }
-            }
+      ]
+     },
+    "build_requirements": {
+      "platform": {
+        "os": "ubuntu",
+        "osVersion": "12",
+        "arch": "x64",
+        "service_pack": "",
+        "installer": [
+        ],
+        "build_steps": {
+          "configure": [],
+          "pre_build": [],
+          "build": [
+            "cd ../;make build"
+          ],
+          "post_build": [
+            "cp -R ../build/code/* /var/www/",
+            "chmod -R 755 /var/www",
+            "mkdir /var/www/logs",
+            "chmod -R 777 /var/www/logs"
+          ],
+          "status": []
         }
+      }
     },
-    "template": "1.0"
+    "runtime_requirements": {
+      "platform": {
+        "os": "ubuntu",
+        "osVersion": "12",
+        "arch": "x64",
+        "servicepack": "",
+        "hosting": "dedicated",
+        "memory": {
+          "max_required": "4gb",
+          "min_required": "2gb"
+        },
+        "storage": {
+          "min_required": "10gb"
+        },
+        "installer": [
+	  "sudo apt-get update",
+	  "sudo apt-get -y install build-essential",
+	  "sudo apt-get -y install binutils",
+          "sudo apt-get -y install binutils-doc",
+          "sudo apt-get -y install python-dev python3-dev",
+          "sudo apt-get -y install python-pip",
+          "sudo apt-get -y install git",
+          "apt-get install -y libmysqld-dev python-setuptools apache2 libapache2-mod-wsgi"
+          "pip install Flask",
+          "pip install -U flask-cors",
+          "sudo apt-get update",
+          "pip install elasticsearch",
+          "python /var/www/deployment/setup.py install",
+          "bash /var/www/deployment/configure.sh",
+          "PYTHONPATH=/var/www python /var/www/deployment/db_setup.py"
+        ],
+        "lab_actions": {
+          "init"    : [],
+          "shutdown": [],
+          "pause"   : [],
+          "resume"  : [],
+          "start"   : [],
+          "stop"    : [],
+          "backup"  : [],
+          "restore" : [],
+          "clean"   : [],
+          "stats"   : [],
+          "publish" : []
+        }
+      }
+    }
+  },
+  "template": "1.0"
 }
