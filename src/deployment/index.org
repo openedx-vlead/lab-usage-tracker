@@ -90,7 +90,7 @@ setup_db
 exit 0;
 #+END_SRC
 
-* Deploying the application
+* Deploying the application in production
 
 #+BEGIN_SRC python :tangle analytics.wsgi :eval no
 
@@ -108,6 +108,7 @@ application = create_app(config)
 
 #+END_SRC
 
+* [[./run-analytics-server-in-development-environment.org][Deploying the application in user development environment]]
 * Tangle                                       :boilerplate:
 #+BEGIN_SRC python :eval no :tangle __init__.py
 print "deployment package"
