@@ -24,7 +24,7 @@
             "mobile_number": "",
             "office_number": ""
           }
-        },
+        }
       ]
      },
     "build_requirements": {
@@ -73,14 +73,13 @@
           "sudo apt-get -y install python-dev python3-dev",
           "sudo apt-get -y install python-pip",
           "sudo apt-get -y install git",
-          "apt-get install -y libmysqld-dev python-setuptools apache2 libapache2-mod-wsgi"
+          "apt-get install -y libmysqld-dev python-setuptools apache2 libapache2-mod-wsgi",
           "pip install Flask",
           "pip install -U flask-cors",
           "sudo apt-get update",
           "pip install elasticsearch",
           "python /var/www/deployment/setup.py install",
-          "bash /var/www/deployment/configure.sh",
-          "PYTHONPATH=/var/www python /var/www/deployment/db_setup.py"
+          "bash /var/www/deployment/configure.sh"
         ],
         "lab_actions": {
           "init"    : [],
