@@ -9,11 +9,17 @@
 * Introduction 
   This document illustrates building of the Analytics REST API.
 
-
 * Analytics REST
   
 ** Fetch analytis 
-   Route/API to fetch analytics. 
+   + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
+     to analytics server API. Data POSTed is in the url.  Analytics
+     server further converts that data into JSON and sends POST it to
+     Elasticsearch database.
+   + IP address of the Client making the request is evaluated by
+     Analytics server.
+   + Location of the Client is idenfied using an available opensource API 
+     http://freegeoip.net/json/ 
 
 #+NAME: get_analytics
 #+BEGIN_SRC python
@@ -57,7 +63,6 @@ def fetch_analytics(analytics):
    
    
 * Infra                                                         :boilerplate:
-
 ** sources
 *** Imports 
 #+name: imports_for_sources
@@ -75,9 +80,6 @@ import ast
 api = Blueprint('APIs', __name__)
 
 #+end_src
-
-
-
 
 * Tangle                                                        :boilerplate:
 
