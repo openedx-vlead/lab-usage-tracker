@@ -1,0 +1,64 @@
+#+TITLE: The Flask Web Server
+#+AUTHOR: VLEAD
+#+DATE: [2016-06-07 Tue]
+#+SETUPFILE: ../../org-templates/level-2.org
+#+TAGS: boilerplate(b)
+#+EXCLUDE_TAGS: boilerplate
+#+OPTIONS: ^:nil
+
+* Introduction
+  The application that runs the FLASK web server
+
+  
+* Flask Server
+#+NAME: application
+#+BEGIN_SRC python
+def create_app(config):
+    # init our app
+    app = Flask(__name__)
+    app.secret_key = 'djfjsdkjXXS7979dfdfd'
+    # load config values from the config file
+    #app.config.from_object(config)
+    cors = CORS(app, resources={r"/*": {"origins": "*"}})
+    # init sqlalchemy db instance
+    #db.init_app(app)
+    #db.app = app
+    # register blueprints
+    app.register_blueprint(api)
+    #configure_logging(app)
+    #configure_errorhandlers(app)
+    #  configure_cors(app)
+    # all set; return app object
+    #configure_system()
+    return app.run(host="0.0.0.0")
+
+#+END_SRC
+
+  
+
+* Run Server
+#+BEGIN_SRC python
+#+NAME: run_server
+if __name__ == "__main__":
+    app = create_app()
+   
+#+END_SRC
+
+
+* Imports                                                       :boilerplate:
+#+NAME: imports
+#+BEGIN_SRC python
+# -*- coding: utf-8 -*-
+from flask import Flask
+from flask_cors import CORS, cross_origin
+from runtime.rest.api import api
+
+#+END_SRC
+
+
+* Tangle                                                        :boilerplate:
+#+BEGIN_SRC python :tangle app.py :eval no :noweb yes
+<<imports>>
+<<application>>
+<<run_server>>
+#+END_SRC
