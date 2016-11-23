@@ -13,7 +13,7 @@
 * Flask Server
 #+NAME: application
 #+BEGIN_SRC python
-def create_app(config):
+def create_app():
     # init our app
     app = Flask(__name__)
     app.secret_key = 'djfjsdkjXXS7979dfdfd'
