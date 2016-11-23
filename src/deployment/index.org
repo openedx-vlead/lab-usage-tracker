@@ -185,7 +185,7 @@ sys.path.insert(0, BASE_DIR)
 from runtime.rest.app import create_app
 from runtime.config import flask_app_config as config
 
-application = create_app(config)
+application = create_app()
 
 #+END_SRC
 
