@@ -8,8 +8,28 @@
 
 
 * Introduction 
-  The =design= of the =Feedback Portal/Service= is captured here.
+  The =design= of the =Analytics Service= is captured here.
 
+* Architecture diagram
+  Refer the diagram given below - 
+  [[https://github.com/openedx-vlead/port-labs-to-openedx/blob/develop/src/analytics-setup/presentations/sprint2/images/VLABS%20Open%20edx%20Architecture%20Diagram.jpg][VLABS architecture diagram]]
+
+  OpenedX server ---- POST ---->> Analytics API ---- POST ---->> Elasticsearch
+  
+* Flow 
+    + As per the design, students will visit VLABS OpenedX and will
+    access a Lab. When a student clicks an experiment section to
+    perform an experiment, data related to the experiment (Experiment
+    name, Experiment ID, Lab name, Lab ID, User ID) is POSTed to
+    Analytics API server.
+  + Analytics API server further evaluates the IP address of the
+    client and obtains (GET) the location of the IP address using
+    http://freegeoip.net/json/<your-ip-address>.
+  + Analytics API server then POST the data to Elasticsearch in JSON
+    format.
+  + Kibana using its visualization then represents the graphs
+    obtained.
+  + Information on implementation of ELK node can be [[https://github.com/openedx-vlead/elk-stack-for-analytics][read here]]
 
 * Application Programming Interface
   :PROPERTIES:
