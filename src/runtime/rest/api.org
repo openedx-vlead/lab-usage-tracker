@@ -23,6 +23,11 @@
 
 #+NAME: get_analytics
 #+BEGIN_SRC python
+elastic_host = "http://vlabs-analytics.vlabs.ac.in"
+elastic_port =  9400
+elastic_index = "vlabs"
+elastic_doc_type = "usage"
+
 @api.route('/<analytics>',methods= ['GET','POST'])
 def fetch_analytics(analytics):
         data = request.data
@@ -49,10 +54,32 @@ def fetch_analytics(analytics):
         #print ip_dir
    
         json_data = json.dumps(data_dict)
-        try:
-                es = Elasticsearch([{'host':'some-server.domain', 'port':some-port}])
-                es.index(index="some-indexx", doc_type="some-doc-type", body=data_dict)
-        except Exception as e:
+        try:    
+                
+		es = Elasticsearch(hosts = [elastic_host])
+                elastic_index = "vlabs"		
+ 		if es.indices.exists(INDEX_NAME):
+    			print "Index already exists"
+		else:
+        		request_body = {
+                		"index" : {
+		                  "analysis": {
+                		    "analyzer": {
+		                       "default": {
+		                         "type":"keyword"
+                		    }
+	                	   }
+	                	  }
+	              	 	 }
+       		    		}
+
+		        print("creating '%s' index..." % (elastic_index))
+        		res = es.indices.create(index = elastic_index, body = request_body)
+        		print(" response: '%s'" % (res))
+
+                	es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
+	                es.index(index = elastic_index, doc_type = usage, body=data_dict)
+       	except Exception as e:
                 print e
    
    
