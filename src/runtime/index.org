@@ -8,20 +8,7 @@
 
 The =runtime= of the application is defined by:
 
- - [[./objects/index.org][=Objects=]]  
-
- - [[./persistence/index.org][=Persistence=]]
-
- - [[./system/index.org][=System=]]
-
  - =REST API=
-
- - =Web Front End=
-
- - [[./utils/index.org][=Utilities=]]
-
- - [[./exceptions/exceptions.org][=Exceptions=]]
-
 
 * Tangle                                       :boilerplate:
 #+BEGIN_SRC python :eval no :tangle __init__.py
