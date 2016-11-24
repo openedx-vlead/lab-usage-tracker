@@ -53,29 +53,10 @@
    sudo apt-get -y intall git emacs 
    #+END_SRC
 
-*** Install Nginx
-   #+BEGIN_SRC command
-   sudo apt-get install nginx apache2-utils
-   sudo service nginx restart
-   #+END_SRC
-
 *** Install Python flask and flask CORS
    #+BEGIN_SRC command
    pip install Flask
    pip install -U flask-cors
-   #+END_SRC
-
-*** Install Redis server 
-   #+BEGIN_SRC command
-   sudo apt-get update $ sudo apt-get upgrade
-   sudo apt-get -y install redis-server
-   sudo service redis-server start
-   #+END_SRC
-
-*** Install Redis-python client
-   #+BEGIN_SRC command
-   sudo apt-get udpate
-   sudo pip install redis
    #+END_SRC
 
 *** Install Elasticsearch-python client
@@ -84,75 +65,6 @@
    pip install elasticsearch
    #+END_SRC
 
-*** Install supervisor
-   #+BEGIN_SRC command
-   sudo apt-get update
-   sudo apt-get install supervisor
-   sudo service supervisor start
-   #+END_SRC
-
-** Configuring server components
-*** Configure Nginx 
-   + Configure Nginx for Flask API and ELK ::
-     Open file /etc/nginx/sites-enabled/default and add below given lines
-     #+BEGIN_SRC command
-     server {
-
-	listen 4000;
-        server_name some-server.vlabs.ac.in;
-
-        location / {
-            proxy_pass http://127.0.0.1:5000/;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-NginX-Proxy true;
-            add_header 'Access-Control-Allow-Origin' '*';
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-        } #end location block
-      } #end server block
-
-   server {
-	server_name some-server.vlabs.ac.in;
-	location / {
-            proxy_pass http://127.0.0.1:8000/;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-NginX-Proxy true;  
-            add_header 'Access-Control-Allow-Origin' '*';
-            # proxy_pass  http://picominer-backend;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection "upgrade";
-	} # end location block
-     } #end server block
-   
-   server {
-     listen 80;
-
-     server_name example.com;
-
-     auth_basic "Restricted Access";
-     auth_basic_user_file /etc/nginx/htpasswd.users;
-
-    location / {
-        proxy_pass http://localhost:5601;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host $host;
-        proxy_cache_bypass $http_upgrade;
-    }
-  }
-
-     #+END_SRC
-   + Restart Nginx server ::
-     #+BEGIN_SRC command
-     sudo service nginx restart
-     #+END_SRC
 
 
 * JSON formed to be written in elasticsearch 
