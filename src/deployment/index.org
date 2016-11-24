@@ -10,6 +10,7 @@
   This document will illustrate installation of all the dependencies required
   for setting up the application.
 
+
 * Install dependendent python packages
   Here we use the =setuptools= module from the standard lib, to make a
   =setup.py= file, which will install all the python library
@@ -92,6 +93,7 @@ exit 0
 
 #+END_SRC
 
+
 * Configuring the application and its deployment
   The following program configures the application, configures the web server
   to use WSGI and use the application scripts.
@@ -167,10 +169,10 @@ fi
 
 service apache2 restart
 export PYTHONPATH="/var/www"
-setup_db
 exit 0;
 
 #+END_SRC
+
 
 * Deploying the application
 
@@ -190,6 +192,7 @@ application = create_app()
 
 #+END_SRC
   
+
 * Tangle                                       :boilerplate:
 #+BEGIN_SRC python :eval no :tangle __init__.py
 print "deployment package"
