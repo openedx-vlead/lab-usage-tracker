@@ -20,7 +20,19 @@
      Analytics server.
    + Location of the Client is idenfied using an available opensource API 
      http://freegeoip.net/json/ 
-
+   + Following sample analytics is captured in JSON format -
+     #+BEGIN_SRC command
+     {
+    "DATE_OF_EXPERIMENT": "30-8-2016",
+    "LAB_NAME": "PopulationEcologyII",
+    "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
+    "TIME_OF_EXPERIMENT": "19:49",
+    "COURSE_ID": "blockv1UniversityYPS01Anytime",
+    "IP_ADDRESS": "196.12.53.130"
+    "Location" : "Telengana"
+    }
+     #+END_SRC
+  
 #+NAME: get_analytics
 #+BEGIN_SRC python
 elastic_host = "http://vlabs-analytics.vlabs.ac.in"
