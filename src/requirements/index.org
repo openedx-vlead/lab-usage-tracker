@@ -10,6 +10,13 @@
 * Introduction 
   The requirements of =Analytics Service= are listed here.
 
+* Definitions 
+  + Usages ::
+    + A student performing an experiments of a lab is considered to be
+      a single usage.  This is captured by capturing a click on the
+      Experiment section of Open edX.
+    + If there are 3 experiments in a lab, A lab will have 3 usages
+      and experiment will have 1 usage.
 
 * Ability of the VLABS OpenedX plaform to fetch analytics when user performs experiment
   A user visits OpenedX course.
