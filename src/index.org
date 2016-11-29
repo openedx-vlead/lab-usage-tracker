@@ -10,39 +10,25 @@
   This document reveals the technologies used, architecture diagram,
   installation and configuration of analytics API server.
 
-* Architecture diagram
-  Refer the diagram given below - 
-  [[https://github.com/openedx-vlead/port-labs-to-openedx/blob/develop/src/analytics-setup/presentations/sprint2/images/VLABS%20Open%20edx%20Architecture%20Diagram.jpg][VLABS architecture diagram]]
 
-  OpenedX server ---- POST ---->> Analytics API ---- POST ---->> Elasticsearch
-  
-* Design
-  + As per the design, students will visit VLABS OpenedX and will
-    access a Lab. When a student clicks an experiment section to
-    perform an experiment, data related to the experiment (Experiment
-    name, Experiment ID, Lab name, Lab ID, User ID) is POSTed to
-    Analytics API server.
-  + Analytics API server further evaluates the IP address of the
-    client and obtains (GET) the location of the IP address using
-    http://freegeoip.net/json/<your-ip-address>.
-  + Analytics API server then POST the data to Elasticsearch in JSON
-    format.
-  + Kibana using its visualization then represents the graphs
-    obtained.
-  + Information on implementation of ELK node can be [[https://github.com/openedx-vlead/elk-stack-for-analytics][read here]]
+* Application
+  Analytics APi is used to fetch get analytics from VLABS Open edX.
+  Following are the sections to illustrate API server.
 
-* Definitions 
-  + Usages ::
-    + A student performing an experiments of a lab is considered to be
-      a single usage.  This is captured by capturing a click on the
-      Experiment section of Open edX.
-    + If there are 3 experiments in a lab, A lab will have 3 usages
-      and experiment will have 1 usage.
+1. [[./requirements/index.org][Requirements]]
+
+2. [[./design/index.org][Design]]
+
+3. [[./runtime/index.org][Runtime]]
+
+4. [[./deployment/index.org][Deployment]]
+
 
 * Technologies used
   + Python Flask 
   + Apache web server 
  
+
 * Steps to install and configure Analytics Server 
 ** Installing server components 
 *** Install required packages, libraries 
@@ -70,18 +56,7 @@
 
 
 
-* JSON formed to be written in elasticsearch 
-  #+BEGIN_SRC command
-  {
-    "DATE_OF_EXPERIMENT": "30-8-2016",
-    "LAB_NAME": "PopulationEcologyII",
-    "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
-    "TIME_OF_EXPERIMENT": "19:49",
-    "COURSE_ID": "blockv1UniversityYPS01Anytime",
-    "IP_ADDRESS": "196.12.53.130"
-    "Location" : "Telengana"
-  }
-  #+END_SRC
+
 * Sample analytics obtained in elasticsearch database 
   #+BEGIN_SRC command
   {
