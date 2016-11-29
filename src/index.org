@@ -1,7 +1,7 @@
 #+Title: Vlabs Analytics API for Open edX
 #+Date: Tuesday, September 20, 2016 
 #+Author: VLEAD Systems team
-#+SETUPFILE: ../org-templates/level-1.org
+#+SETUPFILE: ./org-templates/level-1.org
 #+TAGS: boilerplate(b)
 #+EXCLUDE_TAGS: boilerplate
 #+OPTIONS: ^:nil

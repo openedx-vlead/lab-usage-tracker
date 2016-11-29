@@ -55,7 +55,6 @@ def fetch_analytics(analytics):
    
         json_data = json.dumps(data_dict)
         try:    
-                
 		es = Elasticsearch(hosts = [elastic_host])
                 elastic_index = "vlabs"		
  		if es.indices.exists(INDEX_NAME):

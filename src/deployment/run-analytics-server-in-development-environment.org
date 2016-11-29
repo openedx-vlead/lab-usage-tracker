@@ -21,7 +21,7 @@
 * Install Elasticsearch database in your development machine 
   Analytics API server connects with Elasticsearch and write logs to
   elasticsearch database. To setup a development environment, user
-  must install elasticsearch database.  Refer [[https://github.com/openedx-vlead/elk-stack-for-analytics/blob/master/src/index.org#install-elk][to install Elasticsearch]]
+  must install elasticsearch database.  Refer [[https://github.com/openedx-vlead/elk-stack-for-analytics/blob/master/src/index.org#install-elk][installation of Elasticsearch]]
   
 
 * Run the application
