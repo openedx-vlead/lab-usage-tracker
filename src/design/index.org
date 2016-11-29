@@ -51,21 +51,5 @@
 
   - Error Response:
     
-  
-* Services Interplay
-  :PROPERTIES:
-  :CUSTOM_ID: services_interplay
-  :END:          
-    The following diagram summarizes the interplay of different services that
-    enable collection of feedback and integration with =virtual labs= and
-    =outreach portal=.
-
-#+BEGIN_HTML
-<img src="https://docs.google.com/drawings/d/1h7Tqof8X9u_V3qKAs8Yu6Jk9VzxjIzDz78FynwGYCVk/pub?w=960&amp;h=720">
-<p align="center"> Services Interplay </p>
-#+END_HTML
-
-  To edit the analytics relations image click [[https://docs.google.com/drawings/d/1h7Tqof8X9u_V3qKAs8Yu6Jk9VzxjIzDz78FynwGYCVk/edit?usp=sharing][here]]
-
-  
+    
 
