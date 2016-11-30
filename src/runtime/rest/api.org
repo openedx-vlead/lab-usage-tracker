@@ -69,7 +69,7 @@ def fetch_analytics(analytics):
         try:    
 		es = Elasticsearch(hosts = [elastic_host])
                 elastic_index = "vlabs"		
- 		if es.indices.exists(INDEX_NAME):
+ 		if es.indices.exists(elastic_host):
     			print "Index already exists"
 		else:
         		request_body = {
