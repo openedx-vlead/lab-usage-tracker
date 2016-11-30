@@ -22,7 +22,48 @@ KEY="defaultkey"
 #+END_SRC
 
 
+* Flask Application Configuration
+  Configuration for the flask application. 
+#+NAME: flask_app_config
+#+BEGIN_SRC python
+#Elasticsearch DB variables 
+elastic_host = "http://vlabs-analytics.vlabs.ac.in"
+elastic_port =  "9400"
+elastic_index = "vlabs"
+elastic_doc_type = "usage"
+
+#Request body for disabling string analyzer in elasticsearch
+request_body = {"index" : {"analysis": {"analyzer": {"default": {"type":"keyword"}}}}}
+
+
+# List of allowed origins for CORS
+ALLOWED_ORIGINS = "['*']"
+
+# List of allowed IPs
+WHITELIST_IPS = ["127.0.0.1"]
+
+# Configure your log paths
+LOG_FILE_DIRECTORY = 'logs'
+LOG_FILE = 'analytics.log'
+
+# Log level for the application
+#10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR, 50=CRITICAL",
+LOG_LEVEL = 10
+
+#Configure the versions of generic feedback forms
+GENERIC_FEEDBACK_VERSION = 'generic-analytics-v1.0'
+
+
+#+END_SRC
+
+
 * Tangling                                                      :boilerplate:
+
+** flask_app_config
+#+BEGIN_SRC python :tangle flask_app_config.py :eval no :noweb yes
+<<flask_app_config>>
+#+end_src
+
 ** system_config
 #+BEGIN_SRC python :tangle system_config.py :eval no :noweb yes
 <<system_config>>
