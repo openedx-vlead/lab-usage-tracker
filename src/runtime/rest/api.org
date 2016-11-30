@@ -35,10 +35,10 @@
   
 #+NAME: get_analytics
 #+BEGIN_SRC python
-elastic_host = "http://vlabs-analytics.vlabs.ac.in"
-elastic_port =  9400
-elastic_index = "vlabs"
-elastic_doc_type = "usage"
+#elastic_host = "http://vlabs-analytics.vlabs.ac.in"
+#elastic_port =  9400
+#elastic_index = "vlabs"
+#elastic_doc_type = "usage"
 
 @api.route('/<analytics>',methods= ['GET','POST'])
 def fetch_analytics(analytics):
@@ -72,17 +72,17 @@ def fetch_analytics(analytics):
  		if es.indices.exists(elastic_host):
     			print "Index already exists"
 		else:
-        		request_body = {
-                		"index" : {
-		                  "analysis": {
-                		    "analyzer": {
-		                       "default": {
-		                         "type":"keyword"
-                		    }
-	                	   }
-	                	  }
-	              	 	 }
-       		    		}
+#        		request_body = {
+#                		"index" : {
+#		                  "analysis": {
+#                		    "analyzer": {
+#		                       "default": {
+#		                         "type":"keyword"
+#                		    }
+#	                	   }
+#	                	  }
+#	              	 	 }
+#       		    		}
 
 		        print("creating '%s' index..." % (elastic_index))
         		res = es.indices.create(index = elastic_index, body = request_body)
