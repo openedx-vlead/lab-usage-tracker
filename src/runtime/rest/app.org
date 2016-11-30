@@ -17,15 +17,15 @@ def create_app(config):
     # init our app
     app = Flask(__name__)
     app.secret_key = 'djfjsdkjXXS7979dfdfd'
-    # load config values from the config file
+    #load config values from the config file
     #app.config.from_object(config)
     cors = CORS(app, resources={r"/*": {"origins": "*"}})
     
     # register blueprints
     app.register_blueprint(api)
-    #configure_logging(app)
+    configure_logging(app)
     #configure_errorhandlers(app)
-    #  configure_cors(app)
+    #configure_cors(app)
     # all set; return app object
     #configure_system()
     return app.run(host="0.0.0.0")
