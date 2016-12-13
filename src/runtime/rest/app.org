@@ -28,7 +28,8 @@ def create_app(config):
     #configure_cors(app)
     # all set; return app object
     #configure_system()
-    return app.run(host="0.0.0.0")
+    #return app.run(host="0.0.0.0")
+    return app
 
 #+END_SRC
 
