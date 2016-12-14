@@ -9,6 +9,7 @@
 * Introduction 
   This document illustrates building of the Analytics REST API.
 
+
 * Analytics REST
   
 ** Fetch analytis 
@@ -35,10 +36,10 @@
   
 #+NAME: get_analytics
 #+BEGIN_SRC python
-#elastic_host = "http://vlabs-analytics.vlabs.ac.in"
-#elastic_port =  9400
-#elastic_index = "vlabs"
-#elastic_doc_type = "usage"
+elastic_host = "http://vlabs-analytics.vlabs.ac.in"
+elastic_port =  9400
+elastic_index = "vlabs"
+elastic_doc_type = "usage"
 
 @api.route('/<analytics>',methods= ['GET','POST'])
 def fetch_analytics(analytics):
@@ -66,32 +67,20 @@ def fetch_analytics(analytics):
         #print ip_dir
    
         json_data = json.dumps(data_dict)
-        try:    
-		es = Elasticsearch(hosts = [elastic_host])
-                elastic_index = "vlabs"		
- 		if es.indices.exists(elastic_host):
-    			current_app.logger.debug("Index already exists")
-		else:
-#        		request_body = {
-#                		"index" : {
-#		                  "analysis": {
-#                		    "analyzer": {
-#		                       "default": {
-#		                         "type":"keyword"
-#                		    }
-#	                	   }
-#	                	  }
-#	              	 	 }
-#       		    		}
-
-		        current_app.logger.debug("creating '%s' index..." % (elastic_index))
-        		res = es.indices.create(index = elastic_index, body = request_body)
-        		current_app.logger.debug(" response: '%s'" % (res))
-
-                	es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
-	                es.index(index = elastic_index, doc_type = usage, body=data_dict)
-       	except Exception as e:
-                current_app.logger.error(e)
+       
+        es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
+        elastic_index = "vlabs"		
+        if es.indices.exists(elastic_host):
+    		current_app.logger.debug("Index already exists")
+                es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
+	        es.index(index = elastic_index, doc_type = usage, body=data_dict)
+       
+	else:
+		current_app.logger.debug("creating '%s' index..." % (elastic_index))
+        	res = es.indices.create(index = elastic_index, body = request_body)
+        	current_app.logger.debug(" response: '%s'" % (res))
+	        es.index(index = elastic_index, doc_type = usage, body=data_dict)
+       
    
    
         return "Hello {}!".format(analytics) 
@@ -111,6 +100,7 @@ import json
 import time
 import datetime
 import os
+from runtime.config.flask_app_config import *
 from flask import send_from_directory, current_app
 from flask import request, Blueprint
 from elasticsearch import Elasticsearch
