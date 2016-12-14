@@ -143,6 +143,7 @@ from runtime.rest.api import api
 import os
 #import config
 from runtime.config import flask_app_config as config
+from runtime.config.flask_app_config import *
 from runtime.config.flask_app_config import LOG_FILE_DIRECTORY
 from runtime.config.flask_app_config import LOG_FILE
 from runtime.config.flask_app_config import LOG_LEVEL
