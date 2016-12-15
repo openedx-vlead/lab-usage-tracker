@@ -1,0 +1,13 @@
+#+TITLE: Analytics Server V1.0
+#+AUTHOR: VLEAD
+#+DATE: [2016-12-15]
+
+* Introduction
+  This document will describes the release notes of =Analytics server API=
+  version =v1.0=.
+* Features
+  + Ability to GET analytics parameters from Open edX. Parameters
+    include {LAB_NAME, LAB_ID, EXP_NAME, EXP_ID, USER_ID}
+  + Ability to POST data into Elasticsearch database server in JSON
+    Format.
+
