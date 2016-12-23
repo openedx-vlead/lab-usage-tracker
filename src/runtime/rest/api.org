@@ -68,19 +68,16 @@ def fetch_analytics(analytics):
    
         json_data = json.dumps(data_dict)
        
-        es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
-        elastic_index = "vlabs"		
-        if es.indices.exists(elastic_host):
-    		current_app.logger.debug("Index already exists")
-                es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
-	        es.index(index = elastic_index, doc_type = usage, body=data_dict)
-       
-	else:
-		current_app.logger.debug("creating '%s' index..." % (elastic_index))
-        	res = es.indices.create(index = elastic_index, body = request_body)
-        	current_app.logger.debug(" response: '%s'" % (res))
-	        es.index(index = elastic_index, doc_type = usage, body=data_dict)
-       
+
+	es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
+        elastic_index = "vlabs"
+        current_app.logger.debug("creating '%s' index..." % (elastic_index))
+        #res = es.indices.create(index = elastic_index, body = request_body)
+        #current_app.logger.debug(" response: '%s'" % (res))
+
+        es.index(index = elastic_index, doc_type = elastic_doc_type, body=data_dict)
+
+          
    
    
         return "Hello {}!".format(analytics) 
