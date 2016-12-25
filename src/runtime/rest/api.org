@@ -36,10 +36,10 @@
   
 #+NAME: get_analytics
 #+BEGIN_SRC python
-elastic_host = "http://vlabs-analytics.vlabs.ac.in"
-elastic_port =  9400
-elastic_index = "vlabs"
-elastic_doc_type = "usage"
+#elastic_host = "http://vlabs-analytics.vlabs.ac.in"
+#elastic_port =  9400
+#elastic_index = "vlabs"
+#elastic_doc_type = "usage"
 
 @api.route('/<analytics>',methods= ['GET','POST'])
 def fetch_analytics(analytics):
@@ -63,9 +63,7 @@ def fetch_analytics(analytics):
         data = res.text
         ip_dir = ast.literal_eval(data)
         data_dict["REGION"] = ip_dir["region_name"]
-        #print type(ip_dir)
-        #print ip_dir
-   
+        
         json_data = json.dumps(data_dict)
        
 
@@ -106,6 +104,7 @@ import ast
 api = Blueprint('APIs', __name__)
 
 #+end_src
+
 
 * Tangle                                                        :boilerplate:
 
