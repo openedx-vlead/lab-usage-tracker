@@ -36,6 +36,8 @@ elastic_index = "vlabs/usage"
 
 url = elastic_host + elastic_index
 
+headers = {"Content-type":"application/json", "Accept":"text/plain"}
+
 
 
 #Request body for disabling string analyzer in elasticsearch
