@@ -77,6 +77,15 @@
  }
   #+END_SRC 
 
+* Post Deployment 
+  + Login to the analytics api server
+  + Open file /var/www/runtime/config/flask_app_config.py
+  + Set the following variables accordingly
+    #+BEGIN_SRC command
+    elastic_host = "http://<host-name-of-elk-analytics-server>:9400/"
+    elastic_index = "vlabs/usage"
+
+    #+END_SRC
 
 
 
