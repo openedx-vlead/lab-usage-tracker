@@ -36,10 +36,6 @@
   
 #+NAME: get_analytics
 #+BEGIN_SRC python
-#elastic_host = "http://vlabs-analytics.vlabs.ac.in"
-#elastic_port =  9400
-#elastic_index = "vlabs"
-#elastic_doc_type = "usage"
 
 @api.route('/<analytics>',methods= ['GET','POST'])
 def fetch_analytics(analytics):
@@ -67,16 +63,16 @@ def fetch_analytics(analytics):
         json_data = json.dumps(data_dict)
        
 
-	es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
-        elastic_index = "vlabs"
-        current_app.logger.debug("creating '%s' index..." % (elastic_index))
+	#es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
+        #elastic_index = "vlabs"
+        #current_app.logger.debug("creating '%s' index..." % (elastic_index))
         #res = es.indices.create(index = elastic_index, body = request_body)
         #current_app.logger.debug(" response: '%s'" % (res))
 
-        es.index(index = elastic_index, doc_type = elastic_doc_type, body=data_dict)
+        #es.index(index = elastic_index, doc_type = elastic_doc_type, body=data_dict)
 
           
-   
+	res = requests.post(url, data=json_data, headers=headers)   
    
         return "Hello {}!".format(analytics) 
    

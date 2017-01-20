@@ -27,10 +27,16 @@ KEY="defaultkey"
 #+NAME: flask_app_config
 #+BEGIN_SRC python
 #Elasticsearch DB variables 
-elastic_host = "http://vlabs-analytics.vlabs.ac.in"
-elastic_port =  "9400"
-elastic_index = "vlabs"
-elastic_doc_type = "usage"
+#Elasticsearch DB variables 
+elastic_host = "http://10.100.2.40:9400/"
+#elastic_port =  "9400"
+elastic_index = "vlabs/usage"
+#elastic_doc_type = "usage"
+
+
+url = elastic_host + elastic_index
+
+
 
 #Request body for disabling string analyzer in elasticsearch
 request_body = {"index" : {"analysis": {"analyzer": {"default": {"type":"keyword"}}}}}
