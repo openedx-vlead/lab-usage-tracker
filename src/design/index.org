@@ -48,8 +48,17 @@
 
   - Success Response
     + Code: 200/201
+  
+** Get Records count from Elasticsearch server
+  :PROPERTIES:
+  :CUSTOM_ID: display_feedback_form
+  :END:    
+  - URL :: /elkusage
 
-  - Error Response:
-    
-    
+  - Method :: GET
 
+  - URL Params
+    None
+
+  - Success Response
+    + Code: 200
