@@ -35,7 +35,7 @@ def get_elkusage():
 #+END_SRC 
 
 
-** Fetch analytis 
+** Fetch analytics 
    + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
      to analytics server API. Data POSTed is in the url.  Analytics
      server further converts that data into JSON and sends POST it to
