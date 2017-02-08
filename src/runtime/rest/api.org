@@ -12,6 +12,29 @@
 
 * Analytics REST
   
+** Get Analytics Count 
+   + Route/API to fetch analytics from Elasticsearch Server.
+   + API makes a get request to Elasticsearch and gets the total
+     number of analytics record holded.
+   + A call is made as shown using curl command
+     #+BEGIN_SRC command
+     curl http://analytics-api.vlabs.ac.in/elkusage
+     #+END_SRC
+   + Sample response is as shown
+     #+BEGIN_SRC example_response
+     {'count': 7827, '_shards': {'successful': 5, 'failed': 0, 'total': 5}}
+     #+END_SRC
+
+#+NAME: get_elkusage
+#+BEGIN_SRC python
+@api.route('/elkusage')
+def get_elkusage():
+        res = requests.get(count_url)
+        elk_response = ast.literal_eval(res.text)
+        return elk_response 
+#+END_SRC 
+
+
 ** Fetch analytis 
    + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
      to analytics server API. Data POSTed is in the url.  Analytics
@@ -61,20 +84,9 @@ def fetch_analytics(analytics):
         data_dict["REGION"] = ip_dir["region_name"]
         
         json_data = json.dumps(data_dict)
-       
-
-	#es = Elasticsearch([{'host':elastic_host, 'port': elastic_port}])
-        #elastic_index = "vlabs"
-        #current_app.logger.debug("creating '%s' index..." % (elastic_index))
-        #res = es.indices.create(index = elastic_index, body = request_body)
-        #current_app.logger.debug(" response: '%s'" % (res))
-
-        #es.index(index = elastic_index, doc_type = elastic_doc_type, body=data_dict)
-
-          
 	res = requests.post(url, data=json_data, headers=headers)   
    
-        return "Hello {}!".format(analytics) 
+        return "".format(analytics) 
    
  #+END_SRC
 
@@ -108,6 +120,7 @@ api = Blueprint('APIs', __name__)
 #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
 <<imports_for_sources>>
 <<get_analytics>>
+<<get_elkusage>>
 #+END_SRC
 
 

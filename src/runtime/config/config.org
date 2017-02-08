@@ -31,9 +31,10 @@ KEY="defaultkey"
 elastic_host = "http://10.100.2.40:9400/"
 #elastic_port =  "9400"
 elastic_index = "vlabs/usage"
+elastic_count = "vlabs/_count"
 #elastic_doc_type = "usage"
 
-
+count_url = elastic_host + elastic_count
 url = elastic_host + elastic_index
 
 headers = {"Content-type":"application/json", "Accept":"text/plain"}
