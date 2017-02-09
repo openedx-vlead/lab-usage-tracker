@@ -27,11 +27,14 @@
 
 #+NAME: get_elkusage
 #+BEGIN_SRC python
-@api.route('/elkusage')
+@api.route('/api/elkusage')
 def get_elkusage():
-        res = requests.get(count_url)
-        elk_response = ast.literal_eval(res.text)
-        return elk_response 
+        try:
+                res = requests.get(count_url)
+                elk_response = ast.literal_eval(res.text)
+                return json.dumps(elk_response)
+        except:
+                return "Error in communication"
 #+END_SRC 
 
 
