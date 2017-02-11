@@ -1,0 +1,12 @@
+#+TITLE: Analytics Server V2.0.0
+#+AUTHOR: VLEAD
+#+DATE: [2017-02-11]
+
+* Introduction
+  This document will describes the release notes of =Analytics server API=
+  version =v2.0.0=.
+
+* Newly added Feature(s)
+  + An API to get usage count from elasticsearch server.
+  + Read [[../design/index.org][API documentation]]
+  
