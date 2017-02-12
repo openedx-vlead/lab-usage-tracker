@@ -29,7 +29,8 @@ def get_total_usage():
 		stats_response = json.loads(req.content)
 
 		total_analytics = {}
-		total_analytics = elk_response["count"] + stats_response["usage"]
+		total_analytics["description"] = "Total analytics = Usage(stats.vlabs.ac.in/analytics/) + Usage(Elasticsearch Server)"
+		total_analytics["total_usage"] = elk_response["count"] + stats_response["usage"]
 		return json.dumps(total_analytics)
 
         except:
