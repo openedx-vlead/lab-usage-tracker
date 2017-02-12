@@ -34,12 +34,12 @@ elastic_index = "vlabs/usage"
 elastic_count = "vlabs/_count"
 #elastic_doc_type = "usage"
 
-count_url = elastic_host + elastic_count
-url = elastic_host + elastic_index
+elk_count_url = elastic_host + elastic_count
+elk_url = elastic_host + elastic_index
 
 headers = {"Content-type":"application/json", "Accept":"text/plain"}
 
-
+stats_server_url= "http://stats.vlabs.ac.in/analytics"
 
 #Request body for disabling string analyzer in elasticsearch
 request_body = {"index" : {"analysis": {"analyzer": {"default": {"type":"keyword"}}}}}

@@ -12,7 +12,35 @@
 
 * Analytics REST
   
-** Get Analytics Count 
+
+** Get total Analytics Count
+   + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
+
+
+#+NAME: get_total_usage
+#+BEGIN_SRC python
+@api.route('/api/totalusage')
+def get_total_usage():
+        try:
+                res = requests.get(elk_count_url)
+                elk_response = json.loads(res.content)
+
+		req = requests.get(stats_server_url)
+		stats_response = json.loads(req.content)
+
+		total_analytics = {}
+		total_analytics = elk_response["count"] + stats_response["usage"]
+		return json.dumps(total_analytics)
+
+        except:
+                return "Error in communication"
+
+
+
+#+END_SRC 
+
+
+** Get Elasticsearch Analytics Count 
    + Route/API to fetch analytics from Elasticsearch Server.
    + API makes a get request to Elasticsearch and gets the total
      number of analytics record holded.
@@ -30,7 +58,7 @@
 @api.route('/api/elkusage')
 def get_elkusage():
         try:
-                res = requests.get(count_url)
+                res = requests.get(elk_count_url)
                 elk_response = ast.literal_eval(res.text)
                 return json.dumps(elk_response)
         except:
@@ -87,7 +115,7 @@ def fetch_analytics(analytics):
         data_dict["REGION"] = ip_dir["region_name"]
         
         json_data = json.dumps(data_dict)
-	res = requests.post(url, data=json_data, headers=headers)   
+	res = requests.post(elk_url, data=json_data, headers=headers)   
    
         return "".format(analytics) 
    
@@ -124,6 +152,7 @@ api = Blueprint('APIs', __name__)
 <<imports_for_sources>>
 <<get_analytics>>
 <<get_elkusage>>
+<<get_total_usage>>
 #+END_SRC
 
 

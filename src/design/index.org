@@ -37,7 +37,7 @@
   :END: 
 ** Post Data to Analytics Server 
   :PROPERTIES:
-  :CUSTOM_ID: display_feedback_form
+  :CUSTOM_ID: analytics_server_post_data
   :END:    
   - URL :: /
 
@@ -51,9 +51,9 @@
   
 ** Get Records count from Elasticsearch server
   :PROPERTIES:
-  :CUSTOM_ID: display_feedback_form
+  :CUSTOM_ID: get_elasticseacrch_server_count
   :END:    
-  - URL :: /elkusage
+  - URL :: /api//elkusage
 
   - Method :: GET
 
@@ -62,3 +62,19 @@
 
   - Success Response
     + Code: 200
+
+
+** Get total usage  count from Elasticsearch server and stats server
+  :PROPERTIES:
+  :CUSTOM_ID: total_usage-count
+  :END:
+  - URL :: /api/totalusage
+
+  - Method :: GET
+
+  - URL Params
+    None
+
+  - Success Response
+    + Code: 200
+
