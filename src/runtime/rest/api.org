@@ -26,14 +26,19 @@ def get_total_usage():
                 elk_response = json.loads(res.content)
 
 		req = requests.get(stats_server_url)
-		stats_response = json.loads(req.content)
+		stats_response = json.loads(req.content)total_analytics["status"] = "sucess"
 
 		total_analytics = {}
+                total_analytics["hits"] = stats_response["hits"]
+                total_analytics["visits"] =  stats_response["visits"]
 		total_analytics["description"] = "Total analytics = Usage(stats.vlabs.ac.in/analytics/) + Usage(Elasticsearch Server)"
 		total_analytics["total_usage"] = elk_response["count"] + stats_response["usage"]
+                total_analytics["status"] = "success"
 		return json.dumps(total_analytics)
 
         except:
+                total_analytics["description"] = "Total analytics = Usage(stats.vlabs.ac.in/analytics/) + Usage(Elasticsearch Server)
+                total_analytics["status"] = "failure"
                 return "Error in communication"
 
 
