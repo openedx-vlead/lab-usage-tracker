@@ -31,6 +31,7 @@
     obtained.
   + Information on implementation of ELK node can be [[https://github.com/openedx-vlead/elk-stack-for-analytics][read here]]
 
+   [[./analytics-design-for-vlabs-openedx.jpg]]
 * Application Programming Interface
   :PROPERTIES:
   :CUSTOM_ID: api
