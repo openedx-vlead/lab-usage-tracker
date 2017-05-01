@@ -47,7 +47,7 @@ def get_total_usage():
      number of analytics record holded.
    + A call is made as shown using curl command
      #+BEGIN_SRC command
-     curl http://analytics-api.vlabs.ac.in/elkusage
+     curl http://analytics-api.vlabs.ac.in/api/elkusage
      #+END_SRC
    + Sample response is as shown
      #+BEGIN_SRC example_response
