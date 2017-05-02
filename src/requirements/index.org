@@ -21,5 +21,6 @@
 * Ability of the VLABS OpenedX plaform to fetch analytics when user performs experiment
   A user visits OpenedX course.
   - User clicks on Experiment section.
-  - Following Analytics (Student Id, Lab Name, Experiment Name, Lab Id, Experiment ID) is passed.
+  - Following Analytics (Student Id, Lab Name, Experiment Name, Lab
+    Id, Experiment ID) is passed.
 
