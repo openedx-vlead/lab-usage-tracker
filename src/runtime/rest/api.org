@@ -9,13 +9,239 @@
 * Introduction 
   This document illustrates building of the Analytics REST API.
 
-
-* Analytics REST
+* Analytics REST implementation
   
+** Get nodal centre wise usage in outreach portal
 
+*** API Design
+
+  :PROPERTIES:
+  :CUSTOM_ID: get_nc_wise_usage
+  :END:    
+
+  - URL :: /nc_wise_usage
+
+  - Method :: GET
+
+  - URL Params ::  None
+
+  - Payload :: None
+
+  - Success Response ::
+    + Status_Code: 200
+    + Content:                 
+#+BEGIN_EXAMPLE
+{
+  "Amrita University": {
+    "nc_count": 98, 
+    "usage": 236733, 
+    "workshops": 103
+  }, 
+  "College of Engineering, Pune": {
+    "nc_count": 32, 
+    "usage": 12, 
+    "workshops": 36
+  }, 
+  "DEI Dayalbagh": {
+    "nc_count": 11, 
+    "usage": 67300, 
+    "workshops": 18
+  }, 
+  "IIIT Hyderabad": {
+    "nc_count": 47, 
+    "usage": 133549, 
+    "workshops": 125
+  }, 
+  "IIT Bombay": {
+    "nc_count": 56, 
+    "usage": 321256, 
+    "workshops": 577
+  }, 
+  "IIT Delhi": {
+    "nc_count": 94, 
+    "usage": 191479, 
+    "workshops": 130
+  }, 
+  "IIT Guwahati": {
+    "nc_count": 19, 
+    "usage": 99100, 
+    "workshops": 21
+  }, 
+  "IIT Kanpur": {
+    "nc_count": 26, 
+    "usage": 43831, 
+    "workshops": 23
+  }, 
+  "IIT Kharagpur": {
+    "nc_count": 19, 
+    "usage": 269612, 
+    "workshops": 86
+  }, 
+  "IIT Roorkee": {
+    "nc_count": 44, 
+    "usage": 258772, 
+    "workshops": 57
+  }, 
+  "NITK Surathkal": {
+    "nc_count": 40, 
+    "usage": 124956, 
+    "workshops": 67
+  }, 
+  "VLEAD-IIITH": {
+    "nc_count": 1, 
+    "usage": 0, 
+    "workshops": 1
+  }
+}
+
+#+END_EXAMPLE
+  - Error Response ::
+    + Status_Code: 404
+    + Content:                 
+#+BEGIN_EXAMPLE
+URL not found
+#+END_EXAMPLE
+*** Implementation
+*** Test Cases
+** Get current logged in users and total registered users
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_user_in_op
+  :END:    
+
+  - URL :: /get_outreach_user_statistics
+
+  - Method :: GET
+
+  - URL Params ::  None
+
+  - Payload :: None
+
+  - Success Response ::
+    + Status_Code: 200
+    + Content:                 
+#+BEGIN_EXAMPLE
+{
+"current_logged_in_users" : 20,
+"total_registered_users"" : 1000
+}
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+** Get total offline/online feedbacks
+*** API Design
+
+  :PROPERTIES:
+  :CUSTOM_ID: get_feedbacks
+  :END:    
+
+  - URL :: /get_feedbacks
+
+  - Method :: GET
+
+  - URL Params ::  
+     + ?version=offline/online&date=dd-mm-yyyy
+     + ?version=offilne/online&date=dd-mm-yyyy&mac_addr=<mac_id>
+  - Payload :: None
+
+  - Success Response ::
+    + Status_Code: 200
+    + Content:                 
+#+BEGIN_EXAMPLE
+{
+"total_feedbacks" : 30 
+}
+#+END_EXAMPLE
+*** Implementation
+*** Test Cases
+** Get all feedbacks =from= and =to= date
+*** API Design
+
+  :PROPERTIES:
+  :CUSTOM_ID: get_all_feedback_forms_for_a_date
+  :END:          
+
+    - URL :: /get_feedbakcs
+
+    - Method :: GET
+
+    - URL Params ::
+      Required : from_date=[string]
+                 to_date=[string]
+      the format of the string is in 'dd-mm-yyyy' format
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+{
+"total_feedbacks" : 1000
+}
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+** Lab wise analytics
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_lab_wise_analytics
+  :END:          
+
+    - URL :: /get_lab_wise_analytics
+
+    - Method :: GET
+
+    - URL Params ::
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+   [
+   {"lab_id": "ccnsb04", 
+   "hits": 30485, 
+   "institute_name": "IIIT-H", 
+   "visits": 6430, 
+   "lab_name": "Quantum Chemistry", 
+   "usage": 473}, 
+   {"lab_id": "cse05", 
+   "hits": 21882, 
+   "institute_name": "IIIT-H", 
+   "visits": 11470, 
+   "lab_name": "Principles of Programming Languages", 
+   "usage": 1314}......and so on
+   ]
+   
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+** Total analytics
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_analytics
+  :END:          
+
+    - URL :: /get_total_analytics
+
+    - Method :: GET
+
+    - URL Params ::
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+   {
+  "hits": 40115823, 
+  "usage": 593854, 
+  "visits": 9704325
+  }
+
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
 ** Get total Analytics Count
    + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
-
 
 #+NAME: get_total_usage
 #+BEGIN_SRC python
@@ -44,8 +270,6 @@ def get_total_usage():
 
 
 #+END_SRC 
-
-
 ** Get Elasticsearch Analytics Count 
    + Route/API to fetch analytics from Elasticsearch Server.
    + API makes a get request to Elasticsearch and gets the total
@@ -70,7 +294,6 @@ def get_elkusage():
         except:
                 return "Error in communication"
 #+END_SRC 
-
 
 ** Fetch analytics 
    + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
@@ -129,6 +352,8 @@ def fetch_analytics(analytics):
 
    
    
+
+
 * Infra                                                         :boilerplate:
 ** sources
 *** Imports 
@@ -149,6 +374,7 @@ import ast
 api = Blueprint('APIs', __name__)
 
 #+end_src
+
 
 
 * Tangle                                                        :boilerplate:

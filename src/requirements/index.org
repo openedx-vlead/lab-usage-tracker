@@ -12,15 +12,52 @@
 
 * Definitions 
   + Usages ::
+
     + A student performing an experiments of a lab is considered to be
       a single usage.  This is captured by capturing a click on the
       Experiment section of Open edX.
+
     + If there are 3 experiments in a lab, A lab will have 3 usages
       and experiment will have 1 usage.
 
 * Ability of the VLABS OpenedX plaform to fetch analytics when user performs experiment
+
   A user visits OpenedX course.
   - User clicks on Experiment section.
   - Following Analytics (Student Id, Lab Name, Experiment Name, Lab
     Id, Experiment ID) is passed.
+
+
+* Requirements
+  :PROPERTIES:
+  :CUSTOM_ID: requirements
+  :END: 
+** Req1
+  :PROPERTIES:
+  :CUSTOM_ID: req1
+  :END: 
+  - Ability to get the analytics data from =outreach-portal= micro
+    service.
+  - API design
+** Req2 
+  :PROPERTIES:
+  :CUSTOM_ID: req2
+  :END: 
+  - Ability to get the analytics data from =feedback-portal= micro
+    service.
+  - API design
+     
+** Req3
+  :PROPERTIES:
+  :CUSTOM_ID: req3
+  :END:
+  - Ability to get the analytics data from =elastic search= micro
+    service.
+  - API design
+** Req4
+  :PROPERTIES:
+  :CUSTOM_ID: req4
+  :END: 
+  - Ability to get the analytics data from =OpenEdx= service.
+  - API design
 

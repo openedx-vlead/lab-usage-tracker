@@ -54,7 +54,7 @@
   :PROPERTIES:
   :CUSTOM_ID: get_elasticseacrch_server_count
   :END:    
-  - URL :: /api//elkusage
+  - URL :: /api/elkusage
 
   - Method :: GET
 
@@ -63,7 +63,6 @@
 
   - Success Response
     + Code: 200
-
 
 ** Get total usage  count from Elasticsearch server and stats server
   :PROPERTIES:
@@ -78,4 +77,183 @@
 
   - Success Response
     + Code: 200
+
+
+** Outreach Portal
+*** Get current logged in users and total registered users
+*** Get nodal centre wise usage
+  - URL    : http://outreach.vlabs.ac.in/get_nc_wise_usage
+  - Method : GET
+  - Response :
+#+BEGIN_EXAMPLE
+{
+  "Amrita University": {
+    "nc_count": 98, 
+    "usage": 236733, 
+    "workshops": 103
+  }, 
+  "College of Engineering, Pune": {
+    "nc_count": 32, 
+    "usage": 12, 
+    "workshops": 36
+  }, 
+  "DEI Dayalbagh": {
+    "nc_count": 11, 
+    "usage": 67300, 
+    "workshops": 18
+  }, 
+  "IIIT Hyderabad": {
+    "nc_count": 47, 
+    "usage": 133549, 
+    "workshops": 125
+  }, 
+  "IIT Bombay": {
+    "nc_count": 56, 
+    "usage": 321256, 
+    "workshops": 577
+  }, 
+  "IIT Delhi": {
+    "nc_count": 94, 
+    "usage": 191479, 
+    "workshops": 130
+  }, 
+  "IIT Guwahati": {
+    "nc_count": 19, 
+    "usage": 99100, 
+    "workshops": 21
+  }, 
+  "IIT Kanpur": {
+    "nc_count": 26, 
+    "usage": 43831, 
+    "workshops": 23
+  }, 
+  "IIT Kharagpur": {
+    "nc_count": 19, 
+    "usage": 269612, 
+    "workshops": 86
+  }, 
+  "IIT Roorkee": {
+    "nc_count": 44, 
+    "usage": 258772, 
+    "workshops": 57
+  }, 
+  "NITK Surathkal": {
+    "nc_count": 40, 
+    "usage": 124956, 
+    "workshops": 67
+  }, 
+  "VLEAD-IIITH": {
+    "nc_count": 1, 
+    "usage": 0, 
+    "workshops": 1
+  }
+}
+
+#+END_EXAMPLE
+
+** Feedback Portal
+*** Get feedbacks offline/online
+  - URL    : http://outreach.vlabs.ac.in/get_usage
+  - Method : POST
+  - Payload : 
+#+BEGIN_EXAMPLE
+      {
+      "mac_addr" : "<mac_id>",
+      "version" : "<offline/online>",
+      "date" : "dd-mm-yyyy"
+      }		   
+#+END_EXAMPLE
+
+  - Response : {"status" : "success"}
+
+
+*** Get all feedback forms for a date
+  :PROPERTIES:
+  :CUSTOM_ID: get_all_feedback_forms_for_a_date
+  :END:          
+    - URL :: /feedback_dump?date=:date&key=:key
+
+    - Method :: GET
+
+    - URL Params ::
+      Required: date=[string], the format of the string is in 'dd-mm-yyyy'
+      format
+                key=[string]
+
+    - Success Response ::
+      + Code: 200
+
+      + Content:
+        {
+         feedbacks: [{lab_name: 'lab_name',
+                      exp_name: 'exp_name',
+                      date: 'dd-mm-yyyy',
+                      IP: 'ip',
+                      responses: [{question: 'name',
+                                   answers: ['val1',..]
+                                  }, ...]
+                     }, ...]
+        }
+
+    - Error Response ::
+      + Code: 401 UNAUTHORIZED
+
+      + Content: { error : "Wrong Key configured" }
+
+      OR
+
+      + Code: 400 Bad Request
+
+      + Content: { error : "Date is mandatory and should be in 'dd-mm-yyyy' format" }
+
+** Lab analytics running on AWS & IIIT-H
+*** Lab wise analytics
+   URL : http://stats.vlabs.ac.in/analytics/labs
+   METHOD : GET
+   RESPONSE :
+   #+BEGIN_EXAMPLE
+   [
+   {"lab_id": "ccnsb04", 
+   "hits": 30485, 
+   "institute_name": "IIIT-H", 
+   "visits": 6430, 
+   "lab_name": "Quantum Chemistry", 
+   "usage": 473}, 
+   {"lab_id": "cse05", 
+   "hits": 21882, 
+   "institute_name": "IIIT-H", 
+   "visits": 11470, 
+   "lab_name": "Principles of Programming Languages", 
+   "usage": 1314}......and so on
+   ]
+   #+END_EXAMPLE
+*** Total analytics
+   URL : http://stats.vlabs.ac.in/analytics
+   METHOD : GET
+   RESPONSE :
+   #+BEGIN_EXAMPLE
+   {
+  "hits": 40115823, 
+  "usage": 593854, 
+  "visits": 9704325
+  }
+   #+END_EXAMPLE
+
+** REST APIs of Elastic search service
+
+** REST APIs of analytics service
+** Design diagram & Service interplay
+  :PROPERTIES:
+  :CUSTOM_ID: design
+  :END:    
+
+  Below image briefly describes the process of continuous integration
+  and its integration with other micro services.
+
+#+BEGIN_HTML
+<img src="https://docs.google.com/drawings/d/1cSjDA8eH_8QleQDWo3nSvT_bm3RgCtOWf9UgmFgD4-Y/pub?w=960&h=720">
+<p align="center"> Analytics Service </p>
+#+END_HTML
+
+ [[https://docs.google.com/drawings/d/1tJ_wL-rEhKK6rND6nXCTQKxIHXJEICOXjUC4C2Xa5aw/edit?ts=59548cc1][Click here]] to edit the design diagram
 
