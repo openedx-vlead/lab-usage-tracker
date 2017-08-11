@@ -21,7 +21,7 @@
 from setuptools import setup
 
 requires = [
-    'flask',
+    'Flask',
     'flask-cors',
     'requests',
     'elasticsearch'

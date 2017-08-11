@@ -7,10 +7,209 @@
 #+OPTIONS: ^:nil
 
 * Introduction 
-  This document illustrates building of the Analytics REST API.
+  This document illustrates building of the REST API for analyticsc
+  virtual-labs
 
-* Analytics REST implementation
-  
+* REST API implementation
+** Get open edx labs usage
+   - Currently 91 number of labs are running on openedx platform.
+   - When user clicks on =simulation= section of an experiment 1 usage is added
+     to elastic search database.
+   - This API return total number open edx labs usages
+   - This API makes a internal get request to Elasticsearch and gets the total
+     number of analytics record holded.
+
+*** API Design
+
+  :PROPERTIES:
+  :CUSTOM_ID: openedx-usage
+  :END:          
+
+    - URL :: /api/elkusage
+
+    - Method :: GET
+
+    - URL Params :: None
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+{
+'count': 7827, 
+'_shards': {'successful': 5, 'failed': 0, 'total': 5}
+}   
+#+END_EXAMPLE
+
+**** TODO
+   This response template has to be changed and below response is integrated to
+   vlabs.ac.in page
+*** Implementation
+#+NAME: get_elkusage
+#+BEGIN_SRC python
+
+@api.route('/api/elkusage')
+def get_elkusage():
+    try:
+        res = requests.get(elk_count_url)
+        elk_response = ast.literal_eval(res.text)
+        return json.dumps(elk_response)
+    except:
+        return "Error in communication"
+#+END_SRC 
+*** Test Cases
+** Fetch analytics 
+   + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
+     to analytics server API. Data POSTed is in the url.  
+   + Analytics server further converts that data into JSON and sends POST it to
+     Elasticsearch database.
+   + IP address of the Client making the request is evaluated by
+     Analytics server.
+   + Location of the Client is idenfied using an available opensource API 
+     http://freegeoip.net/json/ 
+**** TODO
+     This API is badly implemented this is to be refactored. This is already
+     integrated to 91 number labs in openedx hence not possible to break all
+     such apis by refactoring it.
+     
+*** API Design
+   :PROPERTIES:
+   :CUSTOM_ID: openedx-usage
+   :END:          
+
+    - URL :: /server_url,user_id,lab_id,lab_name,exp_id,exp_name
+
+    - Method :: POST
+
+    - URL Params :: None
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+{
+    "DATE_OF_EXPERIMENT": "30-8-2016",
+    "LAB_NAME": "PopulationEcologyII",
+    "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
+    "TIME_OF_EXPERIMENT": "19:49",
+    "COURSE_ID": "blockv1UniversityYPS01Anytime",
+    "IP_ADDRESS": "196.12.53.130"
+    "Location" : "Telengana"
+}
+#+END_EXAMPLE
+
+*** Implementation
+#+NAME: get_analytics
+#+BEGIN_SRC python
+@api.route('/<analytics>',methods= ['GET','POST'])
+def fetch_analytics(analytics):
+        data = request.data
+        fetch_data = analytics
+        data_list = fetch_data.split(",")
+        data_dict = {}
+        today = str(datetime.date.today())
+        data_dict["STUDENT_ID"] = data_list[0]
+        data_dict["LAB_ID"] = data_list[1]
+        data_dict["LAB_NAME"] = data_list[2]
+        data_dict["EXPERIMENT_ID"] = data_list[3]
+        data_dict["EXPERIMENT_NAME"] = data_list[4]
+        data_dict["DATE_OF_EXPERIMENT"] = today
+        data_dict["TIME_OF_EXPERIMENT"] = time.strftime("%H:%M")
+        data_dict["IP_ADDRESS"] = request.environ.get('HTTP_X_REAL_IP',\
+                                                      request.remote_addr)
+
+        res = requests.get("http://freegeoip.net/json/" + \
+                           data_dict["IP_ADDRESS"])
+        data = res.text
+        ip_dir = ast.literal_eval(data)
+        data_dict["REGION"] = ip_dir["region_name"]
+
+        json_data = json.dumps(data_dict)
+        res = requests.post(elk_url, data=json_data, headers=headers)
+
+        return "".format(analyti)
+
+ #+END_SRC
+*** Test Cases
+** Lab wise analytics
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_lab_wise_analytics
+  :END:          
+
+    - URL :: /get_lab_wise_analytics
+
+    - Method :: GET
+
+    - URL Params ::
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+   [
+   {"lab_id": "ccnsb04", 
+   "hits": 30485, 
+   "institute_name": "IIIT-H", 
+   "visits": 6430, 
+   "lab_name": "Quantum Chemistry", 
+   "usage": 473}, 
+   {"lab_id": "cse05", 
+   "hits": 21882, 
+   "institute_name": "IIIT-H", 
+   "visits": 11470, 
+   "lab_name": "Principles of Programming Languages", 
+   "usage": 1314}......and so on
+   ]
+   
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+** Total analytics
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_analytics
+  :END:          
+
+    - URL :: /get_total_analytics
+
+    - Method :: GET
+
+    - URL Params ::
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+   {
+  "hits": 40115823, 
+  "usage": 593854, 
+  "visits": 9704325
+  }
+
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+** Get total Analytics Count
+   + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
+
+#+NAME: get_total_usage
+#+BEGIN_SRC python
+@api.route('/api/totalusage')
+
+def get_total_usage():
+    try:
+        res = requests.get(elk_count_url)
+        elk_response = json.loads(res.content)
+        req = requests.get(stats_server_url)
+        stats_response = json.loads(req.content)
+        total_analytics = {}
+        total_analytics["description"] = "Total analytics = Usage(stats.vlabs.ac.in/analytics/) + Usage(Elasticsearch Server)"
+        total_analytics["total_usage"] = elk_response["count"] + stats_response["usage"]
+        return json.dumps(total_analytics)
+            
+    except:
+        return "Error in communication"
+    
+#+END_SRC 
 ** Get nodal centre wise usage in outreach portal
 
 *** API Design
@@ -181,175 +380,6 @@ URL not found
 
 *** Implementation
 *** Test Cases
-** Lab wise analytics
-*** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: get_lab_wise_analytics
-  :END:          
-
-    - URL :: /get_lab_wise_analytics
-
-    - Method :: GET
-
-    - URL Params ::
-
-    - Success Response ::
-      + Code: 200
-#+BEGIN_EXAMPLE
-   [
-   {"lab_id": "ccnsb04", 
-   "hits": 30485, 
-   "institute_name": "IIIT-H", 
-   "visits": 6430, 
-   "lab_name": "Quantum Chemistry", 
-   "usage": 473}, 
-   {"lab_id": "cse05", 
-   "hits": 21882, 
-   "institute_name": "IIIT-H", 
-   "visits": 11470, 
-   "lab_name": "Principles of Programming Languages", 
-   "usage": 1314}......and so on
-   ]
-   
-#+END_EXAMPLE
-
-*** Implementation
-*** Test Cases
-** Total analytics
-*** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: get_total_analytics
-  :END:          
-
-    - URL :: /get_total_analytics
-
-    - Method :: GET
-
-    - URL Params ::
-
-    - Success Response ::
-      + Code: 200
-#+BEGIN_EXAMPLE
-   {
-  "hits": 40115823, 
-  "usage": 593854, 
-  "visits": 9704325
-  }
-
-#+END_EXAMPLE
-
-*** Implementation
-*** Test Cases
-** Get total Analytics Count
-   + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
-
-#+NAME: get_total_usage
-#+BEGIN_SRC python
-@api.route('/api/totalusage')
-def get_total_usage():
-        try:
-                res = requests.get(elk_count_url)
-                elk_response = json.loads(res.content)
-
-		req = requests.get(stats_server_url)
-		stats_response = json.loads(req.content)total_analytics["status"] = "sucess"
-
-		total_analytics = {}
-                total_analytics["hits"] = stats_response["hits"]
-                total_analytics["visits"] =  stats_response["visits"]
-		total_analytics["description"] = "Total analytics = Usage(stats.vlabs.ac.in/analytics/) + Usage(Elasticsearch Server)"
-		total_analytics["total_usage"] = elk_response["count"] + stats_response["usage"]
-                total_analytics["status"] = "success"
-		return json.dumps(total_analytics)
-
-        except:
-                total_analytics["description"] = "Total analytics = Usage(stats.vlabs.ac.in/analytics/) + Usage(Elasticsearch Server)
-                total_analytics["status"] = "failure"
-                return "Error in communication"
-
-
-
-#+END_SRC 
-** Get Elasticsearch Analytics Count 
-   + Route/API to fetch analytics from Elasticsearch Server.
-   + API makes a get request to Elasticsearch and gets the total
-     number of analytics record holded.
-   + A call is made as shown using curl command
-     #+BEGIN_SRC command
-     curl http://analytics-api.vlabs.ac.in/api/elkusage
-     #+END_SRC
-   + Sample response is as shown
-     #+BEGIN_SRC example_response
-     {'count': 7827, '_shards': {'successful': 5, 'failed': 0, 'total': 5}}
-     #+END_SRC
-
-#+NAME: get_elkusage
-#+BEGIN_SRC python
-@api.route('/api/elkusage')
-def get_elkusage():
-        try:
-                res = requests.get(elk_count_url)
-                elk_response = ast.literal_eval(res.text)
-                return json.dumps(elk_response)
-        except:
-                return "Error in communication"
-#+END_SRC 
-
-** Fetch analytics 
-   + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
-     to analytics server API. Data POSTed is in the url.  Analytics
-     server further converts that data into JSON and sends POST it to
-     Elasticsearch database.
-   + IP address of the Client making the request is evaluated by
-     Analytics server.
-   + Location of the Client is idenfied using an available opensource API 
-     http://freegeoip.net/json/ 
-   + Following sample analytics is captured in JSON format -
-     #+BEGIN_SRC command
-     {
-    "DATE_OF_EXPERIMENT": "30-8-2016",
-    "LAB_NAME": "PopulationEcologyII",
-    "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
-    "TIME_OF_EXPERIMENT": "19:49",
-    "COURSE_ID": "blockv1UniversityYPS01Anytime",
-    "IP_ADDRESS": "196.12.53.130"
-    "Location" : "Telengana"
-    }
-     #+END_SRC
-  
-#+NAME: get_analytics
-#+BEGIN_SRC python
-
-@api.route('/<analytics>',methods= ['GET','POST'])
-def fetch_analytics(analytics):
-        data = request.data
-        fetch_data = analytics
-        data_list = fetch_data.split(",") 
-        data_dict = {}
-        today = str(datetime.date.today())
-        data_dict["STUDENT_ID"] = data_list[0]
-        data_dict["LAB_ID"] = data_list[1]
-        data_dict["LAB_NAME"] = data_list[2]
-        #data_dict["EXPERIMENT_NAME"] = data_list[3] + "-" + data_list[2]
-        #data_dict["EXPERIMENT_ID"] = data_list[4]
-        data_dict["EXPERIMENT_ID"] = data_list[3]
-        data_dict["EXPERIMENT_NAME"] = data_list[4]
-        data_dict["DATE_OF_EXPERIMENT"] = today
-        data_dict["TIME_OF_EXPERIMENT"] = time.strftime("%H:%M")
-        data_dict["IP_ADDRESS"] = request.environ.get('HTTP_X_REAL_IP',request.remote_addr)
-   
-        res = requests.get("http://freegeoip.net/json/" + data_dict["IP_ADDRESS"])
-        data = res.text
-        ip_dir = ast.literal_eval(data)
-        data_dict["REGION"] = ip_dir["region_name"]
-        
-        json_data = json.dumps(data_dict)
-	res = requests.post(elk_url, data=json_data, headers=headers)   
-   
-        return "".format(analytics) 
-   
- #+END_SRC
-
    
    
 
@@ -360,6 +390,7 @@ def fetch_analytics(analytics):
 #+name: imports_for_sources
 #+BEGIN_SRC python
 # -*- coding: utf-8 -*-
+
 import os
 import json
 import time
