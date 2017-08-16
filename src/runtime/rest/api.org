@@ -10,7 +10,9 @@
   This document illustrates building of the REST API for analyticsc
   virtual-labs
 
+
 * REST API implementation
+
 ** Get open edx labs usage
    - Currently 91 number of labs are running on openedx platform.
    - When user clicks on =simulation= section of an experiment 1 usage is added
@@ -57,6 +59,8 @@ def get_elkusage():
         return "Error in communication"
 #+END_SRC 
 *** Test Cases
+
+
 ** Fetch analytics 
    + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
      to analytics server API. Data POSTed is in the url.  
@@ -129,13 +133,15 @@ def fetch_analytics(analytics):
 
  #+END_SRC
 *** Test Cases
+
+
 ** Lab wise analytics
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: get_lab_wise_analytics
   :END:          
 
-    - URL :: /get_lab_wise_analytics
+    - URL :: /analytics/labs
 
     - Method :: GET
 
@@ -162,14 +168,50 @@ def fetch_analytics(analytics):
 #+END_EXAMPLE
 
 *** Implementation
+
+#+NAME: get_lab_wise_usage
+#+BEGIN_SRC python
+
+@app.route('/analytics/labs')
+@app.cache.cached(timeout=360)
+def lab_wise_total():
+    files_dir = "/var/www/html/analytics/"
+    result_file = files_dir+"output.txt"
+    rows = []
+    lab=[]
+    with open(result_file, 'r') as f:
+      lines = f.readlines()
+      for line in lines:
+         d={}
+         row = line.split(",")
+         if len(row)>0:
+                d["lab_id"]= row[0]
+                d["lab_name"]=row[1]
+                d["institute_name"]=row[2]
+                d["hits"]=int(row[3])
+                d["visits"]=int(row[4])
+                d["usage"]=int(row[5].strip())
+                lab.append(d)
+         else:
+                break
+
+    response = make_response(json.dumps(lab))
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
+#+END_SRC
+
 *** Test Cases
+
+
 ** Total analytics
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: get_total_analytics
   :END:          
 
-    - URL :: /get_total_analytics
+    - URL :: /analytics
 
     - Method :: GET
 
@@ -187,10 +229,54 @@ def fetch_analytics(analytics):
 #+END_EXAMPLE
 
 *** Implementation
-*** Test Cases
-** Get total Analytics Count
-   + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
+    get the total visits from the =all_total.txt= file
+#+BEGIN_SRC python :tangle app.py
+app.cache = Cache(app)
+@app.route('/analytics')
+@app.cache.cached(timeout=360)
+def total_hits():
+    files_dir = "/var/www/html/analytics/"
+    result_file = files_dir+"all_total.txt"
+    with open(result_file, 'r') as f:
+      lines = f.read()
+      words = lines.split()
+    d = {}
+    d["hits"] = int (words[0])
+    d["visits"]=int (words[1])
+    d["usage"]=int (words[2])
+    hits = jsonify(d)
+#+END_SRC
 
+*** Test Cases
+
+
+** Get total analytics Count
+   This API returns total usage of labs running on openedx (i.e 91) and non
+   openedx labs
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_opendx_analytics
+  :END:          
+
+    - URL :: /api/totalusage
+
+    - Method :: GET
+
+    - URL Params ::
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+   {
+  "hits": 40115823, 
+  "usage": 593854, 
+  "visits": 9704325
+  }
+
+#+END_EXAMPLE
+
+   + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
+*** Implementation
 #+NAME: get_total_usage
 #+BEGIN_SRC python
 @api.route('/api/totalusage')
@@ -210,8 +296,10 @@ def get_total_usage():
         return "Error in communication"
     
 #+END_SRC 
-** Get nodal centre wise usage in outreach portal
+*** Test Cases
 
+
+** Get nodal centre wise usage in outreach portal
 *** API Design
 
   :PROPERTIES:
@@ -302,6 +390,7 @@ URL not found
 #+END_EXAMPLE
 *** Implementation
 *** Test Cases
+
 ** Get current logged in users and total registered users
 *** API Design
   :PROPERTIES:
@@ -328,6 +417,7 @@ URL not found
 
 *** Implementation
 *** Test Cases
+
 ** Get total offline/online feedbacks
 *** API Design
 
@@ -354,6 +444,8 @@ URL not found
 #+END_EXAMPLE
 *** Implementation
 *** Test Cases
+
+
 ** Get all feedbacks =from= and =to= date
 *** API Design
 
