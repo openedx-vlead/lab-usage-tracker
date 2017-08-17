@@ -14,6 +14,7 @@
 * REST API implementation
 
 ** Get open edx labs usage
+
    - Currently 91 number of labs are running on openedx platform.
    - When user clicks on =simulation= section of an experiment 1 usage is added
      to elastic search database.
@@ -57,8 +58,33 @@ def get_elkusage():
         return json.dumps(elk_response)
     except:
         return "Error in communication"
+
 #+END_SRC 
 *** Test Cases
+#+NAME: test_get_elkusage
+#+BEGIN_SRC python
+class TestELKUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+    app = create_app(config)
+	return app
+
+    def setUp(self):
+	pass
+
+    def tearDown(self):
+	pass
+
+    def test_elk_usage(self):
+	print "test_elk_usage"
+
+	headers = {'Content-Type': 'application/json'}
+
+	response = self.client.get("/get_elkusage")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
 
 
 ** Fetch analytics 
@@ -103,6 +129,7 @@ def get_elkusage():
 *** Implementation
 #+NAME: get_analytics
 #+BEGIN_SRC python
+
 @api.route('/<analytics>',methods= ['GET','POST'])
 def fetch_analytics(analytics):
         data = request.data
@@ -133,12 +160,39 @@ def fetch_analytics(analytics):
 
  #+END_SRC
 *** Test Cases
+#+NAME: test_post_analytics
+#+BEGIN_SRC python
+class TestPostAnalytics(TestCase):
+    TESTING = True
+    def create_app(self):
+	app = create_app(config)
+	return app
+
+    def setUp(self):
+	pass
+
+    def tearDown(self):
+	pass
+
+    def test_post_analytics(self):
+	print "test_post_analytics"
+
+	headers = {'Content-Type': 'application/json'}
+	payload = {
+        "lab_id" : "cse04",
+        "lab_name" : "computer programming language"
+        }
+    response = self.client.post("/lab_name,lab_id", data=json.dumps(payload),
+                                headers=headers)
+    self.assertEqual(response.status_code, 200)
+
+#+END_SRC
 
 
 ** Lab wise analytics
 *** API Design
   :PROPERTIES:
-  :CUSTOM_ID: get_lab_wise_analytics
+  :CUSTOM_ID: lab_wise_analytics
   :END:          
 
     - URL :: /analytics/labs
@@ -169,11 +223,11 @@ def fetch_analytics(analytics):
 
 *** Implementation
 
-#+NAME: get_lab_wise_usage
+#+NAME: get_lab_wise_usageo
 #+BEGIN_SRC python
 
-@app.route('/analytics/labs')
-@app.cache.cached(timeout=360)
+@api.route('/analytics/labs')
+#@api.cache.cached(timeout=360)
 def lab_wise_total():
     files_dir = "/var/www/html/analytics/"
     result_file = files_dir+"output.txt"
@@ -204,7 +258,7 @@ def lab_wise_total():
 
 *** Test Cases
 
-
+    
 ** Total analytics
 *** API Design
   :PROPERTIES:
@@ -230,10 +284,13 @@ def lab_wise_total():
 
 *** Implementation
     get the total visits from the =all_total.txt= file
-#+BEGIN_SRC python :tangle app.py
-app.cache = Cache(app)
-@app.route('/analytics')
-@app.cache.cached(timeout=360)
+
+#+NAME: get_analytics
+#+BEGIN_SRC python
+
+#app.cache = Cache(app)
+@api.route('/analytics')
+#@api.cache.cached(timeout=360)
 def total_hits():
     files_dir = "/var/www/html/analytics/"
     result_file = files_dir+"all_total.txt"
@@ -279,8 +336,8 @@ def total_hits():
 *** Implementation
 #+NAME: get_total_usage
 #+BEGIN_SRC python
-@api.route('/api/totalusage')
 
+@api.route('/api/totalusage')
 def get_total_usage():
     try:
         res = requests.get(elk_count_url)
@@ -391,6 +448,7 @@ URL not found
 *** Implementation
 *** Test Cases
 
+
 ** Get current logged in users and total registered users
 *** API Design
   :PROPERTIES:
@@ -417,6 +475,7 @@ URL not found
 
 *** Implementation
 *** Test Cases
+
 
 ** Get total offline/online feedbacks
 *** API Design
@@ -508,6 +567,8 @@ api = Blueprint('APIs', __name__)
 <<get_analytics>>
 <<get_elkusage>>
 <<get_total_usage>>
+<<get_lab_wise_usage>>
+
 #+END_SRC
 
 
