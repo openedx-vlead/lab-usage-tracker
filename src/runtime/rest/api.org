@@ -15,7 +15,7 @@
 
 ** Get open edx labs usage
 
-   - Currently 91 number of labs are running on openedx platform.
+   - Currently 90 number of labs are running on openedx platform.
    - When user clicks on =simulation= section of an experiment 1 usage is added
      to elastic search database.
    - This API return total number open edx labs usages
@@ -132,31 +132,47 @@ class TestELKUsage(TestCase):
 
 @api.route('/<analytics>',methods= ['GET','POST'])
 def fetch_analytics(analytics):
-        data = request.data
-        fetch_data = analytics
-        data_list = fetch_data.split(",")
-        data_dict = {}
-        today = str(datetime.date.today())
-        data_dict["STUDENT_ID"] = data_list[0]
-        data_dict["LAB_ID"] = data_list[1]
-        data_dict["LAB_NAME"] = data_list[2]
-        data_dict["EXPERIMENT_ID"] = data_list[3]
-        data_dict["EXPERIMENT_NAME"] = data_list[4]
-        data_dict["DATE_OF_EXPERIMENT"] = today
-        data_dict["TIME_OF_EXPERIMENT"] = time.strftime("%H:%M")
-        data_dict["IP_ADDRESS"] = request.environ.get('HTTP_X_REAL_IP',\
-                                                      request.remote_addr)
+    data = request.data
+    fetch_data = analytics
+    data_list = fetch_data.split(",")
+    data_dict = {}
+    today = str(datetime.datetime.today()).split()[0]
+    data_dict["student_id"] = data_list[0]
+    data_dict["lab_id"] = data_list[1].lower()
+    LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, data_dict['lab_id'])
+    r = requests.get(LDS_API)
+    if r.status_code == 200:
+        data_dict["lab_name"] = r.json()['lab_name']
+    else:
+        data_dict["lab_name"] = data_list[2]
+    data_dict["experiment_id"] = data_list[3].lower()
+    LDS_API = "%s/experiments?exp_id=%s" % (LDS_URL, data_dict['experiment_id'])
+    r = requests.get(LDS_API)
+    if r.status_code == 200:
+        data_dict["experiment_name"] = r.json()['exp_name']
+    else:
+        data_dict["experiment_name"] = data_list[4]
+    data_dict["date_of_experiment"] = today
+    data_dict["time_of_experiment"] = time.strftime("%H:%M")
+    data_dict["ip_address"] = request.environ.get('HTTP_X_REAL_IP',\
+                                                  request.remote_addr)
 
-        res = requests.get("http://freegeoip.net/json/" + \
-                           data_dict["IP_ADDRESS"])
-        data = res.text
-        ip_dir = ast.literal_eval(data)
-        data_dict["REGION"] = ip_dir["region_name"]
+    res = requests.get("http://freegeoip.net/json/" + \
+                       data_dict["ip_address"])
+    data = res.text
+    ip_dir = ast.literal_eval(data)
+    data_dict["region"] = ip_dir["region_name"]
 
-        json_data = json.dumps(data_dict)
-        res = requests.post(elk_url, data=json_data, headers=headers)
-
-        return "".format(analyti)
+    json_data = json.dumps(data_dict)
+    headers = {'Content-Type': 'application/json'}
+    index = "vlabs"
+    type = "openedx_usage"
+    ANALYTICS_API = "%s/%s/%s" % (ANALYTICS_URL, index, type)
+    res = requests.post(ANALYTICS_API, data=json_data, headers=headers)
+    if res.status_code == 200 or res.status_code == 201:
+        return "success"
+    else:
+        return "failed"
 
  #+END_SRC
 *** Test Cases
@@ -223,36 +239,73 @@ class TestPostAnalytics(TestCase):
 
 *** Implementation
 
-#+NAME: get_lab_wise_usageo
+#+NAME: get_lab_wise_usage
 #+BEGIN_SRC python
 
-@api.route('/analytics/labs')
+@api.route('/analytics/labs', methods=['POST', 'GET'])
 #@api.cache.cached(timeout=360)
 def lab_wise_total():
-    files_dir = "/var/www/html/analytics/"
-    result_file = files_dir+"output.txt"
-    rows = []
-    lab=[]
-    with open(result_file, 'r') as f:
-      lines = f.readlines()
-      for line in lines:
-         d={}
-         row = line.split(",")
-         if len(row)>0:
-                d["lab_id"]= row[0]
-                d["lab_name"]=row[1]
-                d["institute_name"]=row[2]
-                d["hits"]=int(row[3])
-                d["visits"]=int(row[4])
-                d["usage"]=int(row[5].strip())
-                lab.append(d)
-         else:
-                break
+    index = "vlabs"
+    type = "nonopenedx_usage"    
+    
+    if request.method == 'GET':
+        if 'date' in request.args:
+            current_date = request.args['date']
+        else:
+            current_date = str(datetime.datetime.today()).split()[0]
 
-    response = make_response(json.dumps(lab))
-    response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Credentials'] = 'true'
-    return response
+        total_labs = []
+        ANALYTICS_API = "%s/%s/%s/_search?q=date:%s&size=1000" % (ANALYTICS_URL, index, type, current_date)
+        req = requests.get(ANALYTICS_API)
+        if req.status_code == 200:
+            labs = req.json()['hits']['hits']
+            for lab in labs:
+                total_labs.append(lab['_source'])
+        response = make_response(json.dumps(total_labs))
+        return response
+
+    if request.method == 'POST':
+
+        files_dir = "/home/sripathi/"
+        result_file = files_dir + "output.txt"
+        rows = []
+        with open(result_file, 'r') as f:
+          lines = f.readlines()
+          for line in lines:
+             d = {}
+             row = line.split(",")
+             if len(row)>0:
+                 d["lab_id"] = row[0]
+                 d["lab_name"] = row[1]
+                 d["institute_name"] = row[2]
+                 d["hits"] = int(row[3])
+                 d["visits"] = int(row[4])
+                 d["usage"] = int(row[5].strip())
+                 d["date"] = current_date
+                 lab_id = d['lab_id']
+                 current_app.logger.debug("Before LDS call record is =%s" % (d))
+                 LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_id)
+                 req = requests.get(LDS_API)
+                 if req.status_code == 200:
+                     d["lab_name"] = str(req.json()["lab_name"])
+                     d["institute_name"] = str(req.json()["institute"]["institute_name"])
+                     d["discipline_name"] = str(req.json()["discipline"]["discipline_name"])
+                 ANALYTICS_API = "%s/%s/%s/id=%s_%s" % (ANALYTICS_URL, index, type, lab_id, current_date)
+                 current_app.logger.debug("ANALYTICS_API=%s" % (ANALYTICS_API))
+                 current_app.logger.debug("After LDS record=%s" % (d))
+                 req = requests.post(ANALYTICS_API, data=json.dumps(d))
+                 if req.status_code == 200 or req.status_code == 201:
+                     current_app.logger.debug("Added record %s" % (d))
+                 else:
+                     current_app.logger.error("Failed to add record %s" % (d))
+                     
+             else:
+                 break
+        return "ok"
+        # response = make_response(json.dumps(lab))
+        # response.headers['Access-Control-Allow-Origin'] = '*'
+        # response.headers['Access-Control-Allow-Credentials'] = 'true'
+        # return response
 
 #+END_SRC
 
@@ -289,19 +342,38 @@ def lab_wise_total():
 #+BEGIN_SRC python
 
 #app.cache = Cache(app)
-@api.route('/analytics')
+@api.route('/analytics', methods=['POST', 'GET'])
 #@api.cache.cached(timeout=360)
 def total_hits():
-    files_dir = "/var/www/html/analytics/"
-    result_file = files_dir+"all_total.txt"
-    with open(result_file, 'r') as f:
-      lines = f.read()
-      words = lines.split()
-    d = {}
-    d["hits"] = int (words[0])
-    d["visits"]=int (words[1])
-    d["usage"]=int (words[2])
-    hits = jsonify(d)
+    index = "vlabs"
+    type = "nonopenedx_usage"    
+    
+    if request.method == 'GET':
+        if 'date' in request.args:
+            current_date = request.args['date']
+        else:
+            current_date = str(datetime.datetime.today()).split()[0]
+
+        ANALYTICS_API = "%s/%s/%s/_search?q=date:%s&size=1000" % (ANALYTICS_URL, index, type, current_date)
+        req = requests.get(ANALYTICS_API)
+        if req.status_code == 200:
+            labs = req.json()['hits']['hits']
+            print labs, len(labs)
+            visits = 0
+            hits = 0
+            usage = 0
+            if len(labs) != 0:
+                for lab in labs:
+                    visits = visits + int(lab['_source']['visits'])
+                    hits = hits + int(lab['_source']['hits'])
+                    usage = usage + int(lab['_source']['usage'])
+                analytics_data = {"visits" : visits, "hits" : hits, "usage" : usage, "date" : current_date}
+            else:
+                analytics_data = {}
+            
+        response = make_response(json.dumps(analytics_data))
+        return response
+        
 #+END_SRC
 
 *** Test Cases
@@ -504,7 +576,7 @@ URL not found
 *** Implementation
 *** Test Cases
 
-
+    
 ** Get all feedbacks =from= and =to= date
 *** API Design
 
@@ -547,10 +619,12 @@ import json
 import time
 import datetime
 import os
+import datetime
+from runtime.config.system_config import *
 from runtime.config.flask_app_config import *
 from flask import send_from_directory, current_app
-from flask import request, Blueprint
-from elasticsearch import Elasticsearch
+from flask import request, Blueprint, make_response, jsonify
+#from elasticsearch import Elasticsearch
 import requests
 import ast
 api = Blueprint('APIs', __name__)
@@ -565,8 +639,8 @@ api = Blueprint('APIs', __name__)
 #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
 <<imports_for_sources>>
 <<get_analytics>>
-<<get_elkusage>>
-<<get_total_usage>>
+#<<get_elkusage>>
+#<<get_total_usage>>
 <<get_lab_wise_usage>>
 
 #+END_SRC

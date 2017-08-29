@@ -78,7 +78,6 @@
   - Success Response
     + Code: 200
 
-
 ** Outreach Portal
 *** Get current logged in users and total registered users
 *** Get nodal centre wise usage

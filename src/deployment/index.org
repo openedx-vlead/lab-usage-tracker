@@ -193,6 +193,71 @@ application = create_app(config)
 #+END_SRC
   
 
+* Script to sanitize openedx analytics data
+#+BEGIN_SRC python :tangle sanitize_openedx_analytics.py :eval no
+
+import requests
+import json
+
+ELASTIC_URL = "http://192.168.33.10"
+GET_INDEXS_API = "%s/_cat/indices" % (ELASTIC_URL)
+#r = requests.get(GET_INDEXS_API)
+
+#indexes = r.json()
+
+
+file_names = []
+def backup():
+    indexes = ['vlabs' , 'college_cloud' , 'college_cloud', 'matrusri-college_70:54:d2:7b:3d:70', 'juit_70:54:d2:7b:3d:36']
+    for index_name in indexes:
+        #index_name = index[index]
+        GET_TYPES_API = "%s/%s" % (ELASTIC_URL, index_name)
+        r = requests.get(GET_TYPES_API)
+        types = r.json()[index_name]['mappings'].keys()
+        for t in types:
+            temp = []
+            GET_DOCS_API = "%s/%s/%s/_search" % (ELASTIC_URL, index_name, str(t))
+            r = requests.get(GET_DOCS_API)
+            docs = r.json()['hits']['hits']
+
+            for doc in docs:
+                temp.append(doc['_source'])
+            file_name = "%s_%s.json" % (index_name, str(t))
+            file_names.append(file_name)
+            f = open(file_name, 'w')
+            json.dump(temp, f)
+            f.close()
+
+def restore():
+
+    for file_name in file_names:
+        if file_name == "vlabs_usage.json":
+            index = "vlabs"
+            type = "openedx-usage"
+            with open(file_name) as data_file:
+                usages = json.load(data_file)
+            for usage in usages:
+
+        if file_name == "vlabs_usage.json":
+            print "dfd"
+
+        if file_name == "matrusri-college_70:54:d2:7b:3d:70_usages.json":
+            print "Dfd"
+
+        if file_name == "matrusri-college_70:54:d2:7b:3d:70_feedback.json":
+            print "Dfd"
+
+        if file_name == "college_cloud_details.json":
+            print "Dfd"
+
+        if file_name == "juit_70:54:d2:7b:3d:36_feedback.json";
+            print "Dfd"
+        if file_name == "juit_70:54:d2:7b:3d:36_usages.json":
+            print "dfd"
+
+#+END_SRC
+
+
 * Tangle                                       :boilerplate:
 #+BEGIN_SRC python :eval no :tangle __init__.py
 print "deployment package"
