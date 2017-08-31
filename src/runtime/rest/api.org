@@ -102,7 +102,42 @@ class TestgetOpenedxUsage(TestCase):
    - This API return total number open edx labs usages
    - This API makes a internal get request to Elasticsearch and gets the total
      number of analytics record holded.
+#+BEGIN_EXAMPLE
+{
+  "aggs": {
+    "lab_wise_usage_details": {
+      "terms": {
+        "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+      }
+    }
+  }
+}
 
+#+END_EXAMPLE
+#+BEGIN_EXAMPLE
+{
+"aggs": {
+    "lab_ids": {
+    	"terms": {
+	           "field": "lab_id",
+	           "order" : { "_count" : "desc" },
+               "size": 0
+            },
+      
+      "aggs": {
+        "total_value": {
+        "terms": {
+        "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+      }
+             
+        }
+      }
+    }
+  }
+}
+
+
+#+END_EXAMPLE
 *** API Design
 
   :PROPERTIES:
@@ -135,17 +170,27 @@ class TestgetOpenedxUsage(TestCase):
 def get_openedx_lab_wise_usage():
     if request.method == 'GET':
         headers = {'Content-Type': 'application/json'}
-        data = {
-            "size": 0,
+        data =  {
             "aggs": {
                 "lab_ids": {
                     "terms": {
                         "field": "lab_id",
+                        "order" : { "_count" : "desc" },
                         "size": 0
-                        }
+                        },
+        
+                        "aggs": {
+                            "lab_details": {
+                                "terms": {
+                                    "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+                                    }
+                    
+                                }
+                            }
                     }
                 }
         }
+            
         index = "vlabs"
         type = "openedx_usage"
         ANALYTICS_API = "%s/%s/%s/_search" % (ANALYTICS_URL, index, type)
@@ -159,7 +204,11 @@ def get_openedx_lab_wise_usage():
                 for lab_usage in labs_usage:
                     lab_usage_dict = {}
                     lab_usage_dict['lab_id'] = str(lab_usage['key'])
-                    LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_usage_dict['lab_id'])
+                    lab_details = lab_usage['lab_details']['buckets'][0]['key'].split("::")
+                    lab_usage_dict['lab_name'] = str(lab_details[1])
+                    lab_usage_dict['discipline_name'] = str(lab_details[2])
+                    lab_usage_dict['institute_name'] = str(lab_details[3])
+                    #LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_usage_dict['lab_id'])
                     #r = requests.get(LDS_API, headers=headers)
                     # if r.status_code == 200:
                     #     current_date = str(datetime.datetime.today()).split()[0]
