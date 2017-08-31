@@ -13,14 +13,12 @@
 
 * REST API implementation
 
-** Get open edx labs usage
+** Get total usage analytics of labs running on openedx platform
 
-   - Currently 90 number of labs are running on openedx platform.
-   - When user clicks on =simulation= section of an experiment 1 usage is added
-     to elastic search database.
-   - This API return total number open edx labs usages
-   - This API makes a internal get request to Elasticsearch and gets the total
-     number of analytics record holded.
+   - Currently 90 labs are running on openedx platform.
+   - When user clicks on =simulation= section of an experiment 1 usage calculated
+   - This API return total number usage analytics of labs on openedx platform
+   - This API makes a API call to get toall usage analytics of labs.
 
 *** API Design
 
@@ -47,17 +45,126 @@
    This response template has to be changed and below response is integrated to
    vlabs.ac.in page
 *** Implementation
-#+NAME: get_elkusage
+#+NAME: get_openedx_usage
 #+BEGIN_SRC python
 
-@api.route('/api/elkusage')
-def get_elkusage():
-    try:
-        res = requests.get(elk_count_url)
-        elk_response = ast.literal_eval(res.text)
-        return json.dumps(elk_response)
-    except:
-        return "Error in communication"
+#@api.route('/api/elkusage', methods=['GET'])
+@api.route('/openedx/usage', methods=['GET'])
+def get_openedx_usage():
+    if request.method == 'GET':
+        index = "vlabs"
+        type = "openedx_usage"
+        ANALYTICS_API = "%s/%s/%s/_count" % (ANALYTICS_URL, index, type)
+        try:
+            res = requests.get(ANALYTICS_API)
+            if res.status_code == 200:
+                usage_dict = {
+                    "usage" : res.json()['count']
+                    }
+                return jsonify(usage_dict)
+            else:
+                abort(res.status_code)
+        except Exception as e:
+            abort(res.status_code, str(e))
+
+#+END_SRC 
+*** Test Cases
+#+NAME: test_get_elkusage
+#+BEGIN_SRC python
+class TestELKUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+    app = create_app(config)
+	return app
+
+    def setUp(self):
+	pass
+
+    def tearDown(self):
+	pass
+
+    def test_elk_usage(self):
+	print "test_elk_usage"
+
+	headers = {'Content-Type': 'application/json'}
+
+	response = self.client.get("/get_elkusage")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
+** Get lab wise usage analytics of labs running on openedx platform
+   
+   - Currently 90 number of labs are running on openedx platform.
+   - When user clicks on =simulation= section of an experiment 1 usage is added
+     to elastic search database.
+   - This API return total number open edx labs usages
+   - This API makes a internal get request to Elasticsearch and gets the total
+     number of analytics record holded.
+
+*** API Design
+
+  :PROPERTIES:
+  :CUSTOM_ID: openedx-usage
+  :END:          
+
+    - URL :: /openedx/lab_wise_usage
+
+    - Method :: GET
+
+    - URL Params :: None
+
+    - Success Response ::
+      + Code: 200
+#+BEGIN_EXAMPLE
+{
+'count': 7827, 
+'_shards': {'successful': 5, 'failed': 0, 'total': 5}
+}   
+#+END_EXAMPLE
+
+**** TODO
+   This response template has to be changed and below response is integrated to
+   vlabs.ac.in page
+*** Implementation
+#+NAME: get_openedx_lab_wise_usage
+#+BEGIN_SRC python
+
+@api.route('/openedx/lab_wise_usage', methods=['GET'])
+def get_openedx_lab_wise_usage():
+    if request.method == 'GET':
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "size": 0,
+            "aggs": {
+                "lab_ids": {
+                    "terms": {
+                        "field": "lab_id",
+                        "size": 0
+                        }
+                    }
+                }
+        }
+        index = "vlabs"
+        type = "openedx_usage"
+        ANALYTICS_API = "%s/%s/%s/_search" % (ANALYTICS_URL, index, type)
+        usage_list = []
+        try:
+            res = requests.post(ANALYTICS_API, data=json.dumps(data), headers=headers)
+            if res.status_code == 200:
+
+                labs_usage = res.json()['aggregations']['lab_ids']['buckets']
+                for lab_usage in labs_usage:
+                    usage_record = {}
+                    usage_record['lab_id'] = str(lab_usage['key'])
+                    usage_record['usage'] = str(labs_usage['doc_count'])
+                    usage_list.append(usage_record)
+                return jsonify(usage_list) 
+            else:
+                abort(res.status_code)
+        except:
+            abort(res.status_code)
 
 #+END_SRC 
 *** Test Cases
@@ -87,7 +194,8 @@ class TestELKUsage(TestCase):
 
 
 
-** Fetch analytics 
+** Add usage analytics of labs running on openedx platform
+
    + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
      to analytics server API. Data POSTed is in the url.  
    + Analytics server further converts that data into JSON and sends POST it to
@@ -127,11 +235,11 @@ class TestELKUsage(TestCase):
 #+END_EXAMPLE
 
 *** Implementation
-#+NAME: get_analytics
+#+NAME: add_openedx_usage_analytics
 #+BEGIN_SRC python
 
 @api.route('/<analytics>',methods= ['GET','POST'])
-def fetch_analytics(analytics):
+def add_openedx_usage_analytics(analytics):
     data = request.data
     fetch_data = analytics
     data_list = fetch_data.split(",")
@@ -205,7 +313,7 @@ class TestPostAnalytics(TestCase):
 #+END_SRC
 
 
-** Lab wise analytics
+** Get lab wise usage analytics of labs running on non-openedx platform 
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: lab_wise_analytics
@@ -242,9 +350,10 @@ class TestPostAnalytics(TestCase):
 #+NAME: get_lab_wise_usage
 #+BEGIN_SRC python
 
-@api.route('/analytics/labs', methods=['POST', 'GET'])
+#@api.route('/analytics/labs', methods=['POST', 'GET'])
+@api.route('/nonopenedx/lab_wise_usage', methods=['POST', 'GET'])
 #@api.cache.cached(timeout=360)
-def lab_wise_total():
+def nonopenedx_lab_wise_usage():
     index = "vlabs"
     type = "nonopenedx_usage"    
     
@@ -263,9 +372,15 @@ def lab_wise_total():
                 total_labs.append(lab['_source'])
         response = make_response(json.dumps(total_labs))
         return response
+#+END_SRC
 
+** Add nonopnedx lab wise usage to database 
+
+#+NAME: add_nonopenedx_lab_wise_usage
+#+BEGIN_SRC python
+
+@api.route('/nonopenedx/lab_wise_usage', methods=['POST', 'GET'])
     if request.method == 'POST':
-
         files_dir = "/home/sripathi/"
         result_file = files_dir + "output.txt"
         rows = []
@@ -312,7 +427,7 @@ def lab_wise_total():
 *** Test Cases
 
     
-** Total analytics
+** Get total usage analytics of labs running on non-openedx platform
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: get_total_analytics
@@ -338,11 +453,12 @@ def lab_wise_total():
 *** Implementation
     get the total visits from the =all_total.txt= file
 
-#+NAME: get_analytics
+#+NAME: get_nonopenedx_usage
 #+BEGIN_SRC python
 
 #app.cache = Cache(app)
-@api.route('/analytics', methods=['POST', 'GET'])
+#@api.route('/analytics', methods=['POST', 'GET'])
+@api.route('/nonopenedx/usage', methods=['POST', 'GET'])
 #@api.cache.cached(timeout=360)
 def total_hits():
     index = "vlabs"
@@ -406,10 +522,11 @@ def total_hits():
 
    + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
 *** Implementation
-#+NAME: get_total_usage
+#+NAME: get_vlabs_usage
 #+BEGIN_SRC python
 
-@api.route('/api/totalusage')
+#@api.route('/api/totalusage')
+@api.route('/vlabs/usage')
 def get_total_usage():
     try:
         res = requests.get(elk_count_url)
@@ -622,7 +739,7 @@ import os
 import datetime
 from runtime.config.system_config import *
 from runtime.config.flask_app_config import *
-from flask import send_from_directory, current_app
+from flask import send_from_directory, current_app, abort
 from flask import request, Blueprint, make_response, jsonify
 #from elasticsearch import Elasticsearch
 import requests
@@ -639,9 +756,14 @@ api = Blueprint('APIs', __name__)
 #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
 <<imports_for_sources>>
 <<get_analytics>>
-#<<get_elkusage>>
+<<get_openedx_usage>>
+<<get_openedx_lab_wise_usage>>
+<<add_openedx_usage_analytics>>
+<<add_nonopenedx_lab_wise_usage>>
+<<get_nonopenedx_usage>>
+<<get_vlabs_usage>>
 #<<get_total_usage>>
-<<get_lab_wise_usage>>
+
 
 #+END_SRC
 
