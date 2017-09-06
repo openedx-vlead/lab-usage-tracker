@@ -744,7 +744,7 @@ URL not found
 
   - Method :: GET
 
-  - URL Params ::  None
+  - URL Params ::  date=<YYYY-MM-DD> (optional)
 
   - Payload :: None
 
