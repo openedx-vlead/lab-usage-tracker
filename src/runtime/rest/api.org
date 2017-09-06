@@ -611,6 +611,7 @@ def get_vlabs_usage():
 #+END_SRC 
 *** Test Cases
 
+
 ** Algorithm to compute current logged in & registered users
    
 #+NAME: logged_in_users
@@ -714,7 +715,7 @@ output {
 #+END_SRC
 
 
-** Get current logged in users in & registered vlabs.ac.in
+** Get current logged in users vlabs.ac.in
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: get_total_user_in_op
@@ -734,7 +735,6 @@ output {
 #+BEGIN_EXAMPLE
 {
   "date": "2017-08-25",
-  "registered_users" : 6700,
   "current_logged_in_users": {
     "total": 20,
     "details": [
