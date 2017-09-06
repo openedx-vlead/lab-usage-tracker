@@ -761,6 +761,113 @@ output {
 #+END_EXAMPLE
 
 *** Implementation
+#+NAME: get_logged_in_users
+#+BEGIN_SRC python
+def get_ip_info(ip_address, res):
+    data = {}
+    clients_info = res.json()['hits']['hits']
+
+    for client_info in clients_info:
+        current_app.logger.debug("ip_address after call= %s db_ip_info =%s" % (client_info['_source']['clientip'], ip_address))
+        if client_info['_source']['clientip'] == ip_address:
+
+            data['clientip'] = ip_address
+            current_app.logger.debug("data= %s" %(data))
+            data['client_location'] = {}
+
+            try:
+                data['client_location']['latitude'] = client_info['_source']['geoip']['latitude']
+                data['client_location']['langitude'] = client_info['_source']['geoip']['longitude']
+            except Exception as e:
+                data['client_location']['latitude'] = ""
+                data['client_location']['langitude'] = ""
+
+            current_app.logger.debug("data= %s" %(data))
+    return data
+
+@api.route('/get_vlabs_user_analytics', methods=['GET'])
+def get_openedx_logged_in_users():
+    if request.method == 'GET':
+        current_date = str(datetime.datetime.today()).split()[0]
+        current_app.logger.debug("date =%s" % (current_date))
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "aggs": {
+                "client_ips": {
+                    "terms": {
+                        "field": "clientip",
+                        "order" : { "_count" : "asc" },
+                        "size": 0
+                        },
+
+                "aggs": {
+                    "client_status": {
+                        "terms": {
+                            "script": "[doc.clientip.value, doc.api_endpoint.value].join('::')"
+                            }
+
+                        }
+                    }
+                }
+            }
+        }
+        current_app.logger.debug("post_data =%s" % (data))
+        index = "vlabs"
+        type = "test_api1_user_analytics_%s" % (current_date)
+        ANALYTICS_API = "%s/%s/%s/_search?size=10000" % (ANALYTICS_URL, index, type)
+        current_app.logger.debug("analytics_api =%s" % (ANALYTICS_API))
+        active_users = {}
+        total_active_users = 0
+        try:
+            res = requests.post(ANALYTICS_API, data=json.dumps(data), headers=headers)
+            if res.status_code == 200:
+
+                clients_ip_info = res.json()['aggregations']['client_ips']['buckets']
+                details = []
+                current_app.logger.debug("clients_ip_info =%s" % (clients_ip_info))
+                for client_action in clients_ip_info:
+
+                    if len(client_action['client_status']['buckets']) == 1:
+                        current_app.logger.debug("buckets with size 1 =%s" % (len(client_action['client_status']['buckets'])))
+                        current_app.logger.debug("ip_address before call =%s" % (client_action['key']))
+                        ip_details = get_ip_info(client_action['key'], res)
+                        current_app.logger.debug("ip details =%s" % (ip_details))
+                        active_users_count = client_action['doc_count']
+                        ip_details['count'] = int(active_users_count)
+                        total_active_users = total_active_users + ip_details['count']
+
+                    elif len(client_action['client_status']['buckets']) == 2:
+                        current_app.logger.debug("buckets with size 2 =%s" % (len(client_action['client_status']['buckets'])))
+                        ip_details = get_ip_info(client_action['key'], res)
+                        login_count = int(client_action['client_status']['buckets'][0]['doc_count'])
+                        logout_count = int(client_action['client_status']['buckets'][1]['doc_count'])
+                        active_users_count = login_count - logout_count
+                        if active_users_count > 0:
+                            ip_details['count'] = int(active_users_count)
+                            total_active_users = total_active_users + ip_details['count']
+                        if active_users_count == 0:
+                            ip_details['count'] = 0
+
+
+                    else:
+                        pass
+                    current_app.logger.debug("details before append %s" % (ip_details))
+                    details.append(ip_details)
+                current_app.logger.debug("for loop end details =%s" % (details))
+                active_users['current_logged_in_users'] = {}
+                active_users['date'] = current_date
+                active_users['current_logged_in_users']['details'] = details
+                active_users['current_logged_in_users']['total'] = total_active_users
+                current_app.logger.debug("active_users =%s" % (active_users))
+                return jsonify(active_users)
+
+            else:
+                abort(res.status_code)
+        except Exception as e:
+            abort(str(e))
+
+#+END_SRC 
+
 *** Test Cases
 
 
@@ -985,7 +1092,7 @@ api = Blueprint('APIs', __name__)
 <<add_nonopenedx_lab_wise_usage>>
 <<get_nonopenedx_lab_wise_usage>>
 <<get_vlabs_usage>>
-
+<<get_logged_in_users>>
 #+END_SRC
 
 #+BEGIN_SRC conf :tangle openedx-logged-in-users.conf :eval no :noweb yes
