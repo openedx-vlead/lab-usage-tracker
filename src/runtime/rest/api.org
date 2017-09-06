@@ -705,13 +705,13 @@ URL not found
 *** Test Cases
 
 
-** Get current logged in users and total registered users
+** Get current logged in users and total registered users in outreach portal
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: get_total_user_in_op
   :END:    
 
-  - URL :: /get_outreach_user_statistics
+  - URL :: /get_outreach_user_analytics
 
   - Method :: GET
 
@@ -725,7 +725,37 @@ URL not found
 #+BEGIN_EXAMPLE
 {
 "current_logged_in_users" : 20,
-"total_registered_users"" : 1000
+"total_registered_users"" : 1000,
+"date" : "2017-08-25"
+}
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+
+
+** Get current logged in users and total registered users in vlabs.ac.in
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_user_in_op
+  :END:    
+
+  - URL :: /get_vlabs_user_analytics
+
+  - Method :: GET
+
+  - URL Params ::  None
+
+  - Payload :: None
+
+  - Success Response ::
+    + Status_Code: 200
+    + Content:                 
+#+BEGIN_EXAMPLE
+{
+"current_logged_in_users" : 20,
+"total_registered_users"" : 1000,
+"date" : "2017-08-25"
 }
 #+END_EXAMPLE
 
