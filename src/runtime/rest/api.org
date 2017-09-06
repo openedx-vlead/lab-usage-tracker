@@ -611,6 +611,178 @@ def get_vlabs_usage():
 #+END_SRC 
 *** Test Cases
 
+** Algorithm to compute current logged in & registered users
+   
+#+NAME: logged_in_users
+#+BEGIN_SRC conf
+input {
+   file {
+       #path => "/home/sripathi/extracted-files/extrac*.log*"
+       path => "/home/sripathi/edx10.log"
+       start_position => "beginning"
+   }
+
+}        
+
+filter {
+
+      grok {
+            match => ["message", "%{IP:clientip} \- \- \[%{MONTHDAY:day}/%{MONTH:month}/%{YEAR:year}\:%{TIME:time} \+%{INT:zone}\]  \"%{WORD:method} %{URIPATHPARAM:api_endpoint} %{URIPROTO:protocal}/%{NUMBER:version}\" %{INT:status_code} %{INT:byte} %{NUMBER:byte1} \"%{URI:referrer}"]
+
+           }
+           geoip {
+           source => "clientip"
+           }
+       if [month] == "Jan" {
+        mutate { replace => { "month" => "01" } } 
+       }
+       else if [month] == "Feb" {
+        mutate { replace => { "month" => "02" } } 
+       }
+       else if [month] == "Mar" {
+        mutate { replace => { "month" => "03" } } 
+       }
+       else if [month] == "Apr" {
+        mutate { replace => { "month" => "04" } } 
+       }
+       else if [month] == "May" {
+        mutate { replace => { "month" => "05" } } 
+       }
+       else if [month] == "Jun" {
+        mutate { replace => { "month" => "06" } } 
+       }
+       else if [month] == "Jul" {
+        mutate { replace => { "month" => "07" } } 
+       }
+       else if [month] == "Aug" {
+        mutate { replace => { "month" => "08" } } 
+       }
+       else if [month] == "Sep" {
+        mutate { replace => { "month" => "09" } } 
+       }
+       else if [month] == "Oct" {
+        mutate { replace => { "month" => "10" } } 
+       }    
+       else if [month] == "Nov" {
+        mutate { replace => { "month" => "11" } } 
+       }
+       else {
+        mutate { replace => { "month" => "12" } } 
+       }    
+       mutate {
+
+         add_field => {
+                       "date" => "%{year}-%{month}-%{day}"
+                       }
+        }
+      if [api_endpoint] == "/dashboard" {
+         
+            if [status_code] != "200" {
+               drop {}
+            }
+            else if [referrer] != "https://vlabs.ac.in/login?next=/dashboard" {
+                 drop {}
+            }
+      }
+      else if [api_endpoint] == "/logout" {
+          if [status_code] != "302" or [referrer] == "https://vlabs.ac.in/" {
+             drop {}
+          }
+   
+      }
+      # else if [api_endpoint] == "/user_api/v1/account/registration/" {
+      #      if [status_code] != "200" or [method] != "POST" {
+      #        drop {}
+      #     }
+      # }
+      else {
+           drop {}
+      }
+      
+}
+
+output {
+
+       elasticsearch {
+            protocol => "http"
+            host => "192.168.33.10:80"
+            index => "openedx_active"
+            document_type => "user_analytics_%{date}"
+        }
+   }
+
+#+END_SRC
+
+
+** Get current logged in users in vlabs.ac.in
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_user_in_op
+  :END:    
+
+  - URL :: /get_vlabs_user_analytics
+
+  - Method :: GET
+
+  - URL Params ::  date=<YYYY-MM-DD> (optional)
+
+  - Payload :: None
+
+  - Success Response ::
+    + Status_Code: 200
+    + Content:                 
+#+BEGIN_EXAMPLE
+{
+  "date": "2017-08-25",
+  "current_logged_in_users": {
+    "total": 20,
+    "details": [
+      {
+        "client_ip": "92.67.43.56",
+        "count": 30,
+        "client_location": {
+          "longitude": 78.4744,
+          "latitude": 17.37530000000001
+        }
+      }
+    ]
+  }
+}
+
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+
+
+** Get current logged in users and total registered users in outreach portal
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_user_in_op
+  :END:    
+
+  - URL :: /get_outreach_user_analytics
+
+  - Method :: GET
+
+  - URL Params ::  None
+
+  - Payload :: None
+
+  - Success Response ::
+    + Status_Code: 200
+    + Content:                 
+#+BEGIN_EXAMPLE
+{
+"current_logged_in_users" : 20,
+"total_registered_users"" : 1000,
+"date" : "2017-08-25"
+}
+#+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+
 
 ** Get nodal centre wise usage in outreach portal
 *** API Design
@@ -705,64 +877,6 @@ URL not found
 *** Test Cases
 
 
-** Get current logged in users and total registered users in outreach portal
-*** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: get_total_user_in_op
-  :END:    
-
-  - URL :: /get_outreach_user_analytics
-
-  - Method :: GET
-
-  - URL Params ::  None
-
-  - Payload :: None
-
-  - Success Response ::
-    + Status_Code: 200
-    + Content:                 
-#+BEGIN_EXAMPLE
-{
-"current_logged_in_users" : 20,
-"total_registered_users"" : 1000,
-"date" : "2017-08-25"
-}
-#+END_EXAMPLE
-
-*** Implementation
-*** Test Cases
-
-
-** Get current logged in users and total registered users in vlabs.ac.in
-*** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: get_total_user_in_op
-  :END:    
-
-  - URL :: /get_vlabs_user_analytics
-
-  - Method :: GET
-
-  - URL Params ::  date=<YYYY-MM-DD> (optional)
-
-  - Payload :: None
-
-  - Success Response ::
-    + Status_Code: 200
-    + Content:                 
-#+BEGIN_EXAMPLE
-{
-"current_logged_in_users" : 20,
-"total_registered_users"" : 1000,
-"date" : "2017-08-25"
-}
-#+END_EXAMPLE
-
-*** Implementation
-*** Test Cases
-
-
 ** Get total offline/online feedbacks
 *** API Design
 
@@ -850,7 +964,8 @@ api = Blueprint('APIs', __name__)
 * Tangle                                                        :boilerplate:
 
 ** sources
-#+BEGIN_SRC python :tangle api.py :eval no :noweb yes
+
+ #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
 
 <<imports_for_sources>>
 <<get_analytics>>
@@ -862,9 +977,12 @@ api = Blueprint('APIs', __name__)
 <<get_nonopenedx_lab_wise_usage>>
 <<get_vlabs_usage>>
 
-
-
 #+END_SRC
 
+#+BEGIN_SRC conf :tangle openedx-logged-in-users.conf :eval no :noweb yes
+
+<<logged_in_users>>
+
+#+END_SRC
 
 
