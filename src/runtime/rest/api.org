@@ -714,7 +714,7 @@ output {
 #+END_SRC
 
 
-** Get current logged in users in vlabs.ac.in
+** Get current logged in users in & registered vlabs.ac.in
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: get_total_user_in_op
@@ -734,6 +734,7 @@ output {
 #+BEGIN_EXAMPLE
 {
   "date": "2017-08-25",
+  "registered_users" : 6700,
   "current_logged_in_users": {
     "total": 20,
     "details": [
@@ -743,6 +744,14 @@ output {
         "client_location": {
           "longitude": 78.4744,
           "latitude": 17.37530000000001
+        }
+      },
+      {
+        "client_ip": "90.67.43.56",
+        "count": 50,
+        "client_location": {
+          "longitude": 76.4744,
+          "latitude": 10.37530000000001
         }
       }
     ]
