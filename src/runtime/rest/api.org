@@ -618,8 +618,7 @@ def get_vlabs_usage():
 #+BEGIN_SRC conf
 input {
    file {
-       #path => "/home/sripathi/extracted-files/extrac*.log*"
-       path => "/home/sripathi/edx10.log"
+       path => "/home/sripathi/test-logs.log"
        start_position => "beginning"
    }
 
@@ -707,7 +706,7 @@ output {
        elasticsearch {
             protocol => "http"
             host => "192.168.33.10:80"
-            index => "openedx_active"
+            index => "vlabs"
             document_type => "user_analytics_%{date}"
         }
    }
@@ -768,11 +767,9 @@ def get_ip_info(ip_address, res):
     clients_info = res.json()['hits']['hits']
 
     for client_info in clients_info:
-        current_app.logger.debug("ip_address after call= %s db_ip_info =%s" % (client_info['_source']['clientip'], ip_address))
         if client_info['_source']['clientip'] == ip_address:
 
             data['clientip'] = ip_address
-            current_app.logger.debug("data= %s" %(data))
             data['client_location'] = {}
 
             try:
@@ -781,8 +778,6 @@ def get_ip_info(ip_address, res):
             except Exception as e:
                 data['client_location']['latitude'] = ""
                 data['client_location']['langitude'] = ""
-
-            current_app.logger.debug("data= %s" %(data))
     return data
 
 @api.route('/get_vlabs_user_analytics', methods=['GET'])
@@ -813,7 +808,7 @@ def get_openedx_logged_in_users():
         }
         current_app.logger.debug("post_data =%s" % (data))
         index = "vlabs"
-        type = "test_api1_user_analytics_%s" % (current_date)
+        type = "user_analytics_%s" % (current_date)
         ANALYTICS_API = "%s/%s/%s/_search?size=10000" % (ANALYTICS_URL, index, type)
         current_app.logger.debug("analytics_api =%s" % (ANALYTICS_API))
         active_users = {}
@@ -821,42 +816,50 @@ def get_openedx_logged_in_users():
         try:
             res = requests.post(ANALYTICS_API, data=json.dumps(data), headers=headers)
             if res.status_code == 200:
-
                 clients_ip_info = res.json()['aggregations']['client_ips']['buckets']
-                details = []
-                current_app.logger.debug("clients_ip_info =%s" % (clients_ip_info))
+                active_user_details = []
                 for client_action in clients_ip_info:
 
                     if len(client_action['client_status']['buckets']) == 1:
-                        current_app.logger.debug("buckets with size 1 =%s" % (len(client_action['client_status']['buckets'])))
-                        current_app.logger.debug("ip_address before call =%s" % (client_action['key']))
-                        ip_details = get_ip_info(client_action['key'], res)
-                        current_app.logger.debug("ip details =%s" % (ip_details))
-                        active_users_count = client_action['doc_count']
-                        ip_details['count'] = int(active_users_count)
-                        total_active_users = total_active_users + ip_details['count']
+                        geo_codes_info = get_ip_info(client_action['key'], res)
+                        login_end_point = client_action['client_status']['buckets'][0]['key'].split("::")[1]
+                        if login_end_point == "/dashboard":
+                            active_users_count = client_action['doc_count']
+                        else:
+                            active_users_count = 0
+                        geo_codes_info['count'] = int(active_users_count)
+                        total_active_users = total_active_users + geo_codes_info['count']
 
                     elif len(client_action['client_status']['buckets']) == 2:
-                        current_app.logger.debug("buckets with size 2 =%s" % (len(client_action['client_status']['buckets'])))
-                        ip_details = get_ip_info(client_action['key'], res)
-                        login_count = int(client_action['client_status']['buckets'][0]['doc_count'])
-                        logout_count = int(client_action['client_status']['buckets'][1]['doc_count'])
+                        geo_codes_info = get_ip_info(client_action['key'], res)
+                        login_end_point = client_action['client_status']['buckets'][0]['key'].split("::")[1]
+                        logout_end_point = client_action['client_status']['buckets'][1]['key'].split("::")[1]
+                        current_app.logger.debug("when len 2 login_end_point =%s, logout_end_point =%s" % (login_end_point, logout_end_point))
+
+                        if login_end_point == "/dashboard":
+                            current_app.logger.debug("if when /dashboard");
+                            login_count = int(client_action['client_status']['buckets'][0]['doc_count'])
+                        else:
+                            current_app.logger.debug("else when /dashboard");
+                            login_count = 0
+                        if logout_end_point == "/logout":
+                            logout_count = int(client_action['client_status']['buckets'][1]['doc_count'])
+                        else:
+                            current_app.logger.debug("else when /logout");
+                            logout_count = 0
                         active_users_count = login_count - logout_count
+                        current_app.logger.debug("active user count = %s" % (active_users_count))
                         if active_users_count > 0:
-                            ip_details['count'] = int(active_users_count)
-                            total_active_users = total_active_users + ip_details['count']
+                            geo_codes_info['count'] = int(active_users_count)
+                            total_active_users = total_active_users + geo_codes_info['count']
                         if active_users_count == 0:
-                            ip_details['count'] = 0
-
-
+                            geo_codes_info['count'] = 0
                     else:
                         pass
-                    current_app.logger.debug("details before append %s" % (ip_details))
-                    details.append(ip_details)
-                current_app.logger.debug("for loop end details =%s" % (details))
+                    active_user_details.append(geo_codes_info)
                 active_users['current_logged_in_users'] = {}
                 active_users['date'] = current_date
-                active_users['current_logged_in_users']['details'] = details
+                active_users['current_logged_in_users']['details'] = active_user_details
                 active_users['current_logged_in_users']['total'] = total_active_users
                 current_app.logger.debug("active_users =%s" % (active_users))
                 return jsonify(active_users)
