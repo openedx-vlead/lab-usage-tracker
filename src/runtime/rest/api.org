@@ -14,11 +14,13 @@
 * REST API implementation
 
 ** Get total usage analytics of labs running on openedx platform
+   1. As of date =2017-Sep-08= total labs hosted on openedx platform are =90=
 
-   - Currently 90 labs are running on openedx platform.
-   - When user clicks on =simulation= section of an experiment 1 usage calculated
-   - This API return total number usage analytics of labs on openedx platform
-   - This API makes a API call to get toall usage analytics of labs.
+   2. Usage for labs hosted on openedx platform is calculated as follows
+      - When user click on =simulation= section of an experiment results +1
+        usage
+   3. This API returns total usage count of all labs hosted on openedx platform
+      from the date =2016-10-07=
 
 *** API Design
 
@@ -26,7 +28,7 @@
   :CUSTOM_ID: openedx-usage
   :END:          
 
-    - URL :: /api/elkusage
+    - URL :: /openedx/usage
 
     - Method :: GET
 
@@ -34,11 +36,11 @@
 
     - Success Response ::
       + Code: 200
-#+BEGIN_EXAMPLE
-{
-'count': 7827, 
-'_shards': {'successful': 5, 'failed': 0, 'total': 5}
-}   
+        #+BEGIN_EXAMPLE
+        {
+        'usage': 7827,
+        'date' : 2017-08-29
+        }   
 #+END_EXAMPLE
 
 **** TODO
@@ -373,52 +375,110 @@ class TestPostAnalytics(TestCase):
 #+END_SRC
 
 
-** Add nonopnedx lab wise usage to database 
+** Push lab wise usage analytics of labs on nonopenedx platform to database
 
+   1. This API reads the records from the file =/root/nonopenedx-lab-usage-info.txt=
+      which is being pushed from =stats.vlabs.ac.in= server for every =2hrs= of
+      time interval
+   2. Every record in file =nonopenedx-lab-usage-info.txt= has the following format
+      #+BEGIN_EXAMPLE
+      lab_id, lab_name, hists, visits, usage
+      #+END_EXAMPLE
+   3. From the each record it picks up the =lab_id= field and gets the details
+      of that lab from [[http://lds.vlabs.ac.in/labs?lab_id=cse02][LDS]] service and then forms the =json= as below
+      #+BEGIN_EXAMPLE
+      {
+          "lab_name" : "principles of programming languages",
+          "lab_id" : "cse05",
+          "discipline_name" : "Computer Science and Engineering",
+          "institute_name" : "IIIT Hyderabad",
+          "visits" : 4500,
+          "hits" :4000 ,
+          "usage" : 1000,
+          "date" : 2017-07-25
+       }
+      #+END_EXAMPLE
+   4. Every =json= record is pushed into =elasticsearch= database with index
+      =vlabs= , type =nonopenedx_usage= and id =cse05_2017-07-25=
+*** Design
+  :PROPERTIES:
+  :CUSTOM_ID: push_lab_wise_analytics
+  :END:          
+
+    - URL :: /nonopenedx/lab_wise_usage
+
+    - Method :: POST
+
+    - URL Params :: None
+    
+    - Payload JSON ::
+        #+BEGIN_EXAMPLE
+       {
+          "lab_name" : "principles of programming languages",
+          "lab_id" : "cse05",
+          "discipline_name" : "Computer Science and Engineering",
+          "institute_name" : "IIIT Hyderabad",
+          "visits" : 4500,
+          "hits" :4000 ,
+          "usage" : 1000,
+          "date" : 2017-07-25
+       }
+
+       #+END_EXAMPLE
+
+    - Success Response ::
+      + Code: 200
+    
+*** Implementation
 #+NAME: add_nonopenedx_lab_wise_usage
 #+BEGIN_SRC python
-
     if request.method == 'POST':
+        current_date = str(datetime.datetime.today()).split()[0]
         files_dir = "/home/sripathi/"
         result_file = files_dir + "output.txt"
         rows = []
+        labs_count = 0
         with open(result_file, 'r') as f:
           lines = f.readlines()
           for line in lines:
-             d = {}
+             lab_info = {}
              row = line.split(",")
              if len(row)>0:
-                 d["lab_id"] = row[0]
-                 d["lab_name"] = row[1]
-                 d["institute_name"] = row[2]
-                 d["hits"] = int(row[3])
-                 d["visits"] = int(row[4])
-                 d["usage"] = int(row[5].strip())
-                 d["date"] = current_date
-                 lab_id = d['lab_id']
-                 current_app.logger.debug("Before LDS call record is =%s" % (d))
+                 lab_info["lab_id"] = row[0]
+                 lab_info["hits"] = int(row[3])
+                 lab_info["visits"] = int(row[4])
+                 lab_info["usage"] = int(row[5].strip())
+                 lab_info["date"] = current_date
+                 lab_id = lab_info['lab_id']
                  LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_id)
                  req = requests.get(LDS_API)
                  if req.status_code == 200:
-                     d["lab_name"] = str(req.json()["lab_name"])
-                     d["institute_name"] = str(req.json()["institute"]["institute_name"])
-                     d["discipline_name"] = str(req.json()["discipline"]["discipline_name"])
-                 ANALYTICS_API = "%s/%s/%s/id=%s_%s" % (ANALYTICS_URL, index, type, lab_id, current_date)
-                 current_app.logger.debug("ANALYTICS_API=%s" % (ANALYTICS_API))
-                 current_app.logger.debug("After LDS record=%s" % (d))
-                 req = requests.post(ANALYTICS_API, data=json.dumps(d))
-                 if req.status_code == 200 or req.status_code == 201:
-                     current_app.logger.debug("Added record %s" % (d))
+                     lab_info["lab_name"] = str(req.json()["lab_name"])
+                     lab_info["institute_name"] = str(req.json()["institute"]\
+                                               ["institute_name"])
+                     lab_info["discipline_name"] = str(req.json()["discipline"]\
+                                                ["discipline_name"])
+                     ANALYTICS_API = "%s/%s/%s/id=%s_%s" % \
+                       (ANALYTICS_URL, index, type, lab_id, current_date)
+
+                     req = requests.post(ANALYTICS_API, data=json.dumps(lab_info))
+                     if req.status_code == 200 or req.status_code == 201:
+                         labs_count = labs_count + 1
+                         current_app.logger.debug("Added record %s" % (lab_info))
+                     else:
+                         current_app.logger.error("Failed to add record %s" \
+                                                  % (lab_info))
                  else:
-                     current_app.logger.error("Failed to add record %s" % (d))
-                     
+                     current_app.logger.error\
+                       ("Not found on LDS = %s, status_code = %s" \
+                            % (lab_info, req.status_code))
+
              else:
                  break
-        return "ok"
-        # response = make_response(json.dumps(lab))
-        # response.headers['Access-Control-Allow-Origin'] = '*'
-        # response.headers['Access-Control-Allow-Credentials'] = 'true'
-        # return response
+        return_dict = {"records_added" : labs_count}
+        current_app.logger.debug("Total records added to elastic database=%s" \
+                                 % (return_dict))
+        return jsonify(return_dict)
 
 #+END_SRC
 

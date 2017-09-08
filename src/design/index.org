@@ -32,6 +32,28 @@
   + Information on implementation of ELK node can be [[https://github.com/openedx-vlead/elk-stack-for-analytics][read here]]
 
    [[./analytics-design-for-vlabs-openedx.jpg]]
+
+* Service Interplay
+
+#+BEGIN_HTML
+<img src="https://docs.google.com/drawings/d/e/2PACX-1vTkpeiZc8CGKQUed7q_LcA5VdKEKN4yFZRgO6Gd4RrjQBZGsuM5IOFQjeUSNkSRsyYninO_di9XM_mb/pub?w=960&amp;h=720">
+<p align="center"> Analytics Services Interplay </p>
+#+END_HTML
+
+- Virtual Labs on AWS :: 
+  + Total number of labs running on AWS :: 173
+    - Total number of labs running on Openedx platform :: 90
+    - Total number of labs running on Non openedx platform :: 83
+
+- Virtual Labs on College Cloud ::
+
+- Feedback ::
+
+- Outreach Portal ::
+
+- Analytics Service ::
+
+- Database ::
 * Application Programming Interface
   :PROPERTIES:
   :CUSTOM_ID: api
@@ -255,24 +277,3 @@
 #+END_HTML
 
  [[https://docs.google.com/drawings/d/1tJ_wL-rEhKK6rND6nXCTQKxIHXJEICOXjUC4C2Xa5aw/edit?ts=59548cc1][Click here]] to edit the design diagram
-
-* Service Interplay
-#+BEGIN_HTML
-<img src="https://docs.google.com/drawings/d/e/2PACX-1vRIaLMh2dyfg_IEOkZneyi3Sv27DVgZDgGQKmuPzTR0fj5Udd0dQDSQE2VVw8hEqTtBVXZVTVhwrngD/pub?w=960&h=720">
-<p align="center"> Services Interplay </p>
-#+END_HTML
-
-- Virtual Labs on AWS :: 
-  + Total number of labs running on AWS :: 173
-    - Total number of labs running on Openedx platform :: 90
-    - Total number of labs running on Non openedx platform :: 83
-
-- Virtual Labs on College Cloud ::
-
-- Feedback ::
-
-- Outreach Portal ::
-
-- Analytics Service ::
-
-- Database ::
