@@ -20,6 +20,9 @@ This holds the application's configuration parameters.
 KEY = "defaultkey"
 LDS_URL = "http://lds.vlabs.ac.in"
 ANALYTICS_DB_URL = "http://192.168.33.10"
+VLABS_INDEX = "vlabs"
+OPENEDX_USAGE = "openedx_usage"
+NONOPENEDX_USAGE = "nonopenedx_usage"
 #+END_SRC
 
 
