@@ -1,0 +1,40 @@
+#+TITLE: Plan for Virtual Labas Analytics Service
+#+AUTHOR: VLEAD
+#+DATE: [2017-09-11 Mon]
+#+PROPERTY: results output
+#+PROPERTY: exports code
+#+SETUPFILE: ../org-templates/level-1.org
+#+options: ^:nil
+#+LATEX: Literal LaTeX code for export
+
+* Introduction
+  - This document contains the realization plan for
+    implementing the Virtual Labs Analytics Service
+
+* Plan 
+** [[https://github.com/vlead/lab-data-service-dashboard/milestone/1][Milestone One]]
+  :PROPERTIES:
+  :CUSTOM_ID: plan-for-milestone-one
+  :END: 
+  Once this milestone is realized, the following task/issues will be done.
+
+
+#+caption:  realization-plan
+#+name: tbl-realization-plan
+|----+---------------------------------------+--------+----------+--------+------------+------------+--------+----------|
+| S. | Tasks                                 | Github | Expected | Actual | Estimated  | Actual     | Status | Assignee |
+| NO |                                       | Issues | Effort   | Effort | Start/     | Start,     |        |          |
+|    |                                       |        | (in      | (in    | End        | End        |        |          |
+|    |                                       |        | person   | person | Dates      | Dates      |        |          |
+|    |                                       |        | hours)   | hours) |            |            |        |          |
+|----+---------------------------------------+--------+----------+--------+------------+------------+--------+----------|
+| 1. | Document steps                        | [[https://github.com/vlead/vlabs-landing-pages/issues/2][#15]]    | 2        | -      | 12-09-2017 | 12-09-2017 | Done   | Sripathi |
+|    | to configure                          |        |          |        | 12-09-2017 | 12-09-2017 |        |          |
+|    | logstash service on productionAbility |        |          |        |            |            |        |          |
+|    | to display the labs developed         |        |          |        |            |            |        |          |
+|    |                                       |        |          |        |            |            |        |          |
+|    |                                       |        |          |        |            |            |        |          |
+|----+---------------------------------------+--------+----------+--------+------------+------------+--------+----------|
+
+
+#+TBLFM: $total=vsum(@II+1..@-1)

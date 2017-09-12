@@ -1,6 +1,6 @@
-#+TITLE: Requirements for Feedback Portal
+#+TITLE: Requirements for Virtual Labs Analytics Service
 #+AUTHOR: VLEAD
-#+DATE: [2016-08-15 Mon]
+#+DATE: [2017-09-11 Mon]
 #+PROPERTY: results output
 #+PROPERTY: exports code
 #+SETUPFILE: ../org-templates/level-1.org
@@ -8,7 +8,8 @@
 #+LATEX: Literal LaTeX code for export
 
 * Introduction 
-  The requirements of =Analytics Service= are listed here.
+  This document illustrates the requirements to build =Analytics Service= for
+  Virtual Labs
 
 * Definitions 
   + Usages ::
@@ -36,29 +37,29 @@
   :PROPERTIES:
   :CUSTOM_ID: req1
   :END: 
-  - Ability to get the analytics data from =outreach-portal= micro
-    service.
-  - API design
-    [[get_total_user_in_op][Url]]
+  - Ability to design REST APIs to store/retrieve the usage analytics of the Virtual
+    Labs hosted on Openedx, College Cloud and other platforms
+  - API design captured [[get_total_user_in_op][here]]
 ** Req2 
   :PROPERTIES:
   :CUSTOM_ID: req2
   :END: 
-  - Ability to get the analytics data from =feedback-portal= micro
-    service.
-  - API design
+  - Ability to design REST APIs to store/retrieve the user analytics of the
+    Openedx platform running Virtual Labs
+  - API design captured here
      
 ** Req3
   :PROPERTIES:
   :CUSTOM_ID: req3
   :END:
-  - Ability to get the analytics data from =elastic search= micro
-    service.
-  - API design
+  - Ability to design REST APIs to store/retrieve the user analytics of the
+    Outreach Portal
+  - API design captured here
 ** Req4
   :PROPERTIES:
   :CUSTOM_ID: req4
   :END: 
-  - Ability to get the analytics data from =OpenEdx= service.
-  - API design
+  - Ability to design REST APIs to store/retrieve the feedback analytics of
+    Virtual Labs hosted on Openedx, College Cloud and other platforms
+  - API design captured here
 
