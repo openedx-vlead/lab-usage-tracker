@@ -275,7 +275,7 @@ class TestGetOpenedxLabWiseUsage(TestCase):
 
     - URL :: /server_url,user_id,lab_id,lab_name,exp_id,exp_name
 
-    - Method :: POST
+    - Method :: GET
 
     - URL Params :: None
 
@@ -312,58 +312,65 @@ def add_openedx_usage_analytics(exp_details):
 
         data_dict["student_id"] = student_id
         data_dict["lab_id"] = lab_id
+        data_dict["lab_name"] = lab_name
 
-        data_dict["student_id"] = student_id
-        data_dict["lab_id"] = lab_id
+        data_dict["experiment_id"] = exp_id
+        data_dict["experiment_name"] = exp_name
 
-        LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, data_dict['lab_id'])
-        r = requests.get(LDS_API)
+        LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_id)
+        try:
+            r = requests.get(LDS_API)
 
-        if r.status_code == 200:
-            lab_name = r.json()['lab_name']
-            current_app.logger.debug("lab_name from LDS = %s" % (lab_name))
-            data_dict["lab_name"] = lab_name
-        else:
-            current_app.logger.debug("Error in getting lab_name from LDS = %s" \
-                                     % (lab_name))
-            data_dict["lab_name"] = lab_name
+            if r.status_code == 200:
+                lab_name = r.json()['lab_name']
+                current_app.logger.debug("lab_name from LDS = %s" % (lab_name))
+                data_dict["lab_name"] = lab_name
+            else:
+                current_app.logger.debug("Error in getting lab_name from LDS = %s" \
+                                         % (lab_name))
+        except Exception as e:
+            abort(500, str(e))
             
-        data_dict["experiment_id"] = exp_details[3].lower()
-        
-        LDS_API = "%s/experiments?exp_id=%s" % \
-          (LDS_URL, data_dict['experiment_id'])
+        LDS_API = "%s/experiments?exp_id=%s" % (LDS_URL, exp_id)
+        try:
+            r = requests.get(LDS_API)
+            if r.status_code == 200:
+                exp_name = r.json()['exp_name']
+                current_app.logger.debug("experiment_name from LDS = %s" % (exp_name))
+                data_dict["experiment_name"] = exp_name
+            else:
+                current_app.logger.debug("Error in getting exp_name from LDS = %s" \
+                                         % (exp_name))
 
-        r = requests.get(LDS_API)
-        if r.status_code == 200:
-            data_dict["experiment_name"] = r.json()['exp_name']
-        else:
-            data_dict["experiment_name"] = exp_details[4]
-        data_dict["date_of_experiment"] = today
-        data_dict["time_of_experiment"] = time.strftime("%H:%M")
-        data_dict["ip_address"] = request.environ.get('HTTP_X_REAL_IP',\
-                                                      request.remote_addr)
+            data_dict["date_of_experiment"] = today
+            data_dict["time_of_experiment"] = time.strftime("%H:%M")
+            data_dict["ip_address"] = request.environ.get('HTTP_X_REAL_IP',\
+                                                          request.remote_addr)
 
-        res = requests.get("http://freegeoip.net/json/" + \
-                           data_dict["ip_address"])
-        data = res.text
-        ip_dir = ast.literal_eval(data)
-        data_dict["region"] = ip_dir["region_name"]
+            res = requests.get("http://freegeoip.net/json/" + \
+                               data_dict["ip_address"])
+            data = res.text
+            ip_dir = ast.literal_eval(data)
+            data_dict["region"] = ip_dir["region_name"]
 
-        json_data = json.dumps(data_dict)
-        headers = {'Content-Type': 'application/json'}
-        index = "vlabs"
-        type = "openedx_usage"
-        ANALYTICS_API = "%s/%s/%s" % (ANALYTICS_URL, index, type)
-        res = requests.post(ANALYTICS_API, data=json_data, headers=headers)
-        if res.status_code == 201:
-            current_app.logger.debug("Added usage record = %s" % (json_data))
-            return "success"
-        else:
-            current_app.logger.error\
-              ("Error in adding usage record = %s, staus_code = %s" % \
-                   (json_data, res.status_code))
-            return "failed"
+            json_data = json.dumps(data_dict)
+            headers = {'Content-Type': 'application/json'}
+            index = VLABS_INDEX
+            type = OPENEDX_USAGE
+            ANALYTICS_DB_API = "%s/%s/%s" % (ANALYTICS_DB_URL, index, type)
 
+            res = requests.post(ANALYTICS_DB_API, data=json_data, headers=headers)
+            if res.status_code == 201:
+                current_app.logger.debug("Added usage record = %s" % (json_data))
+                return "success"
+            else:
+                current_app.logger.error\
+                  ("Error in adding usage record = %s, staus_code = %s" % \
+                       (json_data, res.status_code))
+                return "failed"
+            
+        except Exception as e:
+            abort(500, str(e))
     else:
         return "Method not allowed"
  #+END_SRC
@@ -513,7 +520,7 @@ class TestPostAnalytics(TestCase):
   :CUSTOM_ID: lab_wise_analytics
   :END:          
 
-    - URL :: /analytics/labs
+    - URL :: /nonopenedx/lab_wise_usage
 
     - Method :: GET
 
@@ -521,23 +528,26 @@ class TestPostAnalytics(TestCase):
 
     - Success Response ::
       + Code: 200
-#+BEGIN_EXAMPLE
-   [
-   {"lab_id": "ccnsb04", 
-   "hits": 30485, 
-   "institute_name": "IIIT-H", 
-   "visits": 6430, 
-   "lab_name": "Quantum Chemistry", 
-   "usage": 473}, 
-   {"lab_id": "cse05", 
-   "hits": 21882, 
-   "institute_name": "IIIT-H", 
-   "visits": 11470, 
-   "lab_name": "Principles of Programming Languages", 
-   "usage": 1314}......and so on
-   ]
-   
-#+END_EXAMPLE
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "lab_id": "ccnsb04",
+          "hits": 30485,
+          "institute_name": "IIIT-H",
+          "visits": 6430,
+          "lab_name": "Quantum Chemistry",
+          "usage": 473
+        },
+        {
+          "lab_id": "cse05",
+          "hits": 21882,
+          "institute_name": "IIIT-H",
+          "visits": 11470,
+          "lab_name": "Principles of Programming Languages",
+          "usage": 1314
+        }
+      ]
+      #+END_EXAMPLE
 
 *** Implementation
 
@@ -548,8 +558,8 @@ class TestPostAnalytics(TestCase):
 @api.route('/nonopenedx/lab_wise_usage', methods=['POST', 'GET'])
 #@api.cache.cached(timeout=360)
 def nonopenedx_lab_wise_usage():
-    index = "vlabs"
-    type = "nonopenedx_usage"    
+    index = VLABS_INDEX
+    type = NONOPENEDX_USAGE
     
     if request.method == 'GET':
         if 'date' in request.args:
@@ -558,16 +568,47 @@ def nonopenedx_lab_wise_usage():
             current_date = str(datetime.datetime.today()).split()[0]
 
         total_labs = []
-        ANALYTICS_API = "%s/%s/%s/_search?q=date:%s&size=1000" % (ANALYTICS_URL, index, type, current_date)
-        req = requests.get(ANALYTICS_API)
-        if req.status_code == 200:
-            labs = req.json()['hits']['hits']
-            for lab in labs:
-                total_labs.append(lab['_source'])
-        response = make_response(json.dumps(total_labs))
-        return jsonify(total_labs)
+        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % (ANALYTICS_DB_URL, index, type, current_date)
+        try:
+            req = requests.get(ANALYTICS_DB_API)
+            if req.status_code == 200:
+                labs = req.json()['hits']['hits']
+                for lab in labs:
+                    total_labs.append(lab['_source'])
+                current_app.logger.debug("Total labs = %s" % (total_labs))
+                return jsonify(total_labs)
+            else:
+                current_app.logger.error("error code = %s" % (req.status_code))
+                abort(req.status_code)
+
+        except Exception as e:
+            abort(500, str(e))
 #+END_SRC
 
+*** Test Cases
+#+NAME: test_get_nonopenedx_lab_wise_usage
+#+BEGIN_SRC python
+class TestgetNonOpenedxLabWiseUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+    app = create_app(config)
+	return app
+
+    def setUp(self):
+	pass
+
+    def tearDown(self):
+	pass
+
+    def test_get_nonopenedx_lab_wise_usage(self):
+	print "test_get_nonopenedx_lab_wise_usage"
+
+	headers = {'Content-Type': 'application/json'}
+
+	response = self.client.get("/nonopenedx/lab_wise_usage")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
     
 ** Get total usage analytics of labs running on non-openedx platform
 *** API Design
@@ -575,7 +616,7 @@ def nonopenedx_lab_wise_usage():
   :CUSTOM_ID: get_total_analytics
   :END:          
 
-    - URL :: /analytics
+    - URL :: /nonopenedx/usage
 
     - Method :: GET
 
@@ -583,14 +624,14 @@ def nonopenedx_lab_wise_usage():
 
     - Success Response ::
       + Code: 200
-#+BEGIN_EXAMPLE
-   {
-  "hits": 40115823, 
-  "usage": 593854, 
-  "visits": 9704325
-  }
+      #+BEGIN_EXAMPLE
+         {
+        "hits": 40115823, 
+        "usage": 593854, 
+        "visits": 9704325
+        }
 
-#+END_EXAMPLE
+      #+END_EXAMPLE
 
 *** Implementation
     get the total visits from the =all_total.txt= file
@@ -634,6 +675,31 @@ def total_hits():
 #+END_SRC
 
 *** Test Cases
+#+NAME: test_get_nonopenedx_usage
+#+BEGIN_SRC python
+class TestgetNonOpenedxUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+    app = create_app(config)
+	return app
+
+    def setUp(self):
+	pass
+
+    def tearDown(self):
+	pass
+
+    def test_get_nonopenedx_usage(self):
+	print "test_get_nonopenedx_usage"
+
+	headers = {'Content-Type': 'application/json'}
+
+	response = self.client.get("/nonopenedx/usage")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
 
 
 ** Get total analytics of vlabs (openedx+nonopenedx)
@@ -644,7 +710,7 @@ def total_hits():
   :CUSTOM_ID: get_total_opendx_analytics
   :END:          
 
-    - URL :: /api/totalusage
+    - URL :: /vlabs/usage
 
     - Method :: GET
 
@@ -652,16 +718,15 @@ def total_hits():
 
     - Success Response ::
       + Code: 200
-#+BEGIN_EXAMPLE
-   {
-  "hits": 40115823, 
-  "usage": 593854, 
-  "visits": 9704325
-  }
+      #+BEGIN_EXAMPLE
+         {
+        "hits": 40115823, 
+        "usage": 593854, 
+        "visits": 9704325
+        }
 
-#+END_EXAMPLE
+      #+END_EXAMPLE
 
-   + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
 *** Implementation
 #+NAME: get_vlabs_usage
 #+BEGIN_SRC python
@@ -692,6 +757,30 @@ def get_vlabs_usage():
     
 #+END_SRC 
 *** Test Cases
+#+NAME: test_get_vlabs_usage
+#+BEGIN_SRC python
+class TestgetVlabsUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+    app = create_app(config)
+	return app
+
+    def setUp(self):
+	pass
+
+    def tearDown(self):
+	pass
+
+    def test_get_vlabs_usage(self):
+	print "test_get_vlabs_usage"
+
+	headers = {'Content-Type': 'application/json'}
+
+	response = self.client.get("/vlabs/usage")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
 
 
 ** Algorithm to compute current logged in & registered users
@@ -772,11 +861,6 @@ filter {
           }
    
       }
-      # else if [api_endpoint] == "/user_api/v1/account/registration/" {
-      #      if [status_code] != "200" or [method] != "POST" {
-      #        drop {}
-      #     }
-      # }
       else {
            drop {}
       }
@@ -954,7 +1038,6 @@ def get_openedx_logged_in_users():
 #+END_SRC 
 
 *** Test Cases
-
 
 ** Get current logged in users and total registered users in outreach portal
 *** API Design

@@ -12,22 +12,15 @@
   Virtual Labs
 
 * Definitions 
-  + Usages ::
 
-    + A student performing an experiments of a lab is considered to be
-      a single usage.  This is captured by capturing a click on the
-      Experiment section of Open edX.
+  + Usage ::
 
-    + If there are 3 experiments in a lab, A lab will have 3 usages
+    - A user performing an experiments of a lab is considered to be a single
+      usage. This is captured by click event on the simulation link of an
+      experiment section of Open edX.
+
+    - If there are 3 experiments in a lab, A lab will have 3 usages
       and experiment will have 1 usage.
-
-* Ability of the VLABS OpenedX plaform to fetch analytics when user performs experiment
-
-  A user visits OpenedX course.
-  - User clicks on Experiment section.
-  - Following Analytics (Student Id, Lab Name, Experiment Name, Lab
-    Id, Experiment ID) is passed.
-
 
 * Requirements
   :PROPERTIES:
@@ -39,14 +32,12 @@
   :END: 
   - Ability to design REST APIs to store/retrieve the usage analytics of the Virtual
     Labs hosted on Openedx, College Cloud and other platforms
-  - API design captured [[get_total_user_in_op][here]]
 ** Req2 
   :PROPERTIES:
   :CUSTOM_ID: req2
   :END: 
   - Ability to design REST APIs to store/retrieve the user analytics of the
     Openedx platform running Virtual Labs
-  - API design captured here
      
 ** Req3
   :PROPERTIES:
@@ -54,12 +45,12 @@
   :END:
   - Ability to design REST APIs to store/retrieve the user analytics of the
     Outreach Portal
-  - API design captured here
+
 ** Req4
   :PROPERTIES:
   :CUSTOM_ID: req4
   :END: 
   - Ability to design REST APIs to store/retrieve the feedback analytics of
     Virtual Labs hosted on Openedx, College Cloud and other platforms
-  - API design captured here
+
 
