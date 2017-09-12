@@ -19,7 +19,7 @@ This holds the application's configuration parameters.
 #Fill the value during deployment.  Generate the key. 
 KEY = "defaultkey"
 LDS_URL = "http://lds.vlabs.ac.in"
-ANALYTICS_URL = "http://192.168.33.10"
+ANALYTICS_DB_URL = "http://192.168.33.10"
 #+END_SRC
 
 

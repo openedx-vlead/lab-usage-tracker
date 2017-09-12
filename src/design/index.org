@@ -1,4 +1,4 @@
-#+TITLE: Design of Analytics API Service
+#+TITLE: Design of Virtual Labs Analytics Service
 #+AUTHOR: VLEAD
 #+DATE: [2016-09-09 Fri]
 #+SETUPFILE: ../org-templates/level-1.org
@@ -8,30 +8,9 @@
 
 
 * Introduction 
-  The =design= of the =Analytics Service= is captured here.
+  This document illustrates the =design= of the =Analytics Service= for Virtual
+  Labs
 
-* Architecture diagram
-  Refer the diagram given below - 
-  [[https://github.com/openedx-vlead/port-labs-to-openedx/blob/develop/src/analytics-setup/presentations/sprint2/images/VLABS%20Open%20edx%20Architecture%20Diagram.jpg][VLABS architecture diagram]]
-
-  OpenedX server ---- POST ---->> Analytics API ---- POST ---->> Elasticsearch
-  
-* Flow 
-    + As per the design, students will visit VLABS OpenedX and will
-    access a Lab. When a student clicks an experiment section to
-    perform an experiment, data related to the experiment (Experiment
-    name, Experiment ID, Lab name, Lab ID, User ID) is POSTed to
-    Analytics API server.
-  + Analytics API server further evaluates the IP address of the
-    client and obtains (GET) the location of the IP address using
-    http://freegeoip.net/json/<your-ip-address>.
-  + Analytics API server then POST the data to Elasticsearch in JSON
-    format.
-  + Kibana using its visualization then represents the graphs
-    obtained.
-  + Information on implementation of ELK node can be [[https://github.com/openedx-vlead/elk-stack-for-analytics][read here]]
-
-   [[./analytics-design-for-vlabs-openedx.jpg]]
 
 * Service Interplay
 
@@ -39,241 +18,63 @@
 <img src="https://docs.google.com/drawings/d/e/2PACX-1vTkpeiZc8CGKQUed7q_LcA5VdKEKN4yFZRgO6Gd4RrjQBZGsuM5IOFQjeUSNkSRsyYninO_di9XM_mb/pub?w=960&amp;h=720">
 <p align="center"> Analytics Services Interplay </p>
 #+END_HTML
-
-- Virtual Labs on AWS :: 
-  + Total number of labs running on AWS :: 173
-    - Total number of labs running on Openedx platform :: 90
-    - Total number of labs running on Non openedx platform :: 83
-
-- Virtual Labs on College Cloud ::
-
-- Feedback ::
+To edit the feedback relations image click [[https://docs.google.com/drawings/d/1TO8JiZiQB6ZiH-5hmm7qbNvL2lZ4auGR-NgdfOuBrEs/edit][here]]
 
 - Outreach Portal ::
+     =Analytics REST Service= calls =Outreach Portal= service to get the user
+     analytics such as current logged in and total registered users in
+     the portal.
+- Feedback ::
+              =Feedback= service pushes the feedback records into database using POST
+              API of =Analytics REST Service= for every regular interval of
+              time. This is required to analyze the feedback data from the database
 
-- Analytics Service ::
+- Virtual Labs on Openedx :: 
+   - Users visit Virtual Labs on OpenedX and will access a Lab. When a user
+     clicks simulation link of an experiment section data related to the
+     experiment (Experiment name, Experiment ID, Lab name, Lab ID, User ID) is
+     added to analytics database using analytics service API
 
-- Database ::
-* Application Programming Interface
-  :PROPERTIES:
-  :CUSTOM_ID: api
-  :END: 
-** Post Data to Analytics Server 
-  :PROPERTIES:
-  :CUSTOM_ID: analytics_server_post_data
-  :END:    
-  - URL :: /
+   - Analytics API server further evaluates the IP address of the Lab User and
+     obtains the location of the IP address using
+     http://freegeoip.net/json/<your-ip-address>.
 
-  - Method :: POST
+   - Analytics API server then adds the data into Elasticsearch database in
+     JSON format.
 
-  - URL Params
-    Required: Student_ID["string"], Lab_ID["string"], Lab_name["string"], Experiment_ID["string"], Experiment_name["string"], 
+- Virtual Labs on Nonopenedx ::
 
-  - Success Response
-    + Code: 200/201
+- LDS ::
+         =Analytics REST Service= calls Lab-data Service (LDS) before storing
+         lab analytics data into database. This is required to make all the
+         records consistent in the database
+
+- Analytics REST Service ::
+     This service exposes =REST APIs= to add/retrieve various user, usage and
+     feedback analytics of Virtual Labs
+     
+
+- Elasticsearch REST Service ::
+     This service comes with =elasticsearch= database which uses NoSQL as
+     back end.
   
-** Get Records count from Elasticsearch server
-  :PROPERTIES:
-  :CUSTOM_ID: get_elasticseacrch_server_count
-  :END:    
-  - URL :: /api/elkusage
 
-  - Method :: GET
+* Data flow of usage analytics 
 
-  - URL Params
-    None
+  - Users visit Virtual Labs on OpenedX and will access a Lab. When a user
+    clicks simulation link of an experiment section data related to the
+    experiment (Experiment name, Experiment ID, Lab name, Lab ID, User ID) is
+    added to analytics database using analytics service API
 
-  - Success Response
-    + Code: 200
+  - Analytics API server further evaluates the IP address of the Lab User and
+    obtains the location of the IP address using
+    http://freegeoip.net/json/<your-ip-address>.
 
-** Get total usage  count from Elasticsearch server and stats server
-  :PROPERTIES:
-  :CUSTOM_ID: total_usage-count
-  :END:
-  - URL :: /api/totalusage
-
-  - Method :: GET
-
-  - URL Params
-    None
-
-  - Success Response
-    + Code: 200
-
-** Outreach Portal
-*** Get current logged in users and total registered users
-*** Get nodal centre wise usage
-  - URL    : http://outreach.vlabs.ac.in/get_nc_wise_usage
-  - Method : GET
-  - Response :
-#+BEGIN_EXAMPLE
-{
-  "Amrita University": {
-    "nc_count": 98, 
-    "usage": 236733, 
-    "workshops": 103
-  }, 
-  "College of Engineering, Pune": {
-    "nc_count": 32, 
-    "usage": 12, 
-    "workshops": 36
-  }, 
-  "DEI Dayalbagh": {
-    "nc_count": 11, 
-    "usage": 67300, 
-    "workshops": 18
-  }, 
-  "IIIT Hyderabad": {
-    "nc_count": 47, 
-    "usage": 133549, 
-    "workshops": 125
-  }, 
-  "IIT Bombay": {
-    "nc_count": 56, 
-    "usage": 321256, 
-    "workshops": 577
-  }, 
-  "IIT Delhi": {
-    "nc_count": 94, 
-    "usage": 191479, 
-    "workshops": 130
-  }, 
-  "IIT Guwahati": {
-    "nc_count": 19, 
-    "usage": 99100, 
-    "workshops": 21
-  }, 
-  "IIT Kanpur": {
-    "nc_count": 26, 
-    "usage": 43831, 
-    "workshops": 23
-  }, 
-  "IIT Kharagpur": {
-    "nc_count": 19, 
-    "usage": 269612, 
-    "workshops": 86
-  }, 
-  "IIT Roorkee": {
-    "nc_count": 44, 
-    "usage": 258772, 
-    "workshops": 57
-  }, 
-  "NITK Surathkal": {
-    "nc_count": 40, 
-    "usage": 124956, 
-    "workshops": 67
-  }, 
-  "VLEAD-IIITH": {
-    "nc_count": 1, 
-    "usage": 0, 
-    "workshops": 1
-  }
-}
-
-#+END_EXAMPLE
-
-** Feedback Portal
-*** Get feedbacks offline/online
-  - URL    : http://outreach.vlabs.ac.in/get_usage
-  - Method : POST
-  - Payload : 
-#+BEGIN_EXAMPLE
-      {
-      "mac_addr" : "<mac_id>",
-      "version" : "<offline/online>",
-      "date" : "dd-mm-yyyy"
-      }		   
-#+END_EXAMPLE
-
-  - Response : {"status" : "success"}
+  - Analytics API server then adds the data into Elasticsearch database in JSON
+    format.
 
 
-*** Get all feedback forms for a date
-  :PROPERTIES:
-  :CUSTOM_ID: get_all_feedback_forms_for_a_date
-  :END:          
-    - URL :: /feedback_dump?date=:date&key=:key
+* Architecture diagram
+- Refer the diagram given below - [[https://github.com/openedx-vlead/port-labs-to-openedx/blob/develop/src/analytics-setup/presentations/sprint2/images/VLABS%20Open%20edx%20Architecture%20Diagram.jpg][VLABS architecture diagram]] 
+- OpenedX server---- POST ---->> Analytics API ---- POST ---->> Elasticsearch
 
-    - Method :: GET
-
-    - URL Params ::
-      Required: date=[string], the format of the string is in 'dd-mm-yyyy'
-      format
-                key=[string]
-
-    - Success Response ::
-      + Code: 200
-
-      + Content:
-        {
-         feedbacks: [{lab_name: 'lab_name',
-                      exp_name: 'exp_name',
-                      date: 'dd-mm-yyyy',
-                      IP: 'ip',
-                      responses: [{question: 'name',
-                                   answers: ['val1',..]
-                                  }, ...]
-                     }, ...]
-        }
-
-    - Error Response ::
-      + Code: 401 UNAUTHORIZED
-
-      + Content: { error : "Wrong Key configured" }
-
-      OR
-
-      + Code: 400 Bad Request
-
-      + Content: { error : "Date is mandatory and should be in 'dd-mm-yyyy' format" }
-
-** Lab analytics running on AWS & IIIT-H
-*** Lab wise analytics
-   URL : http://stats.vlabs.ac.in/analytics/labs
-   METHOD : GET
-   RESPONSE :
-   #+BEGIN_EXAMPLE
-   [
-   {"lab_id": "ccnsb04", 
-   "hits": 30485, 
-   "institute_name": "IIIT-H", 
-   "visits": 6430, 
-   "lab_name": "Quantum Chemistry", 
-   "usage": 473}, 
-   {"lab_id": "cse05", 
-   "hits": 21882, 
-   "institute_name": "IIIT-H", 
-   "visits": 11470, 
-   "lab_name": "Principles of Programming Languages", 
-   "usage": 1314}......and so on
-   ]
-   #+END_EXAMPLE
-*** Total analytics
-   URL : http://stats.vlabs.ac.in/analytics
-   METHOD : GET
-   RESPONSE :
-   #+BEGIN_EXAMPLE
-   {
-  "hits": 40115823, 
-  "usage": 593854, 
-  "visits": 9704325
-  }
-   #+END_EXAMPLE
-
-** REST APIs of Elastic search service
-
-** REST APIs of analytics service
-** Design diagram & Service interplay
-  :PROPERTIES:
-  :CUSTOM_ID: design
-  :END:    
-
-  Below image briefly describes the process of continuous integration
-  and its integration with other micro services.
-
-#+BEGIN_HTML
-<img src="https://docs.google.com/drawings/d/1cSjDA8eH_8QleQDWo3nSvT_bm3RgCtOWf9UgmFgD4-Y/pub?w=960&h=720">
-<p align="center"> Analytics Service </p>
-#+END_HTML
-
- [[https://docs.google.com/drawings/d/1tJ_wL-rEhKK6rND6nXCTQKxIHXJEICOXjUC4C2Xa5aw/edit?ts=59548cc1][Click here]] to edit the design diagram

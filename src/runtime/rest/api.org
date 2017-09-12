@@ -1,4 +1,4 @@
-#+TITLE: The Analytics REST API
+#+TITLE: Virtual Labs Analytics Service REST API
 #+AUTHOR: VLEAD
 #+DATE: [2016-07-26 Tue]
 #+SETUPFILE: ../../org-templates/level-2.org
@@ -7,13 +7,14 @@
 #+OPTIONS: ^:nil
 
 * Introduction 
-  This document illustrates building of the REST API for analyticsc
-  virtual-labs
+  This document illustrates building of the REST API service for Virtual Labs
+  analytics
 
   
 * REST API implementation
 
 ** Get total usage analytics of labs running on openedx platform
+
    1. As of date =2017-Sep-08= total labs hosted on openedx platform are =90=
 
    2. Usage for labs hosted on openedx platform is calculated as follows
@@ -54,21 +55,27 @@
 @api.route('/openedx/usage', methods=['GET'])
 def get_openedx_usage():
     if request.method == 'GET':
-        index = "vlabs"
-        type = "openedx_usage"
-        ANALYTICS_API = "%s/%s/%s/_count" % (ANALYTICS_URL, index, type)
+        index = VLABS_INDEX
+        type = OPENEDX_USAGE
+        ANALYTICS_DB_API = "%s/%s/%s/_count" % (ANALYTICS_DB_URL, index, type)
         try:
-            res = requests.get(ANALYTICS_API)
+            res = requests.get(ANALYTICS_DB_API)
             if res.status_code == 200:
                 usage_dict = {
                     "usage" : res.json()['count']
                     }
+                current_app.logger.debug("Openedx Usage = %s" % (usage_dict))
                 return jsonify(usage_dict)
             else:
-                abort(res.status_code)
+                status_code = res.status_code
+                current_app.logger.error("Error code = %s" % (status_code))
+                abort(status_code)
         except Exception as e:
-            abort(res.status_code, str(e))
+            current_app.logger.error("Exception error = %s" % str(e))
+            abort(500, str(e))
 
+    else:
+        return "Method not allowed"
 #+END_SRC 
 *** Test Cases
 #+NAME: test_get_openedx_usage
@@ -98,48 +105,37 @@ class TestgetOpenedxUsage(TestCase):
 
 ** Get lab wise usage analytics of labs running on openedx platform
    
-   - Currently 90 number of labs are running on openedx platform.
+   - Currently 90 number of labs are hosted on openedx platform.
    - When user clicks on =simulation= section of an experiment 1 usage is added
      to elastic search database.
    - This API return total number open edx labs usages
    - This API makes a internal get request to Elasticsearch and gets the total
      number of analytics record holded.
-#+BEGIN_EXAMPLE
-{
-  "aggs": {
-    "lab_wise_usage_details": {
-      "terms": {
-        "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
-      }
-    }
-  }
-}
+   - Query to get the lab-wise usage of openedx platform
+    #+BEGIN_EXAMPLE
+    {
+    "aggs": {
+        "lab_ids": {
+            "terms": {
+                       "field": "lab_id",
+                       "order" : { "_count" : "desc" },
+                   "size": 0
+                },
 
-#+END_EXAMPLE
-#+BEGIN_EXAMPLE
-{
-"aggs": {
-    "lab_ids": {
-    	"terms": {
-	           "field": "lab_id",
-	           "order" : { "_count" : "desc" },
-               "size": 0
-            },
-      
-      "aggs": {
-        "total_value": {
-        "terms": {
-        "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
-      }
-             
+          "aggs": {
+            "total_value": {
+            "terms": {
+            "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+          }
+
+            }
+          }
         }
       }
-    }
-  }
-}
+     }
 
+    #+END_EXAMPLE
 
-#+END_EXAMPLE
 *** API Design
 
   :PROPERTIES:
@@ -154,12 +150,17 @@ class TestgetOpenedxUsage(TestCase):
 
     - Success Response ::
       + Code: 200
-#+BEGIN_EXAMPLE
-{
-'count': 7827, 
-'_shards': {'successful': 5, 'failed': 0, 'total': 5}
-}   
-#+END_EXAMPLE
+      #+BEGIN_EXAMPLE
+       [
+        {
+          "lab_id": "ccnsb04",
+          "institute_name": "IIIT-H",
+          "discipline_name": "Computer Science & Engeering",
+          "lab_name": "Quantum Chemistry",
+          "usage": 473
+        }
+      ]
+      #+END_EXAMPLE
 
 **** TODO
    This response template has to be changed and below response is integrated to
@@ -170,6 +171,7 @@ class TestgetOpenedxUsage(TestCase):
 
 @api.route('/openedx/lab_wise_usage', methods=['GET'])
 def get_openedx_lab_wise_usage():
+
     if request.method == 'GET':
         headers = {'Content-Type': 'application/json'}
         data =  {
@@ -193,12 +195,13 @@ def get_openedx_lab_wise_usage():
                 }
         }
             
-        index = "vlabs"
-        type = "openedx_usage"
-        ANALYTICS_API = "%s/%s/%s/_search" % (ANALYTICS_URL, index, type)
+        index = VLABS_INDEX
+        type = OPENEDX_USAGE
+        ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, type)
         usage_list = []
         try:
-            res = requests.post(ANALYTICS_API, data=json.dumps(data), headers=headers)
+            res = requests.post(ANALYTICS_DB_API, data=json.dumps(data), \
+                                headers=headers)
             if res.status_code == 200:
 
                 labs_usage = res.json()['aggregations']['lab_ids']['buckets']
@@ -210,29 +213,25 @@ def get_openedx_lab_wise_usage():
                     lab_usage_dict['lab_name'] = str(lab_details[1])
                     lab_usage_dict['discipline_name'] = str(lab_details[2])
                     lab_usage_dict['institute_name'] = str(lab_details[3])
-                    #LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_usage_dict['lab_id'])
-                    #r = requests.get(LDS_API, headers=headers)
-                    # if r.status_code == 200:
-                    #     current_date = str(datetime.datetime.today()).split()[0]
-                    #     lab_usage_dict['lab_name'] = str(r.json()['lab_name'])
-                    #     lab_usage_dict['institute_name'] = str(r.json()['institute']['institute_name'])
-                    #     lab_usage_dict['discipline_name'] = str(r.json()['discipline']['discipline_name'])
-                    #     lab_usage_dict['date'] = current_date
-
                     lab_usage_dict['usage'] = lab_usage['doc_count']
                     usage_list.append(lab_usage_dict)
+                current_app.logger.debug("Usage List = %s" % (usage_list))
                 return jsonify(usage_list)
 
             else:
+                current_app.logger.error("Error code = %s" % (r.status_code))
                 abort(res.status_code)
         except Exception as e:
-            abort(str(e))
+            current_app.logger.error("Exception error = %s" % str(e))
+            abort(500, str(e))
 
+    else:
+        return "Method not allowed"
 #+END_SRC 
 *** Test Cases
-#+NAME: test_get_elkusage
+#+NAME: test_get_openedx_lab_wise_usage
 #+BEGIN_SRC python
-class TestELKUsage(TestCase):
+class TestGetOpenedxLabWiseUsage(TestCase):
     TESTING = True
     def create_app(self):
     app = create_app(config)
@@ -244,27 +243,25 @@ class TestELKUsage(TestCase):
     def tearDown(self):
 	pass
 
-    def test_elk_usage(self):
-	print "test_elk_usage"
+    def test_get_openedx_lab_wise_usage(self):
+	print "test_get_openedx_lab_wise_usage"
 
 	headers = {'Content-Type': 'application/json'}
-
-	response = self.client.get("/get_elkusage")
+	response = self.client.get("/openedx/lab_wise_usage")
 	self.assertEqual(response.status_code, 200)
 
 #+END_SRC
 
 
-
 ** Add usage analytics of labs running on openedx platform
 
-   + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
+   - Route/API to fetch analytics from Open edX.  OpenedX POSTs data
      to analytics server API. Data POSTed is in the url.  
-   + Analytics server further converts that data into JSON and sends POST it to
-     Elasticsearch database.
-   + IP address of the Client making the request is evaluated by
+   - IP address of the Client making the request is evaluated by
      Analytics server.
-   + Location of the Client is idenfied using an available opensource API 
+   - Analytics server further converts that data into JSON and sends POST it to
+     Elasticsearch database.
+   - Location of the Client is idenfied using an available opensource API 
      http://freegeoip.net/json/ 
 **** TODO
      This API is badly implemented this is to be refactored. This is already
@@ -284,66 +281,91 @@ class TestELKUsage(TestCase):
 
     - Success Response ::
       + Code: 200
-#+BEGIN_EXAMPLE
-{
-    "DATE_OF_EXPERIMENT": "30-8-2016",
-    "LAB_NAME": "PopulationEcologyII",
-    "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
-    "TIME_OF_EXPERIMENT": "19:49",
-    "COURSE_ID": "blockv1UniversityYPS01Anytime",
-    "IP_ADDRESS": "196.12.53.130"
-    "Location" : "Telengana"
-}
-#+END_EXAMPLE
+      #+BEGIN_EXAMPLE
+      {
+          "DATE_OF_EXPERIMENT": "30-8-2016",
+          "LAB_NAME": "PopulationEcologyII",
+          "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
+          "TIME_OF_EXPERIMENT": "19:49",
+          "COURSE_ID": "blockv1UniversityYPS01Anytime",
+          "IP_ADDRESS": "196.12.53.130"
+          "Location" : "Telengana"
+      }
+      #+END_EXAMPLE
 
 *** Implementation
 #+NAME: add_openedx_usage_analytics
 #+BEGIN_SRC python
 
-@api.route('/<analytics>',methods= ['GET','POST'])
-def add_openedx_usage_analytics(analytics):
-    data = request.data
-    fetch_data = analytics
-    data_list = fetch_data.split(",")
-    data_dict = {}
-    today = str(datetime.datetime.today()).split()[0]
-    data_dict["student_id"] = data_list[0]
-    data_dict["lab_id"] = data_list[1].lower()
-    LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, data_dict['lab_id'])
-    r = requests.get(LDS_API)
-    if r.status_code == 200:
-        data_dict["lab_name"] = r.json()['lab_name']
-    else:
-        data_dict["lab_name"] = data_list[2]
-    data_dict["experiment_id"] = data_list[3].lower()
-    LDS_API = "%s/experiments?exp_id=%s" % (LDS_URL, data_dict['experiment_id'])
-    r = requests.get(LDS_API)
-    if r.status_code == 200:
-        data_dict["experiment_name"] = r.json()['exp_name']
-    else:
-        data_dict["experiment_name"] = data_list[4]
-    data_dict["date_of_experiment"] = today
-    data_dict["time_of_experiment"] = time.strftime("%H:%M")
-    data_dict["ip_address"] = request.environ.get('HTTP_X_REAL_IP',\
-                                                  request.remote_addr)
+@api.route('/<exp_details>',methods= ['GET'])
+def add_openedx_usage_analytics(exp_details):
+    if request.method == 'GET':
+        exp_details = exp_details.split(",")
+        data_dict = {}
+        today = str(datetime.datetime.today()).split()[0]
 
-    res = requests.get("http://freegeoip.net/json/" + \
-                       data_dict["ip_address"])
-    data = res.text
-    ip_dir = ast.literal_eval(data)
-    data_dict["region"] = ip_dir["region_name"]
+        student_id = exp_details[0]
+        lab_id = exp_details[1].lower()
+        lab_name = exp_details[2]
+        exp_id = exp_details[3].lower()
+        exp_name = exp_details[4]
 
-    json_data = json.dumps(data_dict)
-    headers = {'Content-Type': 'application/json'}
-    index = "vlabs"
-    type = "openedx_usage"
-    ANALYTICS_API = "%s/%s/%s" % (ANALYTICS_URL, index, type)
-    res = requests.post(ANALYTICS_API, data=json_data, headers=headers)
-    if res.status_code == 200 or res.status_code == 201:
-        return "success"
+        data_dict["student_id"] = student_id
+        data_dict["lab_id"] = lab_id
+
+        data_dict["student_id"] = student_id
+        data_dict["lab_id"] = lab_id
+
+        LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, data_dict['lab_id'])
+        r = requests.get(LDS_API)
+
+        if r.status_code == 200:
+            lab_name = r.json()['lab_name']
+            current_app.logger.debug("lab_name from LDS = %s" % (lab_name))
+            data_dict["lab_name"] = lab_name
+        else:
+            current_app.logger.debug("Error in getting lab_name from LDS = %s" \
+                                     % (lab_name))
+            data_dict["lab_name"] = lab_name
+            
+        data_dict["experiment_id"] = exp_details[3].lower()
+        
+        LDS_API = "%s/experiments?exp_id=%s" % \
+          (LDS_URL, data_dict['experiment_id'])
+
+        r = requests.get(LDS_API)
+        if r.status_code == 200:
+            data_dict["experiment_name"] = r.json()['exp_name']
+        else:
+            data_dict["experiment_name"] = exp_details[4]
+        data_dict["date_of_experiment"] = today
+        data_dict["time_of_experiment"] = time.strftime("%H:%M")
+        data_dict["ip_address"] = request.environ.get('HTTP_X_REAL_IP',\
+                                                      request.remote_addr)
+
+        res = requests.get("http://freegeoip.net/json/" + \
+                           data_dict["ip_address"])
+        data = res.text
+        ip_dir = ast.literal_eval(data)
+        data_dict["region"] = ip_dir["region_name"]
+
+        json_data = json.dumps(data_dict)
+        headers = {'Content-Type': 'application/json'}
+        index = "vlabs"
+        type = "openedx_usage"
+        ANALYTICS_API = "%s/%s/%s" % (ANALYTICS_URL, index, type)
+        res = requests.post(ANALYTICS_API, data=json_data, headers=headers)
+        if res.status_code == 201:
+            current_app.logger.debug("Added usage record = %s" % (json_data))
+            return "success"
+        else:
+            current_app.logger.error\
+              ("Error in adding usage record = %s, staus_code = %s" % \
+                   (json_data, res.status_code))
+            return "failed"
+
     else:
-        return "failed"
-
+        return "Method not allowed"
  #+END_SRC
 *** Test Cases
 #+NAME: test_post_analytics

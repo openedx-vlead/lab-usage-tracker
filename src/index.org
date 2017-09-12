@@ -12,8 +12,8 @@
 
 
 * Application
-  Analytics APi is used to fetch get analytics from VLABS Open edX.
-  Following are the sections to illustrate API server.
+  Analytics APi is used to fetch get analytics from VLABS Open edX.  Following
+  are the sections to illustrate API server.
 
 1. [[./requirements/index.org][Requirements]]
 
@@ -23,7 +23,7 @@
 
 4. [[./deployment/index.org][Deployment]]
 
-
+   
 * Technologies used
   + Python Flask 
   + Apache web server 
