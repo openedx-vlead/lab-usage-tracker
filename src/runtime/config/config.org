@@ -19,10 +19,14 @@ This holds the application's configuration parameters.
 #Fill the value during deployment.  Generate the key. 
 KEY = "defaultkey"
 LDS_URL = "http://lds.vlabs.ac.in"
-ANALYTICS_DB_URL = "http://192.168.33.10"
+ANALYTICS_DB_URL = "http://192.168.33.3"
 VLABS_INDEX = "vlabs"
 OPENEDX_USAGE = "openedx_usage"
 NONOPENEDX_USAGE = "nonopenedx_usage"
+
+###Credentials to analytics-db
+USER="sripathi"
+PASSWORD="sudswathi"
 #+END_SRC
 
 

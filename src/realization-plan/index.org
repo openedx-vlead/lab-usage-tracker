@@ -18,7 +18,10 @@
   :END: 
   Once this milestone is realized, the following task/issues will be done.
 
-
+  1) APIs to store/retrieve the usage analytics of labs hosted on Openedx and
+     college cloud edition
+  2) APIs to store/retrieve the user analytics of Openedx platform
+  3) APTs to store/retrieve feedback analytics of vlabs and college cloud platform
 #+caption:  realization-plan
 #+name: tbl-realization-plan
 |----+---------------------------------------+--------+----------+--------+------------+------------+-------------+----------|

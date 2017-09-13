@@ -200,8 +200,8 @@ def get_openedx_lab_wise_usage():
         ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, type)
         usage_list = []
         try:
-            res = requests.post(ANALYTICS_DB_API, data=json.dumps(data), \
-                                headers=headers)
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD),\
+                                data=json.dumps(data), headers=headers)
             if res.status_code == 200:
 
                 labs_usage = res.json()['aggregations']['lab_ids']['buckets']
@@ -219,7 +219,7 @@ def get_openedx_lab_wise_usage():
                 return jsonify(usage_list)
 
             else:
-                current_app.logger.error("Error code = %s" % (r.status_code))
+                current_app.logger.error("Error code = %s" % (res.status_code))
                 abort(res.status_code)
         except Exception as e:
             current_app.logger.error("Exception error = %s" % str(e))
@@ -404,7 +404,7 @@ class TestPostAnalytics(TestCase):
 #+END_SRC
 
 
-** Push lab wise usage analytics of labs on nonopenedx platform to database
+** Add lab wise usage analytics of labs on nonopenedx platform to database
 
    1. This API reads the records from the file =/root/nonopenedx-lab-usage-info.txt=
       which is being pushed from =stats.vlabs.ac.in= server for every =2hrs= of
@@ -487,10 +487,10 @@ class TestPostAnalytics(TestCase):
                                                ["institute_name"])
                      lab_info["discipline_name"] = str(req.json()["discipline"]\
                                                 ["discipline_name"])
-                     ANALYTICS_API = "%s/%s/%s/id=%s_%s" % \
-                       (ANALYTICS_URL, index, type, lab_id, current_date)
+                     ANALYTICS_DB_API = "%s/%s/%s/id=%s_%s" % \
+                       (ANALYTICS_DB_URL, index, type, lab_id, current_date)
 
-                     req = requests.post(ANALYTICS_API, data=json.dumps(lab_info))
+                     req = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), data=json.dumps(lab_info))
                      if req.status_code == 200 or req.status_code == 201:
                          labs_count = labs_count + 1
                          current_app.logger.debug("Added record %s" % (lab_info))
@@ -610,6 +610,7 @@ class TestgetNonOpenedxLabWiseUsage(TestCase):
 
 #+END_SRC
     
+
 ** Get total usage analytics of labs running on non-openedx platform
 *** API Design
   :PROPERTIES:
@@ -644,8 +645,8 @@ class TestgetNonOpenedxLabWiseUsage(TestCase):
 @api.route('/nonopenedx/usage', methods=['POST', 'GET'])
 #@api.cache.cached(timeout=360)
 def total_hits():
-    index = "vlabs"
-    type = "nonopenedx_usage"    
+    index = VLABS_INDEX
+    type = NONOPENEDX_USAGE
     
     if request.method == 'GET':
         if 'date' in request.args:
@@ -653,11 +654,10 @@ def total_hits():
         else:
             current_date = str(datetime.datetime.today()).split()[0]
 
-        ANALYTICS_API = "%s/%s/%s/_search?q=date:%s&size=1000" % (ANALYTICS_URL, index, type, current_date)
-        req = requests.get(ANALYTICS_API)
+        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % (ANALYTICS_DB_URL, index, type, current_date)
+        req = requests.get(ANALYTICS_DB_API)
         if req.status_code == 200:
             labs = req.json()['hits']['hits']
-            print labs, len(labs)
             visits = 0
             hits = 0
             usage = 0
@@ -735,26 +735,46 @@ class TestgetNonOpenedxUsage(TestCase):
 @api.route('/vlabs/usage')
 def get_vlabs_usage():
     if request.method == 'GET':
-        index = "vlabs"
-        openedx_usage_type = "openedx_usage"
-        nonopenedx_usage_type = "nonopenedx_usage"
-        ANALYTICS_API_FOR_EDX_USAGE = "%s/%s/%s/_count" % (ANALYTICS_URL, index, openedx_usage_type)
-        ANALYTICS_API_FOR_NONEDX_USAGE = "%s/%s/%s/_count" % (ANALYTICS_URL, index, nonopenedx_usage_type)
-        print ANALYTICS_API_FOR_EDX_USAGE
-        print ANALYTICS_API_FOR_NONEDX_USAGE
+        index = VLABS_INDEX
+        openedx_usage_type = OPENEDX_USAGE
+        nonopenedx_usage_type = NONOPENEDX_USAGE
+        ANALYTICS_DB_API_FOR_EDX_USAGE = "%s/%s/%s/_count" % \
+          (ANALYTICS_DB_URL, index, openedx_usage_type)
+        ANALYTICS_DB_API_FOR_NONEDX_USAGE = "%s/%s/%s/_count" % \
+          (ANALYTICS_DB_URL, index, nonopenedx_usage_type)
+
         try:
             headers = {'Content-Type': 'application/json'}
-            r = requests.get(ANALYTICS_API_FOR_EDX_USAGE, headers=headers)
+            r = requests.get(ANALYTICS_DB_API_FOR_EDX_USAGE, headers=headers)
             if r.status_code == 200:
                 openedx_usage = r.json()['count']
-            r = requests.get(ANALYTICS_API_FOR_NONEDX_USAGE, headers=headers)
+                current_app.logger.debug\
+                  ("open edx usage = %s" % (openedx_usage))
+
+            else:
+                current_app.logger.error\
+                  ("Error in getting openedx usage, status_code = %s" % \
+                       (r.status_code))
+                       
+            r = requests.get(ANALYTICS_DB_API_FOR_NONEDX_USAGE, headers=headers)
             if r.status_code == 200:
                 nonopenedx_usage = r.json()['count']
+                current_app.logger.debug\
+                  ("nonopen edx usage = %s" % (nonopenedx_usage))
+            else:
+                current_app.logger.error\
+                  ("Error in getting nonopenedx usage, status_code = %s" % \
+                       (r.status_code))
+                
             vlabs_usage = openedx_usage + nonopenedx_usage
+            current_app.logger.debug("vlabs_usage =  %s" % (vlabs_usage))
             return jsonify({"usage" : vlabs_usage})
         except Exception as e:
-            abort(str(e))
+            current_app.logger.debug("Exception error =  %s" % str(e))
+            abort(500, str(e))
     
+    else:
+        return "Method not allowed"
 #+END_SRC 
 *** Test Cases
 #+NAME: test_get_vlabs_usage
@@ -784,7 +804,7 @@ class TestgetVlabsUsage(TestCase):
 
 
 ** Algorithm to compute current logged in & registered users
-   
+
 #+NAME: logged_in_users
 #+BEGIN_SRC conf
 input {
@@ -845,6 +865,7 @@ filter {
          add_field => {
                        "date" => "%{year}-%{month}-%{day}"
                        }
+         remove_field => ["year", "month", "day", "path", "host"]
         }
       if [api_endpoint] == "/dashboard" {
          
@@ -870,8 +891,10 @@ filter {
 output {
 
        elasticsearch {
-            protocol => "http"
-            host => "192.168.33.10:80"
+            #protocol => "http"
+            hosts => "192.168.33.3:80"
+            user => "sripathi"
+            password => "sudswathi"
             index => "vlabs"
             document_type => "user_analytics_%{date}"
         }
@@ -1038,6 +1061,7 @@ def get_openedx_logged_in_users():
 #+END_SRC 
 
 *** Test Cases
+
 
 ** Get current logged in users and total registered users in outreach portal
 *** API Design
@@ -1265,7 +1289,7 @@ api = Blueprint('APIs', __name__)
 
 #+BEGIN_SRC conf :tangle openedx-logged-in-users.conf :eval no :noweb yes
 
-<<logged_in_users>>
+#<<logged_in_users>>
 
 #+END_SRC
 
