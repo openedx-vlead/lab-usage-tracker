@@ -72,7 +72,7 @@ setuid root
 setgid www-data
 
 chdir /usr/share/nginx/html/deployment
-exec gunicorn --workers 3 --bind unix:ci-service.sock -m 007 wsgi
+exec gunicorn --workers 3 --bind unix:analytics-service.sock -m 007 wsgi
 
 #+END_SRC
 
