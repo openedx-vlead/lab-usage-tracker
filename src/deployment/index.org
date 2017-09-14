@@ -371,51 +371,110 @@ def restore():
      
 
 * Script to get openedx user analytics
-  #+NAME: openedx_user_analytics
-  #+BEGIN_SRC python
-    import MySQLdb
 
-    cursor = None
-    db = None
+  1. This scripts gets the user analytics (registred, active and inactive) from
+     openedx mysql database and forms the json record.
+  2. Also it pushes obtained json data in step(1) into analytics database (i.e
+     elasticsearch)
 
-    def connect_db():
-        db = MySQLdb.connect("localhost","<user>","<paswd>","edxapp" )
-        cursor = db.cursor()
+#+NAME: openedx_user_analytics
+#+BEGIN_SRC python
+#!/usr/bin/python                                                                                                   
+import MySQLdb
+import json
+import datetime
+import requests
 
-    def dis_connect_db():
+cursor = None
+db = None
+analytics_db_url = "http://192.168.33.3"
+analytics_db_user = "<username>"
+analytics_db_password = "<password>"
+
+mysql_db_url = "localhost"
+mysql_user = "<username>"
+mysql_password = "<password>"
+mysql_db = "edxapp"
+
+def connect_db():
+  try:
+      global db
+      global cursor
+      db = MySQLdb.connect(mysql_db_url, mysql_user, mysql_password, mysql_db)
+      cursor = db.cursor()
+
+  except Exception as e:
+      print "Exception = %s" % (str(e))
+      exit(1)
+
+def dis_connect_db():
+    try:
         db.close()
+    except Exception as e:
+        print "Exception = %s" % (str(e))
+        exit(1)
 
-    def get_user_count(query):
-        try:
-            cursor.execute(active_users_query)
-            results = cursor.fetchall()
-            for row in results:
-                user_count = row[0]
-            return user_count
-        except:
-            print "Error: unable to fecth data"
+def get_users_count(query):
+    try:
+        cursor.execute(query)
+        results = cursor.fetchall()
+        for row in results:
+            users_count = row[0]
+        return int(users_count)
+    except:
+        print "Error: unable to fecth data"
+        exit(1)
 
-    if __name__== "__main__":
-        connect_db()
-        active_users_query = "SELECT count(*) FROM auth_user WHERE is_active=1"
-        inactive_users_query = "SELECT count(*) FROM auth_user WHERE is_active=0"
-        registered_users_query = "SELECT count(*) FROM auth_user"
+def push_data_to_analytics_db(data_dict):
+    index = "vlabs"
+    doc_type = "openedx_user_analytics"
+    id = data_dict['date']
+    analytics_db_api = "%s/%s/%s/%s" % \
+                       (analytics_db_url, index, doc_type, id)
+    auth = (analytics_db_user, analytics_db_password)
+    headers = {'Content-Type': 'application/json'}
+    try:
+        r = requests.post(analytics_db_api, auth=auth, \
+                          data=json.dumps(data_dict), headers=headers)
+        if r.status_code == 201 or r.status_code == 200:
+            print "data_dict is added = %s" % (data_dict)
+        else:
+            print "Error in adding data_dic = %s" % (data_dict)
 
-        active_users = get_user_count(active_users_query)
-        inactive_users = get_user_count(inactive_users_query)
-        registered_users = get_user_count(registered_users_query)
+    except Exception as e:
+        print "Exception = %s" % (str(e))
+        exit(1)
 
-        data_dict = {
-            "registered_users" : registered_users,
-            "active_users" : active_users,
-            "inactive_users" : inactive_users
-            }
+if __name__== "__main__":
 
-        dis_connect_db()
-        with open('/root/edx_user_analytics.json', 'w') as f:
-            json.dump(data_dict, f)
+    ### Connect to mysql database
+    connect_db()
 
-  #+END_SRC
+    ### Form SQL Queries
+    active_users_query = "SELECT count(*) FROM auth_user WHERE is_active=1"
+    inactive_users_query = "SELECT count(*) FROM auth_user WHERE is_active=0"
+    registered_users_query = "SELECT count(*) FROM auth_user"
+
+    ### Get users count 
+    active_users = get_users_count(active_users_query)
+    inactive_users = get_users_count(inactive_users_query)
+    registered_users = get_users_count(registered_users_query)
+
+    ### Form json dict
+    today_date = str(datetime.datetime.today()).split()[0]
+    data_dict = {
+        "date" : today_date,
+        "registered_users" : registered_users,
+        "active_users" : active_users,
+        "inactive_users" : inactive_users
+    }
+    ### disconnect database connection
+    dis_connect_db()
+
+    ### push data to anlytics db
+    push_data_to_analytics_db(data_dict)
+
+#+END_SRC
 
 
 * Tangle                                       :boilerplate:
