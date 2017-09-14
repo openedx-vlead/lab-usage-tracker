@@ -379,7 +379,7 @@ def restore():
     db = None
 
     def connect_db():
-        db = MySQLdb.connect("localhost","root","root","edxapp" )
+        db = MySQLdb.connect("localhost","<user>","<paswd>","edxapp" )
         cursor = db.cursor()
 
     def dis_connect_db():
