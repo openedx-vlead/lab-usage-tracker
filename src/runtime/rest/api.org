@@ -896,7 +896,7 @@ output {
             user => "sripathi"
             password => "sudswathi"
             index => "vlabs"
-            document_type => "user_analytics_%{date}"
+            document_type => "openedx_user_session_analytics_%{date}"
         }
    }
 
@@ -997,7 +997,7 @@ def get_openedx_logged_in_users():
         }
         current_app.logger.debug("post_data =%s" % (data))
         index = "vlabs"
-        type = "user_analytics_%s" % (current_date)
+        type = "openedx_user_session_analytics_%s" % (current_date)
         ANALYTICS_API = "%s/%s/%s/_search?size=10000" % (ANALYTICS_URL, index, type)
         current_app.logger.debug("analytics_api =%s" % (ANALYTICS_API))
         active_users = {}

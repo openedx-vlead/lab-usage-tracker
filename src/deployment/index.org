@@ -428,9 +428,9 @@ def get_users_count(query):
 def push_data_to_analytics_db(data_dict):
     index = "vlabs"
     doc_type = "openedx_user_analytics"
-    id = data_dict['date']
-    analytics_db_api = "%s/%s/%s/%s" % \
-                       (analytics_db_url, index, doc_type, id)
+    date = data_dict['date']
+    analytics_db_api = "%s/%s/%s_%s" % \
+                       (analytics_db_url, index, doc_type, date)
     auth = (analytics_db_user, analytics_db_password)
     headers = {'Content-Type': 'application/json'}
     try:
@@ -476,7 +476,7 @@ if __name__== "__main__":
 
 #+END_SRC
 
-
+o
 * Tangle                                       :boilerplate:
 
 #+BEGIN_SRC python :eval no :tangle __init__.py
