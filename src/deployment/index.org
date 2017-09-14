@@ -370,13 +370,65 @@ def restore():
      #+END_SRC
      
 
+* Script to get openedx user analytics
+  #+NAME: openedx_user_analytics
+  #+BEGIN_SRC python
+    import MySQLdb
+
+    cursor = None
+    db = None
+
+    def connect_db():
+        db = MySQLdb.connect("localhost","root","root","edxapp" )
+        cursor = db.cursor()
+
+    def dis_connect_db():
+        db.close()
+
+    def get_user_count(query):
+        try:
+            cursor.execute(active_users_query)
+            results = cursor.fetchall()
+            for row in results:
+                user_count = row[0]
+            return user_count
+        except:
+            print "Error: unable to fecth data"
+
+    if __name__== "__main__":
+        connect_db()
+        active_users_query = "SELECT count(*) FROM auth_user WHERE is_active=1"
+        inactive_users_query = "SELECT count(*) FROM auth_user WHERE is_active=0"
+        registered_users_query = "SELECT count(*) FROM auth_user"
+
+        active_users = get_user_count(active_users_query)
+        inactive_users = get_user_count(inactive_users_query)
+        registered_users = get_user_count(registered_users_query)
+
+        data_dict = {
+            "registered_users" : registered_users,
+            "active_users" : active_users,
+            "inactive_users" : inactive_users
+            }
+
+        dis_connect_db()
+        with open('/root/edx_user_analytics.json', 'w') as f:
+            json.dump(data_dict, f)
+
+  #+END_SRC
+
+
 * Tangle                                       :boilerplate:
+
 #+BEGIN_SRC python :eval no :tangle __init__.py
 print "deployment package"
 #+END_SRC
 
 #+BEGIN_SRC conf :tangle openedx-logged-in-users.conf :eval no :noweb yes
-
 <<logged_in_users>>
-
 #+END_SRC
+
+#+BEGIN_SRC python :tangle openedx-users-analytics.py :eval no :noweb yes
+<<openedx_user_analytics>>
+#+END_SRC
+
