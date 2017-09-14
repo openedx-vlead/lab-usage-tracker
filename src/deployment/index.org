@@ -271,7 +271,7 @@ def restore():
     #+END_EXAMPLE
 ** Configuration file 
    - Configuration to dump the =login= and =logout= =nginx= server logs into
-     the =elasticsearch= service
+     the =elasticsearch= database service
      #+NAME: logged_in_users
      #+BEGIN_SRC conf
      input {
@@ -279,9 +279,7 @@ def restore():
             path => "/home/sripathi/test-logs.log"
             start_position => "beginning"
         }
-
      }        
-
      filter {
 
            grok {
@@ -360,10 +358,10 @@ def restore():
             elasticsearch {
                  #protocol => "http"
                  hosts => "192.168.33.3:80"
-                 user => "sripathi"
-                 password => "sudswathi"
+                 user => "user"
+                 password => "pswd"
                  index => "vlabs"
-                 document_type => "user_analytics_%{date}"
+                 document_type => "openedx_user_session_analytics_%{date}"
              }
         }
 
@@ -477,6 +475,7 @@ if __name__== "__main__":
 #+END_SRC
 
 o
+
 * Tangle                                       :boilerplate:
 
 #+BEGIN_SRC python :eval no :tangle __init__.py

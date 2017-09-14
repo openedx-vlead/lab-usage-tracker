@@ -803,106 +803,6 @@ class TestgetVlabsUsage(TestCase):
 
 
 
-** Algorithm to compute current logged in & registered users
-
-#+NAME: logged_in_users
-#+BEGIN_SRC conf
-input {
-   file {
-       path => "/home/sripathi/test-logs.log"
-       start_position => "beginning"
-   }
-
-}        
-
-filter {
-
-      grok {
-            match => ["message", "%{IP:clientip} \- \- \[%{MONTHDAY:day}/%{MONTH:month}/%{YEAR:year}\:%{TIME:time} \+%{INT:zone}\]  \"%{WORD:method} %{URIPATHPARAM:api_endpoint} %{URIPROTO:protocal}/%{NUMBER:version}\" %{INT:status_code} %{INT:byte} %{NUMBER:byte1} \"%{URI:referrer}"]
-
-           }
-           geoip {
-           source => "clientip"
-           }
-       if [month] == "Jan" {
-        mutate { replace => { "month" => "01" } } 
-       }
-       else if [month] == "Feb" {
-        mutate { replace => { "month" => "02" } } 
-       }
-       else if [month] == "Mar" {
-        mutate { replace => { "month" => "03" } } 
-       }
-       else if [month] == "Apr" {
-        mutate { replace => { "month" => "04" } } 
-       }
-       else if [month] == "May" {
-        mutate { replace => { "month" => "05" } } 
-       }
-       else if [month] == "Jun" {
-        mutate { replace => { "month" => "06" } } 
-       }
-       else if [month] == "Jul" {
-        mutate { replace => { "month" => "07" } } 
-       }
-       else if [month] == "Aug" {
-        mutate { replace => { "month" => "08" } } 
-       }
-       else if [month] == "Sep" {
-        mutate { replace => { "month" => "09" } } 
-       }
-       else if [month] == "Oct" {
-        mutate { replace => { "month" => "10" } } 
-       }    
-       else if [month] == "Nov" {
-        mutate { replace => { "month" => "11" } } 
-       }
-       else {
-        mutate { replace => { "month" => "12" } } 
-       }    
-       mutate {
-
-         add_field => {
-                       "date" => "%{year}-%{month}-%{day}"
-                       }
-         remove_field => ["year", "month", "day", "path", "host"]
-        }
-      if [api_endpoint] == "/dashboard" {
-         
-            if [status_code] != "200" {
-               drop {}
-            }
-            else if [referrer] != "https://vlabs.ac.in/login?next=/dashboard" {
-                 drop {}
-            }
-      }
-      else if [api_endpoint] == "/logout" {
-          if [status_code] != "302" or [referrer] == "https://vlabs.ac.in/" {
-             drop {}
-          }
-   
-      }
-      else {
-           drop {}
-      }
-      
-}
-
-output {
-
-       elasticsearch {
-            #protocol => "http"
-            hosts => "192.168.33.3:80"
-            user => "sripathi"
-            password => "sudswathi"
-            index => "vlabs"
-            document_type => "openedx_user_session_analytics_%{date}"
-        }
-   }
-
-#+END_SRC
-
-
 ** Get current logged in users vlabs.ac.in
 *** API Design
   :PROPERTIES:
@@ -922,28 +822,23 @@ output {
     + Content:                 
 #+BEGIN_EXAMPLE
 {
-  "date": "2017-08-25",
-  "current_logged_in_users": {
-    "total": 20,
+  "active_user_sessions": {
     "details": [
       {
-        "client_ip": "92.67.43.56",
-        "count": 30,
         "client_location": {
-          "longitude": 78.4744,
-          "latitude": 17.37530000000001
-        }
-      },
-      {
-        "client_ip": "90.67.43.56",
-        "count": 50,
-        "client_location": {
-          "longitude": 76.4744,
-          "latitude": 10.37530000000001
-        }
+          "langitude": 5.6615,
+          "latitude": 51.6459
+        },
+        "clientip": "83.82.186.105",
+        "count": 5
       }
-    ]
-  }
+    ],
+    "total": 5
+  },
+  "active_users": 2,
+  "date": "2017-09-14",
+  "inactive_users": 1,
+  "registered_users": 3
 }
 
 #+END_EXAMPLE
@@ -962,8 +857,10 @@ def get_ip_info(ip_address, res):
             data['client_location'] = {}
 
             try:
-                data['client_location']['latitude'] = client_info['_source']['geoip']['latitude']
-                data['client_location']['langitude'] = client_info['_source']['geoip']['longitude']
+                data['client_location']['latitude'] = \
+                  client_info['_source']['geoip']['latitude']
+                data['client_location']['langitude'] = \
+                  client_info['_source']['geoip']['longitude']
             except Exception as e:
                 data['client_location']['latitude'] = ""
                 data['client_location']['langitude'] = ""
@@ -971,9 +868,9 @@ def get_ip_info(ip_address, res):
 
 @api.route('/get_vlabs_user_analytics', methods=['GET'])
 def get_openedx_logged_in_users():
+
     if request.method == 'GET':
         current_date = str(datetime.datetime.today()).split()[0]
-        current_app.logger.debug("date =%s" % (current_date))
         headers = {'Content-Type': 'application/json'}
         data = {
             "aggs": {
@@ -995,68 +892,98 @@ def get_openedx_logged_in_users():
                 }
             }
         }
-        current_app.logger.debug("post_data =%s" % (data))
-        index = "vlabs"
+        index = VLABS_INDEX
         type = "openedx_user_session_analytics_%s" % (current_date)
-        ANALYTICS_API = "%s/%s/%s/_search?size=10000" % (ANALYTICS_URL, index, type)
-        current_app.logger.debug("analytics_api =%s" % (ANALYTICS_API))
-        active_users = {}
-        total_active_users = 0
+
+        ANALYTICS_DB_API = "%s/%s/%s/_search?size=10000" % \
+          (ANALYTICS_DB_URL, index, type)
+        current_app.logger.debug("analytics_db_api =%s" % (ANALYTICS_DB_API))
+        openedx_user_analytics = {}
+        total_active_user_sessions = 0
+
         try:
-            res = requests.post(ANALYTICS_API, data=json.dumps(data), headers=headers)
-            if res.status_code == 200:
-                clients_ip_info = res.json()['aggregations']['client_ips']['buckets']
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), data=json.dumps(data), \
+                                headers=headers)
+            if res.status_code == 200 or res.status_code == 201:
+                clients_ip_info = res.json()\
+                  ['aggregations']['client_ips']['buckets']
                 active_user_details = []
                 for client_action in clients_ip_info:
 
                     if len(client_action['client_status']['buckets']) == 1:
                         geo_codes_info = get_ip_info(client_action['key'], res)
-                        login_end_point = client_action['client_status']['buckets'][0]['key'].split("::")[1]
+                        login_end_point = client_action['client_status']\
+                          ['buckets'][0]['key'].split("::")[1]
                         if login_end_point == "/dashboard":
-                            active_users_count = client_action['doc_count']
+                            active_user_sessions_count = client_action['doc_count']
                         else:
-                            active_users_count = 0
-                        geo_codes_info['count'] = int(active_users_count)
-                        total_active_users = total_active_users + geo_codes_info['count']
+                            active_user_sessions_count = 0
+                        geo_codes_info['count'] = int(active_user_sessions_count)
+                        total_active_user_sessions = total_active_user_sessions + \
+                          geo_codes_info['count']
 
                     elif len(client_action['client_status']['buckets']) == 2:
                         geo_codes_info = get_ip_info(client_action['key'], res)
-                        login_end_point = client_action['client_status']['buckets'][0]['key'].split("::")[1]
-                        logout_end_point = client_action['client_status']['buckets'][1]['key'].split("::")[1]
-                        current_app.logger.debug("when len 2 login_end_point =%s, logout_end_point =%s" % (login_end_point, logout_end_point))
-
+                        login_end_point = client_action['client_status']\
+                          ['buckets'][0]['key'].split("::")[1]
+                        logout_end_point = client_action['client_status']\
+                          ['buckets'][1]['key'].split("::")[1]
+                          
                         if login_end_point == "/dashboard":
-                            current_app.logger.debug("if when /dashboard");
-                            login_count = int(client_action['client_status']['buckets'][0]['doc_count'])
+                            login_count = int(client_action['client_status']\
+                                              ['buckets'][0]['doc_count'])
                         else:
-                            current_app.logger.debug("else when /dashboard");
                             login_count = 0
                         if logout_end_point == "/logout":
-                            logout_count = int(client_action['client_status']['buckets'][1]['doc_count'])
+                            logout_count = int(client_action['client_status']\
+                                               ['buckets'][1]['doc_count'])
                         else:
-                            current_app.logger.debug("else when /logout");
                             logout_count = 0
-                        active_users_count = login_count - logout_count
-                        current_app.logger.debug("active user count = %s" % (active_users_count))
-                        if active_users_count > 0:
-                            geo_codes_info['count'] = int(active_users_count)
-                            total_active_users = total_active_users + geo_codes_info['count']
-                        if active_users_count == 0:
+                        active_user_sessions_count = login_count - logout_count
+                        current_app.logger.debug("active user count = %s" % \
+                                                 (active_user_sessions_count))
+                        if active_user_sessions_count > 0:
+                            geo_codes_info['count'] = int(active_user_sessions_count)
+                            total_active_user_sessions = \
+                              total_active_user_sessions + \
+                              geo_codes_info['count']
+                        if active_user_sessions_count == 0:
                             geo_codes_info['count'] = 0
                     else:
                         pass
                     active_user_details.append(geo_codes_info)
-                active_users['current_logged_in_users'] = {}
-                active_users['date'] = current_date
-                active_users['current_logged_in_users']['details'] = active_user_details
-                active_users['current_logged_in_users']['total'] = total_active_users
-                current_app.logger.debug("active_users =%s" % (active_users))
-                return jsonify(active_users)
+                openedx_user_analytics['active_user_sessions'] = {}
+                openedx_user_analytics['date'] = current_date
+                openedx_user_analytics['active_user_sessions']['details'] = \
+                  active_user_details
+                openedx_user_analytics['active_user_sessions']['total'] = \
+                  total_active_user_sessions
+                current_app.logger.debug("openedx_user_analytics =%s" % \
+                    (openedx_user_analytics))
+                    
+                type = "openedx_user_analytics"
+                ANALYTICS_DB_API = "%s/%s/%s/%s" % (ANALYTICS_DB_URL, index, type, current_date)
+                
+                r = requests.get(ANALYTICS_DB_API, headers=headers)
+                if r.status_code == 200:
+                    analytics_data = r.json()['_source']
+                    openedx_user_analytics['registered_users'] = \
+                      analytics_data['registered_users']
+                    openedx_user_analytics['active_users'] = \
+                      analytics_data['active_users']
+                    openedx_user_analytics['inactive_users'] = \
+                      analytics_data['inactive_users']
+                else:
+                    current_app.logger.error\
+                      ("Error in getting openedx user analytics")
+                return jsonify(openedx_user_analytics)
 
             else:
                 abort(res.status_code)
         except Exception as e:
-            abort(str(e))
+            abort(500, str(e))
+    else:
+        return "Method is not allowed"
 
 #+END_SRC 
 
