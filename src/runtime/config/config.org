@@ -24,6 +24,7 @@ VLABS_INDEX = "vlabs"
 OPENEDX_USAGE = "openedx_usage"
 NONOPENEDX_USAGE = "nonopenedx_usage"
 
+NONOPENEDX_USAGE_INFO_FILE_PATH = "/home/sripathi/output.txt"
 ###Credentials to analytics-db
 USER="sripathi"
 PASSWORD="sudswathi"

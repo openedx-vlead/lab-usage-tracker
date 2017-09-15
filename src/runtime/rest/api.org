@@ -323,8 +323,16 @@ def add_openedx_usage_analytics(exp_details):
 
             if r.status_code == 200:
                 lab_name = r.json()['lab_name']
+                inst_id = r.json()['institute']['institute_id']
+                inst_name = r.json()['institute']['institute_name']
+                disc_name = r.json()['discipline']['discipline_name']
+                disc_id = r.json()['discipline']['discipline_id']
                 current_app.logger.debug("lab_name from LDS = %s" % (lab_name))
                 data_dict["lab_name"] = lab_name
+                data_dict["institute_id"] = inst_id
+                data_dict["institute_name"] = inst_name
+                data_dict["discipline_name"] = disc_name
+                data_dict["discipline_id"] = disc_id
             else:
                 current_app.logger.debug("Error in getting lab_name from LDS = %s" \
                                          % (lab_name))
@@ -463,11 +471,10 @@ class TestPostAnalytics(TestCase):
 #+BEGIN_SRC python
     if request.method == 'POST':
         current_date = str(datetime.datetime.today()).split()[0]
-        files_dir = "/home/sripathi/"
-        result_file = files_dir + "output.txt"
+        file_path = NONOPENEDX_USAGE_INFO_FILE_PATH
         rows = []
         labs_count = 0
-        with open(result_file, 'r') as f:
+        with open(file_path, 'r') as f:
           lines = f.readlines()
           for line in lines:
              lab_info = {}
@@ -484,9 +491,16 @@ class TestPostAnalytics(TestCase):
                  if req.status_code == 200:
                      lab_info["lab_name"] = str(req.json()["lab_name"])
                      lab_info["institute_name"] = str(req.json()["institute"]\
-                                               ["institute_name"])
-                     lab_info["discipline_name"] = str(req.json()["discipline"]\
-                                                ["discipline_name"])
+                                                    ["institute_name"])
+                     lab_info["discipline_name"] = str(req.json()\
+                                                       ["discipline"]\
+                                                           ["discipline_name"])
+                     lab_info['institute_id'] = str(req.json()['institute']\
+                                                    ['institute_id'])
+
+                     lab_info['discipline_id'] = str(req.json()['discipline']\
+                                                     ['discipline_id'])
+
                      ANALYTICS_DB_API = "%s/%s/%s/id=%s_%s" % \
                        (ANALYTICS_DB_URL, index, type, lab_id, current_date)
 
@@ -988,6 +1002,9 @@ def get_openedx_logged_in_users():
 #+END_SRC 
 
 *** Test Cases
+
+
+
 
 
 ** Get current logged in users and total registered users in outreach portal
