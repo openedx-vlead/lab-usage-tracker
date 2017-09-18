@@ -18,7 +18,7 @@
   :END: 
   Once this milestone is realized, the following task/issues will be done.
 
-  1) APIs to store/retrieve the usage analytics of labs hosted on Openedx and
+  1) APIs will be available to store/retrieve the usage analytics of labs hosted on Openedx and
      college cloud edition
   2) APIs to store/retrieve the user analytics of Openedx platform
   3) APIs to get the user analytics of Outreach Portal
@@ -67,13 +67,28 @@
 |    |                                       |        |          |        |            |            |             |          |
 |    |                                       |        |          |        |            |            |             |          |
 |----+---------------------------------------+--------+----------+--------+------------+------------+-------------+----------|
-| 6. | Design modular API to get             | [[https://github.com/vlead/vlabs-analytics-service/issues/9][#22]]    |       12 | -      | 15-09-2017 |            | In progress | Sripathi |
-|    | usage by given lab_id,                |        |          |        | 15-09-2017 |            |             |          |
+| 6. | Design modular API to get             | [[https://github.com/vlead/vlabs-analytics-service/issues/9][#22]]    |       18 | -      | 15-09-2017 |            | In progress | Sripathi |
+|    | usage by given lab_id,                |        |          |        | 19-09-2017 |            |             |          |
 |    | institute_id, discipline_id           |        |          |        |            |            |             |          |
 |    | or date                               |        |          |        |            |            |             |          |
 |    |                                       |        |          |        |            |            |             |          |
 |    |                                       |        |          |        |            |            |             |          |
 |----+---------------------------------------+--------+----------+--------+------------+------------+-------------+----------|
+| 7. | Design modular API to get             | [[https://github.com/vlead/vlabs-analytics-service/issues/24][#24]]    |       12 | -      | 19-09-2017 |            | In progress | Sripathi |
+|    | top 'n' number of labs by             |        |          |        | 20-09-2017 |            |             |          |
+|    | given discipline, institute           |        |          |        |            |            |             |          |
+|    |                                       |        |          |        |            |            |             |          |
+|    |                                       |        |          |        |            |            |             |          |
+|    |                                       |        |          |        |            |            |             |          |
+|----+---------------------------------------+--------+----------+--------+------------+------------+-------------+----------|
+| 8. | Design API to get Outreach            | [[https://github.com/vlead/vlabs-analytics-service/issues/23][#23]]    |       6  | -      | 19-09-2017 |            | In progress | Sripathi |
+|    | Portal user analytics                 |        |          |        | 20-09-2017 |            |             |          |
+|    |                                       |        |          |        |            |            |             |          |
+|    |                                       |        |          |        |            |            |             |          |
+|    |                                       |        |          |        |            |            |             |          |
+|    |                                       |        |          |        |            |            |             |          |
+|----+---------------------------------------+--------+----------+--------+------------+------------+-------------+----------|
+
 
 
 

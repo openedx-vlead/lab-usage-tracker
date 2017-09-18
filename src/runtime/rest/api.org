@@ -12,7 +12,7 @@
 
   
 * REST API implementation
-
+  
 ** Get total usage analytics of labs running on openedx platform
 
    1. As of date =2017-Sep-08= total labs hosted on openedx platform are =90=
@@ -155,7 +155,9 @@ class TestgetOpenedxUsage(TestCase):
         {
           "lab_id": "ccnsb04",
           "institute_name": "IIIT-H",
+          "institute_id": "iiith",
           "discipline_name": "Computer Science & Engeering",
+          "discipline_id": "cse",
           "lab_name": "Quantum Chemistry",
           "usage": 473
         }
@@ -283,13 +285,7 @@ class TestGetOpenedxLabWiseUsage(TestCase):
       + Code: 200
       #+BEGIN_EXAMPLE
       {
-          "DATE_OF_EXPERIMENT": "30-8-2016",
-          "LAB_NAME": "PopulationEcologyII",
-          "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
-          "TIME_OF_EXPERIMENT": "19:49",
-          "COURSE_ID": "blockv1UniversityYPS01Anytime",
-          "IP_ADDRESS": "196.12.53.130"
-          "Location" : "Telengana"
+      "status" : "success"
       }
       #+END_EXAMPLE
 
@@ -370,12 +366,12 @@ def add_openedx_usage_analytics(exp_details):
             res = requests.post(ANALYTICS_DB_API, data=json_data, headers=headers)
             if res.status_code == 201:
                 current_app.logger.debug("Added usage record = %s" % (json_data))
-                return "success"
+                return jsonify({"status" : "success" })
             else:
                 current_app.logger.error\
                   ("Error in adding usage record = %s, staus_code = %s" % \
                        (json_data, res.status_code))
-                return "failed"
+                return jsonify({"status" : "failed" })
             
         except Exception as e:
             abort(500, str(e))
@@ -428,7 +424,9 @@ class TestPostAnalytics(TestCase):
           "lab_name" : "principles of programming languages",
           "lab_id" : "cse05",
           "discipline_name" : "Computer Science and Engineering",
+          "discipline_id" : "cse"
           "institute_name" : "IIIT Hyderabad",
+          "institute_id" : "iiith",
           "visits" : 4500,
           "hits" :4000 ,
           "usage" : 1000,
@@ -454,7 +452,9 @@ class TestPostAnalytics(TestCase):
           "lab_name" : "principles of programming languages",
           "lab_id" : "cse05",
           "discipline_name" : "Computer Science and Engineering",
+          "discipline_id" : "cse",
           "institute_name" : "IIIT Hyderabad",
+          "institute_id" : "iiith",
           "visits" : 4500,
           "hits" :4000 ,
           "usage" : 1000,
@@ -547,18 +547,13 @@ class TestPostAnalytics(TestCase):
         {
           "lab_id": "ccnsb04",
           "hits": 30485,
-          "institute_name": "IIIT-H",
+          "discipline_name" : "Computer Science and Engineering",
+          "discipline_id" : "cse",
+          "institute_name" : "IIIT Hyderabad",
+          "institute_id" : "iiith",
           "visits": 6430,
           "lab_name": "Quantum Chemistry",
           "usage": 473
-        },
-        {
-          "lab_id": "cse05",
-          "hits": 21882,
-          "institute_name": "IIIT-H",
-          "visits": 11470,
-          "lab_name": "Principles of Programming Languages",
-          "usage": 1314
         }
       ]
       #+END_EXAMPLE
@@ -640,11 +635,12 @@ class TestgetNonOpenedxLabWiseUsage(TestCase):
     - Success Response ::
       + Code: 200
       #+BEGIN_EXAMPLE
-         {
+      {
+        "date" : "2017-09-18",
         "hits": 40115823, 
         "usage": 593854, 
         "visits": 9704325
-        }
+       }
 
       #+END_EXAMPLE
 
@@ -733,11 +729,12 @@ class TestgetNonOpenedxUsage(TestCase):
     - Success Response ::
       + Code: 200
       #+BEGIN_EXAMPLE
-         {
-        "hits": 40115823, 
-        "usage": 593854, 
-        "visits": 9704325
-        }
+      {
+       "date" : "2017-09-18",
+       "hits": 40115823, 
+       "usage": 593854, 
+       "visits": 9704325
+      }
 
       #+END_EXAMPLE
 
@@ -834,28 +831,28 @@ class TestgetVlabsUsage(TestCase):
   - Success Response ::
     + Status_Code: 200
     + Content:                 
-#+BEGIN_EXAMPLE
-{
-  "active_user_sessions": {
-    "details": [
-      {
-        "client_location": {
-          "langitude": 5.6615,
-          "latitude": 51.6459
-        },
-        "clientip": "83.82.186.105",
-        "count": 5
-      }
-    ],
-    "total": 5
-  },
-  "active_users": 2,
-  "date": "2017-09-14",
-  "inactive_users": 1,
-  "registered_users": 3
-}
+    #+BEGIN_EXAMPLE
+    {
+      "active_user_sessions": {
+        "details": [
+          {
+            "client_location": {
+              "langitude": 5.6615,
+              "latitude": 51.6459
+            },
+            "clientip": "83.82.186.105",
+            "count": 5
+          }
+        ],
+        "total": 5
+      },
+      "active_users": 2,
+      "date": "2017-09-14",
+      "inactive_users": 1,
+      "registered_users": 3
+    }
 
-#+END_EXAMPLE
+    #+END_EXAMPLE
 
 *** Implementation
 #+NAME: get_logged_in_users
@@ -1024,107 +1021,14 @@ def get_openedx_logged_in_users():
   - Success Response ::
     + Status_Code: 200
     + Content:                 
-#+BEGIN_EXAMPLE
-{
-"current_logged_in_users" : 20,
-"total_registered_users"" : 1000,
-"date" : "2017-08-25"
-}
-#+END_EXAMPLE
+    #+BEGIN_EXAMPLE
+    {
+    "current_logged_in_users" : 20,
+    "total_registered_users"" : 1000,
+    "date" : "2017-08-25"
+    }
+    #+END_EXAMPLE
 
-*** Implementation
-*** Test Cases
-
-
-** Get nodal centre wise usage in outreach portal
-*** API Design
-
-  :PROPERTIES:
-  :CUSTOM_ID: get_nc_wise_usage
-  :END:    
-
-  - URL :: /nc_wise_usage
-
-  - Method :: GET
-
-  - URL Params ::  None
-
-  - Payload :: None
-
-  - Success Response ::
-    + Status_Code: 200
-    + Content:                 
-#+BEGIN_EXAMPLE
-{
-  "Amrita University": {
-    "nc_count": 98, 
-    "usage": 236733, 
-    "workshops": 103
-  }, 
-  "College of Engineering, Pune": {
-    "nc_count": 32, 
-    "usage": 12, 
-    "workshops": 36
-  }, 
-  "DEI Dayalbagh": {
-    "nc_count": 11, 
-    "usage": 67300, 
-    "workshops": 18
-  }, 
-  "IIIT Hyderabad": {
-    "nc_count": 47, 
-    "usage": 133549, 
-    "workshops": 125
-  }, 
-  "IIT Bombay": {
-    "nc_count": 56, 
-    "usage": 321256, 
-    "workshops": 577
-  }, 
-  "IIT Delhi": {
-    "nc_count": 94, 
-    "usage": 191479, 
-    "workshops": 130
-  }, 
-  "IIT Guwahati": {
-    "nc_count": 19, 
-    "usage": 99100, 
-    "workshops": 21
-  }, 
-  "IIT Kanpur": {
-    "nc_count": 26, 
-    "usage": 43831, 
-    "workshops": 23
-  }, 
-  "IIT Kharagpur": {
-    "nc_count": 19, 
-    "usage": 269612, 
-    "workshops": 86
-  }, 
-  "IIT Roorkee": {
-    "nc_count": 44, 
-    "usage": 258772, 
-    "workshops": 57
-  }, 
-  "NITK Surathkal": {
-    "nc_count": 40, 
-    "usage": 124956, 
-    "workshops": 67
-  }, 
-  "VLEAD-IIITH": {
-    "nc_count": 1, 
-    "usage": 0, 
-    "workshops": 1
-  }
-}
-
-#+END_EXAMPLE
-  - Error Response ::
-    + Status_Code: 404
-    + Content:                 
-#+BEGIN_EXAMPLE
-URL not found
-#+END_EXAMPLE
 *** Implementation
 *** Test Cases
 
@@ -1148,11 +1052,11 @@ URL not found
   - Success Response ::
     + Status_Code: 200
     + Content:                 
-#+BEGIN_EXAMPLE
-{
-"total_feedbacks" : 30 
-}
-#+END_EXAMPLE
+    #+BEGIN_EXAMPLE
+    {
+    "total_feedbacks" : 30 
+    }
+    #+END_EXAMPLE
 *** Implementation
 *** Test Cases
 
@@ -1175,11 +1079,13 @@ URL not found
 
     - Success Response ::
       + Code: 200
-#+BEGIN_EXAMPLE
-{
-"total_feedbacks" : 1000
-}
-#+END_EXAMPLE
+    #+BEGIN_EXAMPLE
+    {
+    "from_date" : "2015-08-20",
+    "to_date" : "2017-09-18",
+    "total_feedbacks" : 1000
+    }
+    #+END_EXAMPLE
 
 *** Implementation
 *** Test Cases
