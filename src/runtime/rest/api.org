@@ -171,24 +171,44 @@ class TestgetOpenedxUsage(TestCase):
 #+NAME: get_openedx_lab_wise_usage
 #+BEGIN_SRC python
 
-@api.route('/openedx/lab_wise_usage', methods=['GET'])
-def get_openedx_lab_wise_usage():
+@api.route('/openedx/<entity>', methods=['GET'])
+def get_openedx_lab_wise_usage(entity):
 
     if request.method == 'GET':
+        
+        if entity == "labs":
+            field = "lab_id"
+            script = "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+            
+        elif entity == "institutes":
+            field = "institute_id"
+            script = "[doc.institute_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+            
+        elif entity == "disciplines":
+            field = "discipline_id"
+            script = "[doc.discipline_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+        else:
+            abort(500, "invalid query")
+        
+        if "top" in request.args:
+            size = int(request.args.get("top"))
+        else:
+            size = 0
+
         headers = {'Content-Type': 'application/json'}
         data =  {
             "aggs": {
-                "lab_ids": {
+                "entity": {
                     "terms": {
-                        "field": "lab_id",
+                        "field": field,
                         "order" : { "_count" : "desc" },
-                        "size": 0
+                        "size": size
                         },
         
                         "aggs": {
-                            "lab_details": {
+                            "entity_details": {
                                 "terms": {
-                                    "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+                                    "script": script
                                     }
                     
                                 }
@@ -210,8 +230,8 @@ def get_openedx_lab_wise_usage():
 
                 for lab_usage in labs_usage:
                     lab_usage_dict = {}
-                    lab_usage_dict['lab_id'] = str(lab_usage['key'])
-                    lab_details = lab_usage['lab_details']['buckets'][0]['key'].split("::")
+                    lab_usage_dict[field] = str(lab_usage['key'])
+                    lab_details = lab_usage['entity_details']['buckets'][0]['key'].split("::")
                     lab_usage_dict['lab_name'] = str(lab_details[1])
                     lab_usage_dict['discipline_name'] = str(lab_details[2])
                     lab_usage_dict['institute_name'] = str(lab_details[3])
