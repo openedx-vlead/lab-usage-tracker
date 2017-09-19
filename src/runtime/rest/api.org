@@ -142,7 +142,7 @@ class TestgetOpenedxUsage(TestCase):
   :CUSTOM_ID: openedx-usage
   :END:          
 
-    - URL :: /openedx/lab_wise_usage
+    - URL :: /labs/openedx
 
     - Method :: GET
 
@@ -175,28 +175,36 @@ class TestgetOpenedxUsage(TestCase):
 def get_openedx_lab_wise_usage(entity):
 
     if request.method == 'GET':
-        
+
+        index = VLABS_INDEX
+        type = OPENEDX_USAGE
+      
         if entity == "labs":
             field = "lab_id"
-            script = "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+            script = "[doc.lab_id.value, doc.lab_name.value, "+\
+              "doc.discipline_name.value, doc.institute_name.value].join('::')"
             
         elif entity == "institutes":
             field = "institute_id"
-            script = "[doc.institute_id.value, doc.institute_name.value].join('::')"
+            script = "[doc.institute_id.value, "+\
+              "doc.institute_name.value].join('::')"
             
         elif entity == "disciplines":
             field = "discipline_id"
-            script = "[doc.discipline_id.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+            script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
+              "doc.institute_name.value].join('::')"
         else:
             abort(500, "invalid query")
-        
-        if "top" in request.args:
-            size = int(request.args.get("top"))
-        else:
-            size = 0
+        try:
+            if "top" in request.args:
+                size = int(request.args.get("top"))
+            else:
+                size = 0
+        except Exception as e:
+            abort(500, str(e))
 
         headers = {'Content-Type': 'application/json'}
-        data =  {
+        query =  {
             "aggs": {
                 "entity": {
                     "terms": {
@@ -216,13 +224,12 @@ def get_openedx_lab_wise_usage(entity):
             }
         }
             
-        index = VLABS_INDEX
-        type = OPENEDX_USAGE
         ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, type)
         usage_list = []
         try:
             res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD),\
-                                data=json.dumps(data), headers=headers)
+                                data=json.dumps(query), headers=headers)
+                                
             if res.status_code == 200:
 
                 entity_usages = res.json()['aggregations']['entity']['buckets']
@@ -257,7 +264,225 @@ def get_openedx_lab_wise_usage(entity):
 
             else:
                 current_app.logger.error("Error code = %s" % (res.status_code))
+                #abort(res.status_code)
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            abort(500, str(e))
+
+    else:
+        return "Method not allowed"
+#+END_SRC 
+*** Test Cases
+#+NAME: test_get_openedx_lab_wise_usage
+#+BEGIN_SRC python
+class TestGetOpenedxLabWiseUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+    app = create_app(config)
+	return app
+
+    def setUp(self):
+	pass
+
+    def tearDown(self):
+	pass
+
+    def test_get_openedx_lab_wise_usage(self):
+	print "test_get_openedx_lab_wise_usage"
+
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/openedx/lab_wise_usage")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
+** Search lab usage analytics on openedx platform
+   
+   - Currently 90 number of labs are hosted on openedx platform.
+   - When user clicks on =simulation= section of an experiment 1 usage is added
+     to elastic search database.
+   - This API return total number open edx labs usages
+   - This API makes a internal get request to Elasticsearch and gets the total
+     number of analytics record holded.
+   - Query to get the lab-wise usage of openedx platform
+    #+BEGIN_EXAMPLE
+        {
+      "query": {
+        "bool": {
+          "must": [
+            {
+              "match": {
+                "lab_id": "eee05"
+              }
+            },
+            {
+              "match": {
+                "experiment_id": "e99317"
+              }
+            }
+          ]
+        }
+      },
+      "aggs": {
+        "lab_ids": {
+          "terms": {
+            "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')",
+            "size": 0
+          }
+        }
+      }
+    }
+
+    #+END_EXAMPLE
+
+*** API Design
+
+  :PROPERTIES:
+  :CUSTOM_ID: openedx-usage
+  :END:          
+
+    - URL :: /labs/openedx/_search
+
+    - Method :: GET
+
+    - URL Params :: None
+
+    - Success Response ::
+      + Code: 200
+      #+BEGIN_EXAMPLE
+       [
+        {
+          "lab_id": "ccnsb04",
+          "institute_name": "IIIT-H",
+          "institute_id": "iiith",
+          "discipline_name": "Computer Science & Engeering",
+          "discipline_id": "cse",
+          "lab_name": "Quantum Chemistry",
+          "usage": 473
+        }
+      ]
+      #+END_EXAMPLE
+
+**** TODO
+   This response template has to be changed and below response is integrated to
+   vlabs.ac.in page
+*** Implementation
+#+NAME: get_openedx_search_usage
+#+BEGIN_SRC python
+
+@api.route('/<entity>/openedx/_search', methods=['GET'])
+def get_openedx_search_usage(entity):
+
+    if request.method == 'GET':
+        index = VLABS_INDEX
+        type = OPENEDX_USAGE
+        query = []
+        if entity == "labs":
+            current_app.logger.debug("request.args dict = %s" %
+                                     (request.args.to_dict()))
+            args = request.args.to_dict()
+            for arg in args:
+                arg_val = args[arg]
+                query_dict = {
+                    "match": {
+                        arg: str(arg_val)
+                        }
+                    }
+                query.append(query_dict)
+            current_app.logger.debug("query_list = %s" %
+                                    (query))
+            script = "[doc.lab_id.value, doc.lab_name.value, " +\
+              "doc.discipline_name.value, doc.institute_name.value].join('::')"
+            
+        elif entity == "institutes":
+            args = request.args.to_dict()
+            for arg in args:
+                arg_val = args[arg]
+                query_dict = {
+                    "match": {
+                        arg: str(arg_val)
+                        }
+                    }
+                query.append(query_dict)
+            current_app.logger.debug("query_list = %s" %
+                                    (query))
+
+            script = "[doc.institute_id.value, "+\
+              "doc.institute_name.value].join('::')"
+        elif entity == "disciplines":
+            args = request.args.to_dict()
+            for arg in args:
+                arg_val = args[arg]
+                query_dict = {
+                    "match": {
+                        arg: str(arg_val)
+                        }
+                    }
+                query.append(query_dict)
+            current_app.logger.debug("query_list = %s" %
+                                    (query))
+            
+            script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
+              "doc.institute_name.value].join('::')"
+        else:
+            abort(500, "invalid query")
+
+        headers = {'Content-Type': 'application/json'}
+        query_payload =  {
+            "query": {
+                "bool": {
+                    "must": query
+                    }
+                },
+                "aggs": {
+                    "entity_details": {
+                        "terms": {
+                            "script": script,
+                            "size": 0
+                            }
+                        }
+                    }
+            }
+
+            
+        ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, type)
+        usage_dict = {}
+        try:
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD),\
+                                data=json.dumps(query_payload), \
+                                    headers=headers)
+            if res.status_code == 200:
+                if len(res.json()['hits']['hits']) == 0:
+                    abort(500, "Invalid query")
+                current_app.logger.debug("query result = %s" % (res.json()))
+                entity_bucket = res.json()['aggregations']['entity_details']\
+                  ['buckets'][0]
+                entity_usage = entity_bucket['doc_count']
+                entity_details = entity_bucket['key'].split("::")
+                usage_dict['usage'] = entity_usage
+
+                if entity == "labs":
+                    usage_dict['lab_id'] = entity_details[0]
+                    usage_dict['lab_name'] = entity_details[1]
+                    usage_dict['discipline_name'] = entity_details[2]
+                    usage_dict['institute_name'] = entity_details[3]
+
+                elif entity == "institutes":
+                    usage_dict['institute_id'] = entity_details[0]
+                    usage_dict['institute_name'] = entity_details[1]
+
+                elif entity == "disciplines":
+                    usage_dict['discipline_id'] = entity_details[0]
+                    usage_dict['discipline_name'] = entity_details[1]
+                    usage_dict['institute_name'] = entity_details[2]
+                else:
+                    pass
+                return jsonify(usage_dict)
+            else:
+                current_app.logger.error("Error code = %s" % (res.status_code))
                 abort(res.status_code)
+
         except Exception as e:
             current_app.logger.error("Exception error = %s" % str(e))
             abort(500, str(e))
@@ -612,7 +837,8 @@ def nonopenedx_lab_wise_usage():
             current_date = str(datetime.datetime.today()).split()[0]
 
         total_labs = []
-        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % (ANALYTICS_DB_URL, index, type, current_date)
+        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % \
+          (ANALYTICS_DB_URL, index, type, current_date)
         try:
             req = requests.get(ANALYTICS_DB_API)
             if req.status_code == 200:
@@ -1165,6 +1391,7 @@ api = Blueprint('APIs', __name__)
 <<get_openedx_usage>>
 <<add_openedx_usage_analytics>>
 <<get_openedx_lab_wise_usage>>
+<<get_openedx_search_usage>>
 <<get_nonopenedx_usage>>
 <<add_nonopenedx_lab_wise_usage>>
 <<get_nonopenedx_lab_wise_usage>>
