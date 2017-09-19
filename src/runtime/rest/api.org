@@ -171,7 +171,7 @@ class TestgetOpenedxUsage(TestCase):
 #+NAME: get_openedx_lab_wise_usage
 #+BEGIN_SRC python
 
-@api.route('/openedx/<entity>', methods=['GET'])
+@api.route('/<entity>/openedx', methods=['GET'])
 def get_openedx_lab_wise_usage(entity):
 
     if request.method == 'GET':
@@ -182,11 +182,11 @@ def get_openedx_lab_wise_usage(entity):
             
         elif entity == "institutes":
             field = "institute_id"
-            script = "[doc.institute_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+            script = "[doc.institute_id.value, doc.institute_name.value].join('::')"
             
         elif entity == "disciplines":
             field = "discipline_id"
-            script = "[doc.discipline_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+            script = "[doc.discipline_id.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
         else:
             abort(500, "invalid query")
         
@@ -203,18 +203,17 @@ def get_openedx_lab_wise_usage(entity):
                         "field": field,
                         "order" : { "_count" : "desc" },
                         "size": size
-                        },
-        
+                        },            
                         "aggs": {
                             "entity_details": {
-                                "terms": {
-                                    "script": script
-                                    }
-                    
-                                }
+                            "terms": {
+                                "script": script
                             }
+                        
+                        }
                     }
                 }
+            }
         }
             
         index = VLABS_INDEX
@@ -226,17 +225,33 @@ def get_openedx_lab_wise_usage(entity):
                                 data=json.dumps(data), headers=headers)
             if res.status_code == 200:
 
-                labs_usage = res.json()['aggregations']['lab_ids']['buckets']
+                entity_usages = res.json()['aggregations']['entity']['buckets']
 
-                for lab_usage in labs_usage:
-                    lab_usage_dict = {}
-                    lab_usage_dict[field] = str(lab_usage['key'])
-                    lab_details = lab_usage['entity_details']['buckets'][0]['key'].split("::")
-                    lab_usage_dict['lab_name'] = str(lab_details[1])
-                    lab_usage_dict['discipline_name'] = str(lab_details[2])
-                    lab_usage_dict['institute_name'] = str(lab_details[3])
-                    lab_usage_dict['usage'] = lab_usage['doc_count']
-                    usage_list.append(lab_usage_dict)
+                for entity_usage in entity_usages:
+                    entity_usage_dict = {}
+                    entity_usage_dict[field] = str(entity_usage['key'])
+                    entity_details = entity_usage['entity_details']\
+                      ['buckets'][0]['key'].split("::")
+                    if entity == "labs":
+                        entity_usage_dict['lab_name'] = str(entity_details[1])
+                        entity_usage_dict['discipline_name'] = \
+                          str(entity_details[2])
+                        entity_usage_dict['institute_name'] = \
+                          str(entity_details[3])
+                        
+                    elif entity == "institutes":
+                        entity_usage_dict['institute_name'] = \
+                          str(entity_details[1])
+
+                    elif entity == "disciplines":
+                        entity_usage_dict['discipline_name'] = \
+                          str(entity_details[1])
+                        entity_usage_dict['institute_name'] = \
+                          str(entity_details[2])
+                    else:
+                        pass
+                    entity_usage_dict['usage'] = entity_usage['doc_count']
+                    usage_list.append(entity_usage_dict)
                 current_app.logger.debug("Usage List = %s" % (usage_list))
                 return jsonify(usage_list)
 
