@@ -13,7 +13,7 @@
   
 * REST API implementation
   
-** Get total usage analytics of labs running on openedx platform
+** Get usage analytics of labs
 
    1. As of date =2017-Sep-08= total labs hosted on openedx platform are =90=
 
@@ -23,13 +23,36 @@
    3. This API returns total usage count of all labs hosted on openedx platform
       from the date =2016-10-07=
 
-*** API Design
+*** API Design for total usage analytics of labs running on non-openedx platform
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_analytics
+  :END:          
+
+    - URL :: /usage/nonopenedx
+
+    - Method :: GET
+
+    - URL Params ::
+
+    - Success Response ::
+      + Code: 200
+      #+BEGIN_EXAMPLE
+      {
+        "date" : "2017-09-18",
+        "hits": 40115823, 
+        "usage": 593854, 
+        "visits": 9704325
+       }
+
+      #+END_EXAMPLE
+
+*** API Design for total usage analytics of labs running on openedx platform
 
   :PROPERTIES:
   :CUSTOM_ID: openedx-usage
   :END:          
 
-    - URL :: /openedx/usage
+    - URL :: /usage/openedx
 
     - Method :: GET
 
@@ -39,43 +62,155 @@
       + Code: 200
         #+BEGIN_EXAMPLE
         {
-        'usage': 7827,
-        'date' : 2017-08-29
-        }   
+        "date": "2017-09-19",
+        "usage": 0
+        }
+
 #+END_EXAMPLE
 
 **** TODO
    This response template has to be changed and below response is integrated to
    vlabs.ac.in page
-*** Implementation
-#+NAME: get_openedx_usage
-#+BEGIN_SRC python
+*** API Design for total vlabs usage
+    This API returns total usage of labs running on openedx (i.e 90) and non
+    openedx labs
 
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_opendx_analytics
+  :END:          
+
+    - URL :: /usage/vlabs
+
+    - Method :: GET
+
+    - URL Params ::
+
+    - Success Response ::
+      + Code: 200
+      #+BEGIN_EXAMPLE
+      {
+      "nonopenedx_usage": {
+        "date": "2017-09-19",
+        "hits": 41275716,
+        "usage": 584613,
+        "visits": 9896579
+      },
+      "openedx_usage": {
+        "date": "2017-09-19",
+        "usage": 0
+      },
+      "total_usage": 584613
+      }
+      #+END_EXAMPLE
+
+*** Implementation
+#+NAME: get_usage_entity
+#+BEGIN_SRC python
 #@api.route('/api/elkusage', methods=['GET'])
-@api.route('/openedx/usage', methods=['GET'])
-def get_openedx_usage():
+@api.route('/usage/<entity>', methods=['GET'])
+def get_openedx_usage(entity):
     if request.method == 'GET':
         index = VLABS_INDEX
-        type = OPENEDX_USAGE
-        ANALYTICS_DB_API = "%s/%s/%s/_count" % (ANALYTICS_DB_URL, index, type)
-        try:
-            res = requests.get(ANALYTICS_DB_API)
-            if res.status_code == 200:
-                usage_dict = {
-                    "usage" : res.json()['count']
-                    }
-                current_app.logger.debug("Openedx Usage = %s" % (usage_dict))
-                return jsonify(usage_dict)
-            else:
-                status_code = res.status_code
-                current_app.logger.error("Error code = %s" % (status_code))
-                abort(status_code)
-        except Exception as e:
-            current_app.logger.error("Exception error = %s" % str(e))
-            abort(500, str(e))
 
+        if 'date' in request.args:
+            current_date = request.args['date']
+        else:
+            current_date = str(datetime.datetime.today()).split()[0]
+
+        if entity == "openedx":
+
+            doc_type = OPENEDX_USAGE
+            ANALYTICS_DB_API = "%s/%s/%s/_count?q=date_of_experiment:%s" % \
+              (ANALYTICS_DB_URL, index, doc_type, current_date)
+            current_app.logger.debug("Openedx Usage url = %s" % (ANALYTICS_DB_API))
+            try:
+                res = requests.get(ANALYTICS_DB_API)
+                if res.status_code == 200:
+                    usage_dict = {
+                        "date" : current_date,
+                        "usage" : res.json()['count']
+                        }
+                    current_app.logger.debug("Openedx Usage = %s" % (usage_dict))
+                    return jsonify(usage_dict)
+                else:
+                    status_code = res.status_code
+                    current_app.logger.error("Error code = %s" % (status_code))
+                    abort(status_code)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                abort(500, str(e))
+
+        elif entity == "nonopenedx":
+            doc_type = NONOPENEDX_USAGE
+
+            ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=10000" % \
+              (ANALYTICS_DB_URL, index, doc_type, current_date)
+            req = requests.get(ANALYTICS_DB_API)
+            if req.status_code == 200:
+                labs = req.json()['hits']['hits']
+                visits = 0
+                hits = 0
+                usage = 0
+                if len(labs) != 0:
+                    for lab in labs:
+                        visits = visits + int(lab['_source']['visits'])
+                        hits = hits + int(lab['_source']['hits'])
+                        usage = usage + int(lab['_source']['usage'])
+                    analytics_data = {"visits" : visits, "hits" : hits, \
+                                          "usage" : usage, "date" : current_date}
+                else:
+                    analytics_data = {"visits" : visits, "hits" : hits, \
+                                          "usage" : usage, "date" : current_date}
+
+            return jsonify(analytics_data)
+
+        elif entity == "vlabs":
+
+            ANALYTICS_DB_API_FOR_EDX_USAGE = "%s/usage/openedx?date=%s" % (APP_URL, current_date)
+            ANALYTICS_DB_API_FOR_NONEDX_USAGE = "%s/usage/nonopenedx?date=%s" % \
+              (APP_URL, current_date)
+
+            try:
+                headers = {'Content-Type': 'application/json'}
+                r = requests.get(ANALYTICS_DB_API_FOR_EDX_USAGE, \
+                                 headers=headers)
+                if r.status_code == 200:
+                    openedx_usage = r.json()
+                    current_app.logger.debug\
+                      ("open edx usage = %s" % (r.json()))
+
+                else:
+                    current_app.logger.error\
+                      ("Error in getting openedx usage, status_code = %s" % \
+                           (r.status_code))
+
+                r = requests.get(ANALYTICS_DB_API_FOR_NONEDX_USAGE, \
+                                 headers=headers)
+                if r.status_code == 200:
+                    nonopenedx_usage = r.json()
+                    current_app.logger.debug\
+                      ("nonopen edx usage = %s" % (r.json()))
+                else:
+                    current_app.logger.error\
+                      ("Error in getting nonopenedx usage, status_code = %s" % \
+                           (r.status_code))
+
+                vlabs_usage = {}
+                vlabs_usage['openedx_usage'] = openedx_usage
+                vlabs_usage['nonopenedx_usage'] = nonopenedx_usage
+                vlabs_usage['total_usage'] = openedx_usage['usage'] + nonopenedx_usage['usage']
+                current_app.logger.debug("vlabs_usage =  %s" % (vlabs_usage))
+
+                return jsonify(vlabs_usage)
+
+            except Exception as e:
+                current_app.logger.debug("Exception error =  %s" % str(e))
+                abort(500, str(e))
+        else:
+            pass
     else:
         return "Method not allowed"
+
 #+END_SRC 
 *** Test Cases
 #+NAME: test_get_openedx_usage
@@ -103,7 +238,7 @@ class TestgetOpenedxUsage(TestCase):
 #+END_SRC
 
 
-** Get lab wise usage analytics of labs running on openedx platform
+** Get usage analytics openedx platform
    
    - Currently 90 number of labs are hosted on openedx platform.
    - When user clicks on =simulation= section of an experiment 1 usage is added
@@ -168,7 +303,7 @@ class TestgetOpenedxUsage(TestCase):
    This response template has to be changed and below response is integrated to
    vlabs.ac.in page
 *** Implementation
-#+NAME: get_openedx_lab_wise_usage
+#+NAME: get_entity_openedx
 #+BEGIN_SRC python
 
 @api.route('/<entity>/openedx', methods=['GET'])
@@ -297,7 +432,7 @@ class TestGetOpenedxLabWiseUsage(TestCase):
 #+END_SRC
 
 
-** Search lab usage analytics on openedx platform
+** Search usage analytics on openedx platform
    
    - Currently 90 number of labs are hosted on openedx platform.
    - When user clicks on =simulation= section of an experiment 1 usage is added
@@ -368,7 +503,7 @@ class TestGetOpenedxLabWiseUsage(TestCase):
    This response template has to be changed and below response is integrated to
    vlabs.ac.in page
 *** Implementation
-#+NAME: get_openedx_search_usage
+#+NAME: get_entity_openedx_search
 #+BEGIN_SRC python
 
 @api.route('/<entity>/openedx/_search', methods=['GET'])
@@ -668,7 +803,7 @@ class TestPostAnalytics(TestCase):
 #+END_SRC
 
 
-** Add lab wise usage analytics of labs on nonopenedx platform to database
+** Add usage analytics of labs running on nonopenedx platform
 
    1. This API reads the records from the file =/root/nonopenedx-lab-usage-info.txt=
       which is being pushed from =stats.vlabs.ac.in= server for every =2hrs= of
@@ -727,7 +862,7 @@ class TestPostAnalytics(TestCase):
       + Code: 200
     
 *** Implementation
-#+NAME: add_nonopenedx_lab_wise_usage
+#+NAME: add_nonopenedx_usage_analytics
 #+BEGIN_SRC python
     if request.method == 'POST':
         current_date = str(datetime.datetime.today()).split()[0]
@@ -788,100 +923,7 @@ class TestPostAnalytics(TestCase):
 *** Test Cases
 
 
-** Get lab wise usage analytics of labs running on non-openedx platform 
-*** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: lab_wise_analytics
-  :END:          
-
-    - URL :: /nonopenedx/lab_wise_usage
-
-    - Method :: GET
-
-    - URL Params ::
-
-    - Success Response ::
-      + Code: 200
-      #+BEGIN_EXAMPLE
-      [
-        {
-          "lab_id": "ccnsb04",
-          "hits": 30485,
-          "discipline_name" : "Computer Science and Engineering",
-          "discipline_id" : "cse",
-          "institute_name" : "IIIT Hyderabad",
-          "institute_id" : "iiith",
-          "visits": 6430,
-          "lab_name": "Quantum Chemistry",
-          "usage": 473
-        }
-      ]
-      #+END_EXAMPLE
-
-*** Implementation
-
-#+NAME: get_nonopenedx_lab_wise_usage
-#+BEGIN_SRC python
-
-#@api.route('/analytics/labs', methods=['POST', 'GET'])
-@api.route('/nonopenedx/lab_wise_usage', methods=['POST', 'GET'])
-#@api.cache.cached(timeout=360)
-def nonopenedx_lab_wise_usage():
-    index = VLABS_INDEX
-    type = NONOPENEDX_USAGE
-    
-    if request.method == 'GET':
-        if 'date' in request.args:
-            current_date = request.args['date']
-        else:
-            current_date = str(datetime.datetime.today()).split()[0]
-
-        total_labs = []
-        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % \
-          (ANALYTICS_DB_URL, index, type, current_date)
-        try:
-            req = requests.get(ANALYTICS_DB_API)
-            if req.status_code == 200:
-                labs = req.json()['hits']['hits']
-                for lab in labs:
-                    total_labs.append(lab['_source'])
-                current_app.logger.debug("Total labs = %s" % (total_labs))
-                return jsonify(total_labs)
-            else:
-                current_app.logger.error("error code = %s" % (req.status_code))
-                abort(req.status_code)
-
-        except Exception as e:
-            abort(500, str(e))
-#+END_SRC
-
-*** Test Cases
-#+NAME: test_get_nonopenedx_lab_wise_usage
-#+BEGIN_SRC python
-class TestgetNonOpenedxLabWiseUsage(TestCase):
-    TESTING = True
-    def create_app(self):
-    app = create_app(config)
-	return app
-
-    def setUp(self):
-	pass
-
-    def tearDown(self):
-	pass
-
-    def test_get_nonopenedx_lab_wise_usage(self):
-	print "test_get_nonopenedx_lab_wise_usage"
-
-	headers = {'Content-Type': 'application/json'}
-
-	response = self.client.get("/nonopenedx/lab_wise_usage")
-	self.assertEqual(response.status_code, 200)
-
-#+END_SRC
-    
-
-** Search lab wise usage analytics on non-openedx platform 
+** Get usage analytics of non-openedx platform 
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: lab_wise_analytics
@@ -913,7 +955,7 @@ class TestgetNonOpenedxLabWiseUsage(TestCase):
 
 *** Implementation
 
-#+NAME: get_nonopenedx_search_usage
+#+NAME: get_entity_nonopenedx
 #+BEGIN_SRC python
 
 #@api.route('/analytics/labs', methods=['POST', 'GET'])
@@ -1035,201 +1077,7 @@ class TestgetNonOpenedxLabWiseUsage(TestCase):
 #+END_SRC
     
 
-** Get total usage analytics of labs running on non-openedx platform
-*** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: get_total_analytics
-  :END:          
-
-    - URL :: /nonopenedx/usage
-
-    - Method :: GET
-
-    - URL Params ::
-
-    - Success Response ::
-      + Code: 200
-      #+BEGIN_EXAMPLE
-      {
-        "date" : "2017-09-18",
-        "hits": 40115823, 
-        "usage": 593854, 
-        "visits": 9704325
-       }
-
-      #+END_EXAMPLE
-
-*** Implementation
-    get the total visits from the =all_total.txt= file
-
-#+NAME: get_nonopenedx_usage
-#+BEGIN_SRC python
-
-#app.cache = Cache(app)
-#@api.route('/analytics', methods=['POST', 'GET'])
-@api.route('/nonopenedx/usage', methods=['POST', 'GET'])
-#@api.cache.cached(timeout=360)
-def total_hits():
-    index = VLABS_INDEX
-    type = NONOPENEDX_USAGE
-    
-    if request.method == 'GET':
-        if 'date' in request.args:
-            current_date = request.args['date']
-        else:
-            current_date = str(datetime.datetime.today()).split()[0]
-
-        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % (ANALYTICS_DB_URL, index, type, current_date)
-        req = requests.get(ANALYTICS_DB_API)
-        if req.status_code == 200:
-            labs = req.json()['hits']['hits']
-            visits = 0
-            hits = 0
-            usage = 0
-            if len(labs) != 0:
-                for lab in labs:
-                    visits = visits + int(lab['_source']['visits'])
-                    hits = hits + int(lab['_source']['hits'])
-                    usage = usage + int(lab['_source']['usage'])
-                analytics_data = {"visits" : visits, "hits" : hits, "usage" : usage, "date" : current_date}
-            else:
-                analytics_data = {}
-
-        return jsonify(analytics_data)
-        
-#+END_SRC
-
-*** Test Cases
-#+NAME: test_get_nonopenedx_usage
-#+BEGIN_SRC python
-class TestgetNonOpenedxUsage(TestCase):
-    TESTING = True
-    def create_app(self):
-    app = create_app(config)
-	return app
-
-    def setUp(self):
-	pass
-
-    def tearDown(self):
-	pass
-
-    def test_get_nonopenedx_usage(self):
-	print "test_get_nonopenedx_usage"
-
-	headers = {'Content-Type': 'application/json'}
-
-	response = self.client.get("/nonopenedx/usage")
-	self.assertEqual(response.status_code, 200)
-
-#+END_SRC
-
-
-
-
-** Get total analytics of vlabs (openedx+nonopenedx)
-   This API returns total usage of labs running on openedx (i.e 90) and non
-   openedx labs
-*** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: get_total_opendx_analytics
-  :END:          
-
-    - URL :: /vlabs/usage
-
-    - Method :: GET
-
-    - URL Params ::
-
-    - Success Response ::
-      + Code: 200
-      #+BEGIN_EXAMPLE
-      {
-       "date" : "2017-09-18",
-       "hits": 40115823, 
-       "usage": 593854, 
-       "visits": 9704325
-      }
-
-      #+END_EXAMPLE
-
-*** Implementation
-#+NAME: get_vlabs_usage
-#+BEGIN_SRC python
-
-#@api.route('/api/totalusage')
-@api.route('/vlabs/usage')
-def get_vlabs_usage():
-    if request.method == 'GET':
-        index = VLABS_INDEX
-        openedx_usage_type = OPENEDX_USAGE
-        nonopenedx_usage_type = NONOPENEDX_USAGE
-        ANALYTICS_DB_API_FOR_EDX_USAGE = "%s/%s/%s/_count" % \
-          (ANALYTICS_DB_URL, index, openedx_usage_type)
-        ANALYTICS_DB_API_FOR_NONEDX_USAGE = "%s/%s/%s/_count" % \
-          (ANALYTICS_DB_URL, index, nonopenedx_usage_type)
-
-        try:
-            headers = {'Content-Type': 'application/json'}
-            r = requests.get(ANALYTICS_DB_API_FOR_EDX_USAGE, headers=headers)
-            if r.status_code == 200:
-                openedx_usage = r.json()['count']
-                current_app.logger.debug\
-                  ("open edx usage = %s" % (openedx_usage))
-
-            else:
-                current_app.logger.error\
-                  ("Error in getting openedx usage, status_code = %s" % \
-                       (r.status_code))
-                       
-            r = requests.get(ANALYTICS_DB_API_FOR_NONEDX_USAGE, headers=headers)
-            if r.status_code == 200:
-                nonopenedx_usage = r.json()['count']
-                current_app.logger.debug\
-                  ("nonopen edx usage = %s" % (nonopenedx_usage))
-            else:
-                current_app.logger.error\
-                  ("Error in getting nonopenedx usage, status_code = %s" % \
-                       (r.status_code))
-                
-            vlabs_usage = openedx_usage + nonopenedx_usage
-            current_app.logger.debug("vlabs_usage =  %s" % (vlabs_usage))
-            return jsonify({"usage" : vlabs_usage})
-        except Exception as e:
-            current_app.logger.debug("Exception error =  %s" % str(e))
-            abort(500, str(e))
-    
-    else:
-        return "Method not allowed"
-#+END_SRC 
-*** Test Cases
-#+NAME: test_get_vlabs_usage
-#+BEGIN_SRC python
-class TestgetVlabsUsage(TestCase):
-    TESTING = True
-    def create_app(self):
-    app = create_app(config)
-	return app
-
-    def setUp(self):
-	pass
-
-    def tearDown(self):
-	pass
-
-    def test_get_vlabs_usage(self):
-	print "test_get_vlabs_usage"
-
-	headers = {'Content-Type': 'application/json'}
-
-	response = self.client.get("/vlabs/usage")
-	self.assertEqual(response.status_code, 200)
-
-#+END_SRC
-
-
-
-** Get current logged in users vlabs.ac.in
+** Get users analytics of vlabs.ac.in
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: get_total_user_in_op
@@ -1270,7 +1118,7 @@ class TestgetVlabsUsage(TestCase):
     #+END_EXAMPLE
 
 *** Implementation
-#+NAME: get_logged_in_users
+#+NAME: get_vlabs_logged_in_users
 #+BEGIN_SRC python
 def get_ip_info(ip_address, res):
     data = {}
@@ -1541,17 +1389,24 @@ api = Blueprint('APIs', __name__)
  #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
 
 <<imports_for_sources>>
-<<get_analytics>>
-<<get_openedx_usage>>
+<<get_usage_entity>>
+<<get_entity_openedx>>
+<<get_entity_openedx_search>>
+<<get_entity_nonopenedx>>
 <<add_openedx_usage_analytics>>
-<<get_openedx_lab_wise_usage>>
-<<get_openedx_search_usage>>
-<<get_nonopenedx_usage>>
-<<add_nonopenedx_lab_wise_usage>>
-<<get_nonopenedx_lab_wise_usage>>
-<<get_vlabs_usage>>
-<<get_logged_in_users>>
-<<get_nonopenedx_search_usage>>
+<<add_nonopenedx_usage_analytics>>
+<<get_vlabs_logged_in_users>>
+
+#<<get_analytics>>
+#<<get_openedx_usage>>
+#<<get_openedx_lab_wise_usage>>
+#<<get_openedx_search_usage>>
+#<<get_nonopenedx_usage>>
+
+#<<get_nonopenedx_lab_wise_usage>>
+#<<get_vlabs_usage>>
+#<<get_nonopenedx_search_usage>>
+
 #+END_SRC
 
 #+BEGIN_SRC conf :tangle openedx-logged-in-users.conf :eval no :noweb yes
