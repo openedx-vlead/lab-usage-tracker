@@ -13,7 +13,7 @@
   
 * REST API implementation
   
-** Get usage analytics of labs
+** Get total usage analytics of labs
 
    1. As of date =2017-Sep-08= total labs hosted on openedx platform are =90=
 
@@ -112,22 +112,31 @@ def get_openedx_usage(entity):
     if request.method == 'GET':
         index = VLABS_INDEX
 
-        if 'date' in request.args:
-            current_date = request.args['date']
+        if 'till_date' in request.args:
+            current_date = request.args['till_date']
         else:
             current_date = str(datetime.datetime.today()).split()[0]
 
         if entity == "openedx":
 
             doc_type = OPENEDX_USAGE
-            ANALYTICS_DB_API = "%s/%s/%s/_count?q=date_of_experiment:%s" % \
-              (ANALYTICS_DB_URL, index, doc_type, current_date)
+            query = {
+                "query": {
+                    "range": {
+                        "date_of_experiment": {
+                            "lte": current_date,
+                            "format": "yyyy-MM-dd"
+                            }
+                        }
+                    }
+            }
+            ANALYTICS_DB_API = "%s/%s/%s/_count" % (ANALYTICS_DB_URL, index, doc_type)
             current_app.logger.debug("Openedx Usage url = %s" % (ANALYTICS_DB_API))
             try:
-                res = requests.get(ANALYTICS_DB_API)
+                res = requests.get(ANALYTICS_DB_API, data=json.dumps(query))
                 if res.status_code == 200:
                     usage_dict = {
-                        "date" : current_date,
+                        "till_date" : current_date,
                         "usage" : res.json()['count']
                         }
                     current_app.logger.debug("Openedx Usage = %s" % (usage_dict))
@@ -157,17 +166,17 @@ def get_openedx_usage(entity):
                         hits = hits + int(lab['_source']['hits'])
                         usage = usage + int(lab['_source']['usage'])
                     analytics_data = {"visits" : visits, "hits" : hits, \
-                                          "usage" : usage, "date" : current_date}
+                                          "usage" : usage, "till_date" : current_date}
                 else:
                     analytics_data = {"visits" : visits, "hits" : hits, \
-                                          "usage" : usage, "date" : current_date}
+                                          "usage" : usage, "till_date" : current_date}
 
             return jsonify(analytics_data)
 
         elif entity == "vlabs":
 
-            ANALYTICS_DB_API_FOR_EDX_USAGE = "%s/usage/openedx?date=%s" % (APP_URL, current_date)
-            ANALYTICS_DB_API_FOR_NONEDX_USAGE = "%s/usage/nonopenedx?date=%s" % \
+            ANALYTICS_DB_API_FOR_EDX_USAGE = "%s/usage/openedx?till_date=%s" % (APP_URL, current_date)
+            ANALYTICS_DB_API_FOR_NONEDX_USAGE = "%s/usage/nonopenedx?till_date=%s" % \
               (APP_URL, current_date)
 
             try:
@@ -311,6 +320,11 @@ def get_openedx_lab_wise_usage(entity):
 
     if request.method == 'GET':
 
+        if 'till_date' in request.args:
+            current_date = request.args['till_date']
+        else:
+            current_date = str(datetime.datetime.today()).split()[0]
+    
         index = VLABS_INDEX
         type = OPENEDX_USAGE
       
@@ -340,23 +354,32 @@ def get_openedx_lab_wise_usage(entity):
 
         headers = {'Content-Type': 'application/json'}
         query =  {
-            "aggs": {
-                "entity": {
-                    "terms": {
-                        "field": field,
-                        "order" : { "_count" : "desc" },
-                        "size": size
-                        },            
-                        "aggs": {
-                            "entity_details": {
-                            "terms": {
-                                "script": script
-                            }
-                        
+            "query": {
+                "range": {
+                    "date_of_experiment": {
+                        "lte": current_date,
+                        "format": "yyyy-MM-dd"
                         }
                     }
-                }
-            }
+                },
+                "aggs": {
+                    "entity": {
+                        "terms": {
+                            "field": field,
+                            "order": {
+                                "_count": "desc"
+                                },
+                                "size": size
+                            },
+                            "aggs": {
+                                "entity_details": {
+                                    "terms": {
+                                    "script": script
+                                        }
+                                    }
+                                }
+                        }
+                    }
         }
             
         ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, type)
@@ -649,6 +672,218 @@ class TestGetOpenedxLabWiseUsage(TestCase):
 
 #+END_SRC
 
+** Get usage analytics of non-openedx platform 
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: lab_wise_analytics
+  :END:          
+
+    - URL :: /<entity>/nonopenedx
+
+    - Method :: GET
+
+    - URL Params ::
+
+    - Success Response ::
+      + Code: 200
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "lab_id": "ccnsb04",
+          "hits": 30485,
+          "discipline_name" : "Computer Science and Engineering",
+          "discipline_id" : "cse",
+          "institute_name" : "IIIT Hyderabad",
+          "institute_id" : "iiith",
+          "visits": 6430,
+          "lab_name": "Quantum Chemistry",
+          "usage": 473
+        }
+      ]
+      #+END_EXAMPLE
+
+*** Implementation
+
+#+NAME: get_entity_nonopenedx
+#+BEGIN_SRC python
+
+#@api.route('/analytics/labs', methods=['POST', 'GET'])
+@api.route('/<entity>/nonopenedx', methods=['POST', 'GET'])
+#@api.cache.cached(timeout=360)
+def nonopenedx_search_usage(entity):
+    index = VLABS_INDEX
+    type = NONOPENEDX_USAGE
+    
+    if request.method == 'GET':
+        if 'till_date' in request.args:
+            current_date = request.args['till_date']
+        else:
+            current_date = str(datetime.datetime.today()).split()[0]
+
+        if entity == "labs":
+            script = "[doc.lab_id.value, doc.lab_name.value, "+\
+              "doc.discipline_name.value, doc.institute_name.value].join('::')"
+            
+        elif entity == "institutes":
+            script = "[doc.institute_id.value, "+\
+              "doc.institute_name.value].join('::')"
+            
+        elif entity == "disciplines":
+            field = "discipline_id"
+            script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
+              "doc.institute_name.value].join('::')"
+        else:
+            abort(500, "invalid query")
+        try:
+            if "top" in request.args:
+                size = int(request.args.get("top"))
+            else:
+                size = 0
+        except Exception as e:
+            abort(500, str(e))
+
+        query = {
+            "aggs": {
+                "entity": {
+                "terms": {
+                    "script": script,
+                    "size": size,
+                    "order": {
+                    "usage": "desc"
+                    }
+                },
+                "aggs": {
+                    "usage": {
+                    "sum": {
+                        "field": "usage"
+                        }
+                    }
+                }
+            }
+          }
+        }
+        total_labs = []
+        headers = {'Content-Type': 'application/json'}
+        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % \
+          (ANALYTICS_DB_URL, index, type, current_date)
+        try:
+            req = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), data=json.dumps(query), headers=headers)
+            if req.status_code == 200:
+                entity_buckets = req.json()['aggregations']['entity']['buckets']
+                for entity_bucket in entity_buckets:
+                    temp_dict = {}
+                    temp_dict['usage'] = entity_bucket['usage']['value']
+                    entity_info = entity_bucket['key'].split("::")
+                    if entity == "labs":
+                        temp_dict['lab_id'] = entity_info[0]
+                        temp_dict['lab_name'] = entity_info[1]
+                        temp_dict['discipline_name'] = entity_info[2]
+                        temp_dict['institute_name'] = entity_info[3]
+
+                    elif entity == "institutes":
+                        temp_dict['institute_id'] = entity_info[0]
+                        temp_dict['institute_name'] = entity_info[1]
+                    
+                    elif entity == "disciplines":
+                        temp_dict['discipline_id'] = entity_info[0]
+                        temp_dict['discipline_name'] = entity_info[1]
+                        temp_dict['institute_name'] = entity_info[2]
+                        
+                    total_labs.append(temp_dict)
+                current_app.logger.debug("Total labs = %s" % (total_labs))
+                return jsonify(total_labs)
+            else:
+                current_app.logger.error("error code = %s" % (req.status_code))
+                abort(req.status_code)
+
+        except Exception as e:
+            abort(500, str(e))
+#+END_SRC
+
+*** Test Cases
+#+NAME: test_get_nonopenedx_lab_wise_usage
+#+BEGIN_SRC python
+class TestgetNonOpenedxLabWiseUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+    app = create_app(config)
+	return app
+
+    def setUp(self):
+	pass
+
+    def tearDown(self):
+	pass
+
+    def test_get_nonopenedx_lab_wise_usage(self):
+	print "test_get_nonopenedx_lab_wise_usage"
+
+	headers = {'Content-Type': 'application/json'}
+
+	response = self.client.get("/nonopenedx/lab_wise_usage")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
+** Search usage analytics on non-openedx platfom
+   #+TODO
+
+
+** Get usage analytics of labs on a(openedx+nonopenedx)
+*** Implementation
+
+#+NAME: get_vlabs_usage
+#+BEGIN_SRC python
+
+#@api.route('/analytics/labs', methods=['POST', 'GET'])
+@api.route('/<entity>/vlabs', methods=['POST', 'GET'])
+#@api.cache.cached(timeout=360)
+def vlabs_usage(entity):
+    index = VLABS_INDEX
+    type = NONOPENEDX_USAGE
+    
+    if request.method == 'GET':
+        if 'till_date' in request.args:
+            current_date = request.args['till_date']
+        else:
+            current_date = str(datetime.datetime.today()).split()[0]
+
+        if entity == "labs":
+            
+            ANALYTICS_DB_API = "%s/%s/openedx" % (APP_URL, entity)
+            current_app.logger.debug("Openedx Usage url = %s" % (ANALYTICS_DB_API))
+            try:
+                res = requests.get(ANALYTICS_DB_API)
+                if res.status_code == 200:
+                    open_edx_usage = res.json()
+                    current_app.logger.debug("%s Openedx Usage = %s" % (entity, open_edx_usage))
+                else:
+                    status_code = res.status_code
+                    current_app.logger.error("Error code = %s" % (status_code))
+                    abort(status_code)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                abort(500, str(e))
+
+            ANALYTICS_DB_API = "%s/%s/nonopenedx" % (APP_URL, entity)
+            current_app.logger.debug("Openedx Usage url = %s" % (ANALYTICS_DB_API))
+            try:
+                res = requests.get(ANALYTICS_DB_API)
+                if res.status_code == 200:
+                    nonopen_edx_usage = res.json()
+                    current_app.logger.debug("%s nonopenedx Usage = %s" % (entity, nonopen_edx_usage))
+                else:
+                    status_code = res.status_code
+                    current_app.logger.error("Error code = %s" % (status_code))
+                    abort(status_code)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                abort(500, str(e))                
+
+#+END_SRC
+
+
 
 ** Add usage analytics of labs running on openedx platform
 
@@ -802,7 +1037,6 @@ class TestPostAnalytics(TestCase):
 
 #+END_SRC
 
-
 ** Add usage analytics of labs running on nonopenedx platform
 
    1. This API reads the records from the file =/root/nonopenedx-lab-usage-info.txt=
@@ -922,162 +1156,8 @@ class TestPostAnalytics(TestCase):
 
 *** Test Cases
 
-
-** Get usage analytics of non-openedx platform 
-*** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: lab_wise_analytics
-  :END:          
-
-    - URL :: /<entity>/nonopenedx
-
-    - Method :: GET
-
-    - URL Params ::
-
-    - Success Response ::
-      + Code: 200
-      #+BEGIN_EXAMPLE
-      [
-        {
-          "lab_id": "ccnsb04",
-          "hits": 30485,
-          "discipline_name" : "Computer Science and Engineering",
-          "discipline_id" : "cse",
-          "institute_name" : "IIIT Hyderabad",
-          "institute_id" : "iiith",
-          "visits": 6430,
-          "lab_name": "Quantum Chemistry",
-          "usage": 473
-        }
-      ]
-      #+END_EXAMPLE
-
-*** Implementation
-
-#+NAME: get_entity_nonopenedx
-#+BEGIN_SRC python
-
-#@api.route('/analytics/labs', methods=['POST', 'GET'])
-@api.route('/<entity>/nonopenedx', methods=['POST', 'GET'])
-#@api.cache.cached(timeout=360)
-def nonopenedx_search_usage(entity):
-    index = VLABS_INDEX
-    type = NONOPENEDX_USAGE
-    
-    if request.method == 'GET':
-        if 'date' in request.args:
-            current_date = request.args['date']
-        else:
-            current_date = str(datetime.datetime.today()).split()[0]
-
-        if entity == "labs":
-            script = "[doc.lab_id.value, doc.lab_name.value, "+\
-              "doc.discipline_name.value, doc.institute_name.value].join('::')"
-            
-        elif entity == "institutes":
-            script = "[doc.institute_id.value, "+\
-              "doc.institute_name.value].join('::')"
-            
-        elif entity == "disciplines":
-            field = "discipline_id"
-            script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
-              "doc.institute_name.value].join('::')"
-        else:
-            abort(500, "invalid query")
-        try:
-            if "top" in request.args:
-                size = int(request.args.get("top"))
-            else:
-                size = 0
-        except Exception as e:
-            abort(500, str(e))
-
-        query = {
-            "aggs": {
-                "entity": {
-                "terms": {
-                    "script": script,
-                    "size": size,
-                    "order": {
-                    "usage": "desc"
-                    }
-                },
-                "aggs": {
-                    "usage": {
-                    "sum": {
-                        "field": "usage"
-                        }
-                    }
-                }
-            }
-          }
-        }
-        total_labs = []
-        headers = {'Content-Type': 'application/json'}
-        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % \
-          (ANALYTICS_DB_URL, index, type, current_date)
-        try:
-            req = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), data=json.dumps(query), headers=headers)
-            if req.status_code == 200:
-                entity_buckets = req.json()['aggregations']['entity']['buckets']
-                for entity_bucket in entity_buckets:
-                    temp_dict = {}
-                    temp_dict['usage'] = entity_bucket['usage']['value']
-                    entity_info = entity_bucket['key'].split("::")
-                    if entity == "labs":
-                        temp_dict['lab_id'] = entity_info[0]
-                        temp_dict['lab_name'] = entity_info[1]
-                        temp_dict['discipline_name'] = entity_info[2]
-                        temp_dict['institute_name'] = entity_info[3]
-
-                    elif entity == "institutes":
-                        temp_dict['institute_id'] = entity_info[0]
-                        temp_dict['institute_name'] = entity_info[1]
-                    
-                    elif entity == "disciplines":
-                        temp_dict['discipline_id'] = entity_info[0]
-                        temp_dict['discipline_name'] = entity_info[1]
-                        temp_dict['institute_name'] = entity_info[2]
-                        
-                    total_labs.append(temp_dict)
-                current_app.logger.debug("Total labs = %s" % (total_labs))
-                return jsonify(total_labs)
-            else:
-                current_app.logger.error("error code = %s" % (req.status_code))
-                abort(req.status_code)
-
-        except Exception as e:
-            abort(500, str(e))
-#+END_SRC
-
-*** Test Cases
-#+NAME: test_get_nonopenedx_lab_wise_usage
-#+BEGIN_SRC python
-class TestgetNonOpenedxLabWiseUsage(TestCase):
-    TESTING = True
-    def create_app(self):
-    app = create_app(config)
-	return app
-
-    def setUp(self):
-	pass
-
-    def tearDown(self):
-	pass
-
-    def test_get_nonopenedx_lab_wise_usage(self):
-	print "test_get_nonopenedx_lab_wise_usage"
-
-	headers = {'Content-Type': 'application/json'}
-
-	response = self.client.get("/nonopenedx/lab_wise_usage")
-	self.assertEqual(response.status_code, 200)
-
-#+END_SRC
-    
-
 ** Get users analytics of vlabs.ac.in
+
 *** API Design
   :PROPERTIES:
   :CUSTOM_ID: get_total_user_in_op
@@ -1402,7 +1482,6 @@ api = Blueprint('APIs', __name__)
 #<<get_openedx_lab_wise_usage>>
 #<<get_openedx_search_usage>>
 #<<get_nonopenedx_usage>>
-
 #<<get_nonopenedx_lab_wise_usage>>
 #<<get_vlabs_usage>>
 #<<get_nonopenedx_search_usage>>
