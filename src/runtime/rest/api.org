@@ -672,6 +672,7 @@ class TestGetOpenedxLabWiseUsage(TestCase):
 
 #+END_SRC
 
+
 ** Get usage analytics of non-openedx platform 
 *** API Design
   :PROPERTIES:
@@ -830,7 +831,7 @@ class TestgetNonOpenedxLabWiseUsage(TestCase):
    #+TODO
 
 
-** Get usage analytics of labs on a(openedx+nonopenedx)
+** Get usage analytics of labs on a (openedx+nonopenedx)
 *** Implementation
 
 #+NAME: get_vlabs_usage
@@ -848,38 +849,106 @@ def vlabs_usage(entity):
             current_date = request.args['till_date']
         else:
             current_date = str(datetime.datetime.today()).split()[0]
+        
+        if "top" in request.args:
+            size = int(request.args.get("top"))
+        else:
+            size = 0
 
         if entity == "labs":
+            entity_id = "lab_id"
+        elif entity == "disciplines":
+            entity_id = "discipline_id"
+        elif entity == "institutes":
+            entity_id = "institute_id"
+        else:
+            abort(500, "Invalid entity")
             
-            ANALYTICS_DB_API = "%s/%s/openedx" % (APP_URL, entity)
-            current_app.logger.debug("Openedx Usage url = %s" % (ANALYTICS_DB_API))
-            try:
-                res = requests.get(ANALYTICS_DB_API)
-                if res.status_code == 200:
-                    open_edx_usage = res.json()
-                    current_app.logger.debug("%s Openedx Usage = %s" % (entity, open_edx_usage))
-                else:
-                    status_code = res.status_code
-                    current_app.logger.error("Error code = %s" % (status_code))
-                    abort(status_code)
-            except Exception as e:
-                current_app.logger.error("Exception error = %s" % str(e))
-                abort(500, str(e))
+        ANALYTICS_DB_API = "%s/%s/openedx?top=%s" % (APP_URL, entity, size)
+        current_app.logger.debug("Openedx Usage url = %s" % (ANALYTICS_DB_API))
+        try:
+            res = requests.get(ANALYTICS_DB_API)
+            if res.status_code == 200:
+                open_edx_usage = res.json()
+                current_app.logger.debug("%s Openedx Usage = %s" % (entity, open_edx_usage))
+            else:
+                status_code = res.status_code
+                current_app.logger.error("Error code = %s" % (status_code))
+                abort(status_code)
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            abort(500, str(e))
 
-            ANALYTICS_DB_API = "%s/%s/nonopenedx" % (APP_URL, entity)
-            current_app.logger.debug("Openedx Usage url = %s" % (ANALYTICS_DB_API))
-            try:
-                res = requests.get(ANALYTICS_DB_API)
-                if res.status_code == 200:
-                    nonopen_edx_usage = res.json()
-                    current_app.logger.debug("%s nonopenedx Usage = %s" % (entity, nonopen_edx_usage))
-                else:
-                    status_code = res.status_code
-                    current_app.logger.error("Error code = %s" % (status_code))
-                    abort(status_code)
-            except Exception as e:
-                current_app.logger.error("Exception error = %s" % str(e))
-                abort(500, str(e))                
+        ANALYTICS_DB_API = "%s/%s/nonopenedx?top=%s" % (APP_URL, entity, size)
+        current_app.logger.debug("non openedx Usage url = %s" % (ANALYTICS_DB_API))
+        try:
+            res = requests.get(ANALYTICS_DB_API)
+            if res.status_code == 200:
+                non_open_edx_usage = res.json()
+                current_app.logger.debug("%s nonopenedx Usage = %s" % (entity, non_open_edx_usage))
+            else:
+                status_code = res.status_code
+                current_app.logger.error("Error code = %s" % (status_code))
+                abort(status_code)
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            abort(500, str(e))                
+
+        #entity_id = 'lab_id'
+
+        nol_ids = [entity[entity_id] for entity in non_open_edx_usage ]
+        ol_ids = [entity[entity_id] for entity in open_edx_usage ]
+
+        vlabs_ids = list(set(ol_ids) | set(nol_ids))
+        vlabs_usage = []
+
+        for vlabs_id in vlabs_ids:
+            ol_usage = [ entity for entity in open_edx_usage if entity[entity_id] == vlabs_id ]
+            if len(ol_usage) == 0:
+                openedx_lab = False
+            else:
+                openedx_lab = True
+                openedx_dict = ol_usage[0]
+
+            nol_usage = [ entity for entity in non_open_edx_usage if entity[entity_id] == vlabs_id ]
+            if len(nol_usage) == 0:
+                non_openedx_lab = False
+            else:
+                non_openedx_lab = True
+                non_openedx_dict = nol_usage[0]
+
+            if (openedx_lab and non_openedx_lab):
+                non_openedx_usage = non_openedx_dict['usage']
+                openedx_usage = openedx_dict['usage']
+                openedx_dict['usage'] = {}
+                openedx_dict['usage']["nonopenedx_usage"] = non_openedx_usage
+                openedx_dict['usage']["openedx_usage"] = openedx_usage
+                vlabs_dict = openedx_dict
+
+            elif (not openedx_lab and non_openedx_lab):
+                non_openedx_usage = non_openedx_dict['usage']
+                non_openedx_dict['usage'] = {}
+                non_openedx_dict['usage']["nonopenedx_usage"] = non_openedx_usage
+                non_openedx_dict['usage']["openedx_usage"] = 0
+                vlabs_dict = non_openedx_dict
+
+            elif (openedx_lab and not non_openedx_lab):
+                openedx_usage = openedx_dict['usage']
+                openedx_dict['usage'] = {}
+                openedx_dict['usage']["nonopenedx_usage"] = 0
+                openedx_dict['usage']["openedx_usage"] = openedx_usage
+                vlabs_dict = openedx_dict
+
+            else:
+                pass
+
+            total_usage = vlabs_dict['usage']['openedx_usage'] + vlabs_dict['usage']['nonopenedx_usage']
+            vlabs_dict['usage']['total_usage'] = total_usage
+            vlabs_usage.append(vlabs_dict)
+        vlabs_usage.sort(key=lambda e: e['usage']['total_usage'], reverse=True)
+        
+        return jsonify(vlabs_usage[:size])
+
 
 #+END_SRC
 
@@ -1037,6 +1106,7 @@ class TestPostAnalytics(TestCase):
 
 #+END_SRC
 
+
 ** Add usage analytics of labs running on nonopenedx platform
 
    1. This API reads the records from the file =/root/nonopenedx-lab-usage-info.txt=
@@ -1098,7 +1168,14 @@ class TestPostAnalytics(TestCase):
 *** Implementation
 #+NAME: add_nonopenedx_usage_analytics
 #+BEGIN_SRC python
+
+@api.route('/nonopenedx/lab_wise_usage', methods= ['POST'])
+def add_nonopenedx_usage_analytics():
+
     if request.method == 'POST':
+        index = VLABS_INDEX
+        doc_typ = NONOPENEDX_USAGE
+        
         current_date = str(datetime.datetime.today()).split()[0]
         file_path = NONOPENEDX_USAGE_INFO_FILE_PATH
         rows = []
@@ -1131,7 +1208,7 @@ class TestPostAnalytics(TestCase):
                                                      ['discipline_id'])
 
                      ANALYTICS_DB_API = "%s/%s/%s/id=%s_%s" % \
-                       (ANALYTICS_DB_URL, index, type, lab_id, current_date)
+                       (ANALYTICS_DB_URL, index, doc_type, lab_id, current_date)
 
                      req = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), data=json.dumps(lab_info))
                      if req.status_code == 200 or req.status_code == 201:
@@ -1155,6 +1232,7 @@ class TestPostAnalytics(TestCase):
 #+END_SRC
 
 *** Test Cases
+
 
 ** Get users analytics of vlabs.ac.in
 
@@ -1476,6 +1554,7 @@ api = Blueprint('APIs', __name__)
 <<add_openedx_usage_analytics>>
 <<add_nonopenedx_usage_analytics>>
 <<get_vlabs_logged_in_users>>
+<<get_vlabs_usage>>
 
 #<<get_analytics>>
 #<<get_openedx_usage>>
@@ -1483,7 +1562,6 @@ api = Blueprint('APIs', __name__)
 #<<get_openedx_search_usage>>
 #<<get_nonopenedx_usage>>
 #<<get_nonopenedx_lab_wise_usage>>
-#<<get_vlabs_usage>>
 #<<get_nonopenedx_search_usage>>
 
 #+END_SRC
