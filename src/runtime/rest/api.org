@@ -7,101 +7,191 @@
 #+OPTIONS: ^:nil
 
 * Introduction 
-  This document illustrates building of the REST API service for Virtual Labs
-  analytics
+  This document illustrates API design, implementation and test cases of the
+  REST API service for Virtual Labs analytics
 
   
-* REST API implementation
-  
+* REST API 
+  This section contains API design documentation followed by its implementation
+  and test cases
 ** Get total usage analytics of labs
 
-   1. As of date =2017-Sep-08= total labs hosted on openedx platform are =90=
+   1. As of date =2017-09-21= total labs hosted on openedx platform are =90=
 
    2. Usage for labs hosted on openedx platform is calculated as follows
+
       - When user click on =simulation= section of an experiment results +1
         usage
+
    3. This API returns total usage count of all labs hosted on openedx platform
       from the date =2016-10-07=
 
-*** API Design for total usage analytics of labs running on non-openedx platform
+*** Get total usage analytics of labs hosted on non-openedx platform
   :PROPERTIES:
-  :CUSTOM_ID: get_total_analytics
+  :CUSTOM_ID: get_non_openedx_usage
   :END:          
+**** API design  
 
-    - URL :: /usage/nonopenedx
+    - URL :: /usage/nonopenedx?till_date=<<YYYY-MM-DD>
 
     - Method :: GET
 
     - URL Params ::
 
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD]
+
+        - example : till_date=2017-09-20
+
+    - Data Params :: None
+
+          
     - Success Response ::
       + Code: 200
+      + Content : 
       #+BEGIN_EXAMPLE
-      {
-        "date" : "2017-09-18",
-        "hits": 40115823, 
-        "usage": 593854, 
-        "visits": 9704325
-       }
-
-      #+END_EXAMPLE
-
-*** API Design for total usage analytics of labs running on openedx platform
-
-  :PROPERTIES:
-  :CUSTOM_ID: openedx-usage
-  :END:          
-
-    - URL :: /usage/openedx
-
-    - Method :: GET
-
-    - URL Params :: None
-
-    - Success Response ::
-      + Code: 200
-        #+BEGIN_EXAMPLE
         {
-        "date": "2017-09-19",
-        "usage": 0
+        "hits": 41314869,
+        "till_date": "2017-09-20",
+        "usage": 585045,
+        "visits": 9908263
         }
-
-#+END_EXAMPLE
-
-**** TODO
-   This response template has to be changed and below response is integrated to
-   vlabs.ac.in page
-*** API Design for total vlabs usage
-    This API returns total usage of labs running on openedx (i.e 90) and non
-    openedx labs
-
-  :PROPERTIES:
-  :CUSTOM_ID: get_total_opendx_analytics
-  :END:          
-
-    - URL :: /usage/vlabs
-
-    - Method :: GET
-
-    - URL Params ::
-
-    - Success Response ::
-      + Code: 200
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
       #+BEGIN_EXAMPLE
       {
-      "nonopenedx_usage": {
-        "date": "2017-09-19",
-        "hits": 41275716,
-        "usage": 584613,
-        "visits": 9896579
-      },
-      "openedx_usage": {
-        "date": "2017-09-19",
-        "usage": 0
-      },
-      "total_usage": 584613
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2012-09-20"
       }
       #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost/usage/nonopenedx?till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+               If query parameter =till_date= not passed by default server
+               calculates =till_date= as today's date
+
+*** Get total usage analytics of labs hosted on openedx platform
+  :PROPERTIES:
+  :CUSTOM_ID: get_openedx_usage
+  :END:          
+**** API design  
+
+    - URL :: /usage/openedx?till_date=<<YYYY-MM-DD>
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD]
+
+        - example : till_date=2017-09-20
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      {
+      "till_date": "2017-09-20",
+      "usage": 887
+      }
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2012-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost/usage/openedx?till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+               If query parameter =till_date= not passed by default server
+               calculates =till_date= as today's date
+
+*** Get total vlabs(openedx+nonopenedx) usage
+    This API returns total usage analytics of labs hosted on openedx (i.e 90)
+    and non openedx platforms
+  :PROPERTIES:
+  :CUSTOM_ID: get_vlabs_usage
+  :END:          
+**** API design  
+
+    - URL :: /usage/vlabs?till_date=<<YYYY-MM-DD>
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD]
+
+        - example : till_date=2017-09-20
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      {
+      "till_date": "2017-09-20",
+      "usage": {
+               "nonopenedx_usage": 585045,
+               "openedx_usage": 887,
+               "total_usage": 585932
+               }
+      }
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2012-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost/usage/vlabs?till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+               If query parameter =till_date= not passed by default server
+               calculates =till_date= as today's date
 
 *** Implementation
 #+NAME: get_usage_entity
@@ -337,38 +427,218 @@ class TestgetOpenedxUsage(TestCase):
      }
 
     #+END_EXAMPLE
-
-*** API Design
-
+*** Get usage analytics of labs hosted on openedx platform
+**** API Design
   :PROPERTIES:
-  :CUSTOM_ID: openedx-usage
+  :CUSTOM_ID: openedx_usage
   :END:          
 
-    - URL :: /labs/openedx
-
+    - URL :: /labs/openedx?top=n&till_date=<YYYY-MM-DD>
+             
     - Method :: GET
 
-    - URL Params :: None
+    - URL Params ::
 
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
     - Success Response ::
       + Code: 200
+      + Content : 
       #+BEGIN_EXAMPLE
-       [
+      [
         {
-          "lab_id": "ccnsb04",
-          "institute_name": "IIIT-H",
+          "discipline_name": "Computer Science and Engineering",
+          "institute_name": "IIIT Hyderabad",
+          "lab_id": "cse01",
+          "lab_name": "Data Structures",
+          "usage": 119
+        },
+        {
+          "discipline_name": "Electronics and Communication",
+          "institute_name": "IIT Bombay",
+          "lab_id": "ece40",
+          "lab_name": "Electronic Devices and Circuits",
+          "usage": 46
+         }
+      ] 
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/labs/openedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+
+*** Get usage analytics of institute's labs
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /institutes/openedx?top=n&till_date=<YYYY-MM-DD>
+             
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
           "institute_id": "iiith",
-          "discipline_name": "Computer Science & Engeering",
+          "institute_name": "IIIT Hyderabad",
+          "usage": 460
+        },
+        {
+          "institute_id": "iitg",
+          "institute_name": "IIT Guwahati",
+          "usage": 111
+        }  
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/institutes/openedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+*** Get usage analytics of discipline's labs
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /disciplines/openedx?top=n&till_date=<YYYY-MM-DD>
+             
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
           "discipline_id": "cse",
-          "lab_name": "Quantum Chemistry",
-          "usage": 473
+          "discipline_name": "Computer Science and Engineering",
+          "institute_name": "IIIT Hyderabad",
+          "usage": 277
+        },
+        {
+          "discipline_id": "ece",
+          "discipline_name": "Electronics and Communication",
+          "institute_name": "IIT Guwahati",
+          "usage": 124
         }
       ]
       #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/disciplines/openedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
 
-**** TODO
-   This response template has to be changed and below response is integrated to
-   vlabs.ac.in page
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+
 *** Implementation
 #+NAME: get_entity_openedx
 #+BEGIN_SRC python
@@ -569,12 +839,61 @@ class TestGetOpenedxLabWiseUsage(TestCase):
     }
 
     #+END_EXAMPLE
-
-*** API Design
-
+*** Search lab usage analytics hosted on openedx platform using lab's attributes
+**** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx-usage
   :END:          
+
+
+    - URL :: /labs/openedx/_search?lab_id=cse02
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD]
+
+        - example : till_date=2017-09-20
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+        {
+        "hits": 41314869,
+        "till_date": "2017-09-20",
+        "usage": 585045,
+        "visits": 9908263
+        }
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2012-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost/usage/nonopenedx?till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+               If query parameter =till_date= not passed by default server
+               calculates =till_date= as today's date
 
     - URL :: /labs/openedx/_search
 
@@ -636,9 +955,7 @@ def get_openedx_search_usage(entity, platform):
 
         if platform == "openedx" or platform == "nonopenedx":
             query = []
-
             if entity == "labs":
-                entity_id = "lab_id"
                 current_app.logger.debug("request.args dict = %s" %
                                          (request.args.to_dict()))
                 args = request.args.to_dict()
@@ -656,7 +973,6 @@ def get_openedx_search_usage(entity, platform):
                   "doc.discipline_name.value, doc.institute_name.value].join('::')"
 
             elif entity == "institutes":
-                entity_id = "institute_id"
                 args = request.args.to_dict()
                 for arg in args:
                     arg_val = args[arg]
@@ -672,7 +988,6 @@ def get_openedx_search_usage(entity, platform):
                 script = "[doc.institute_id.value, "+\
                   "doc.institute_name.value].join('::')"
             else:
-                entity_id = "discipline_id"
                 args = request.args.to_dict()
                 for arg in args:
                     arg_val = args[arg]
@@ -754,9 +1069,9 @@ def get_openedx_search_usage(entity, platform):
                     message = "Exception occured : %s" % str(e)
                     abort(make_response(jsonify(message=message), 500))
         else:
-            user_query_params = urlencode(user_query_params)
+            form_user_query_params = urlencode(user_query_params)
             ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = "%s/%s/openedx/_search?%s"\
-              % (APP_URL, entity, user_query_params)
+              % (APP_URL, entity, form_user_query_params)
             current_app.logger.debug\
               ("ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = %s" % \
                    ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE)
@@ -776,12 +1091,10 @@ def get_openedx_search_usage(entity, platform):
                 open_edx_lab = False
                 status_code = res.status_code
                 current_app.logger.error("Error code = %s" % (status_code))
-                message = "Error code : %s" % status_code
-                abort(make_response(jsonify(message=message), status_code))
 
             ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE = \
               "%s/%s/nonopenedx/_search?%s" % \
-              (APP_URL, entity, user_query_params)
+              (APP_URL, entity, form_user_query_params)
             current_app.logger.debug\
               ("ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE = %s" % \
                    ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE)
@@ -801,8 +1114,6 @@ def get_openedx_search_usage(entity, platform):
                 non_open_edx_lab = False
                 status_code = res.status_code
                 current_app.logger.error("Error code = %s" % (status_code))
-                message = "Error code : %s" % status_code
-                abort(make_response(jsonify(message=message), status_code))
 
             try:
                 vlabs_dict = {}
@@ -831,20 +1142,22 @@ def get_openedx_search_usage(entity, platform):
                     vlabs_dict = open_edx_usage
 
                 else:
-                    pass
-
-                total_usage = vlabs_dict['usage']['openedx_usage'] + \
-                  vlabs_dict['usage']['nonopenedx_usage']
-                vlabs_dict['usage']['total_usage'] = total_usage
-
-                return jsonify(vlabs_dict)
-
+                    vlabs_dict = {}
 
             except Exception as e:
                 current_app.logger.error("Exception = %s" % (str(e)))
                 message = "Exception : %s" % str(e)
                 abort(make_response(jsonify(message=message), 500))
 
+            if len(vlabs_dict) == 0:
+                message = "No records found for search query : %s" % \
+                user_query_params
+                abort(make_response(jsonify(message=message), 404))
+
+            total_usage = vlabs_dict['usage']['openedx_usage'] + \
+              vlabs_dict['usage']['nonopenedx_usage']
+            vlabs_dict['usage']['total_usage'] = total_usage
+            return jsonify(vlabs_dict)
     else:
         abort(make_response(jsonify(message="Method not allowed"), 405))
 
@@ -875,34 +1188,217 @@ class TestGetOpenedxLabWiseUsage(TestCase):
 
 
 ** Get usage analytics of non-openedx platform 
-*** API Design
+*** Get usage analytics of labs hosted on non openedx platform
+**** API Design
   :PROPERTIES:
-  :CUSTOM_ID: lab_wise_analytics
+  :CUSTOM_ID: openedx_usage
   :END:          
 
-    - URL :: /<entity>/nonopenedx
-
+    - URL :: /labs/nonopenedx?top=n&till_date=<YYYY-MM-DD>
+             
     - Method :: GET
 
     - URL Params ::
 
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
     - Success Response ::
       + Code: 200
+      + Content : 
       #+BEGIN_EXAMPLE
       [
         {
-          "lab_id": "ccnsb04",
-          "hits": 30485,
-          "discipline_name" : "Computer Science and Engineering",
-          "discipline_id" : "cse",
-          "institute_name" : "IIIT Hyderabad",
-          "institute_id" : "iiith",
-          "visits": 6430,
-          "lab_name": "Quantum Chemistry",
-          "usage": 473
+          "discipline_name": "Chemical Engineering",
+          "institute_name": "NIT Surathkal",
+          "lab_id": "chem05",
+          "lab_name": "unit operation, reaction engg. & process control",
+          "usage": 88477
+        },
+        {
+          "discipline_name": "Computer Science and Engineering",
+          "institute_name": "IIIT Hyderabad",
+          "lab_id": "cse02",
+          "lab_name": "Computer Programming",
+          "usage": 56373
         }
       ]
       #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/labs/nonopenedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+
+*** Get usage analytics of institute's labs
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /institutes/nonopenedx?top=n&till_date=<YYYY-MM-DD>
+             
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "institute_id": "iiith",
+          "institute_name": "IIIT Hyderabad",
+          "usage": 253581
+        },
+        {
+          "institute_id": "nitk",
+          "institute_name": "NIT Surathkal",
+          "usage": 218094
+        }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/institutes/nonopenedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+*** Get usage analytics of discipline's labs
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /disciplines/nonopenedx?top=n&till_date=<YYYY-MM-DD>
+             
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "discipline_id": "cse",
+          "discipline_name": "Computer Science and Engineering",
+          "institute_name": "IIIT Hyderabad",
+          "usage": 277
+        },
+        {
+          "discipline_id": "ece",
+          "discipline_name": "Electronics and Communication",
+          "institute_name": "IIT Guwahati",
+          "usage": 124
+        }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/disciplines/nonopenedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
 
 *** Implementation
 
