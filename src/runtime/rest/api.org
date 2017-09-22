@@ -604,125 +604,250 @@ class TestGetOpenedxLabWiseUsage(TestCase):
 *** Implementation
 #+NAME: get_entity_openedx_search
 #+BEGIN_SRC python
-
-@api.route('/<entity>/openedx/_search', methods=['GET'])
-def get_openedx_search_usage(entity):
+@api.route('/<entity>/<platform>/_search', methods=['GET'])
+def get_openedx_search_usage(entity, platform):
 
     if request.method == 'GET':
-        index = VLABS_INDEX
-        type = OPENEDX_USAGE
-        query = []
-        if entity == "labs":
-            current_app.logger.debug("request.args dict = %s" %
-                                     (request.args.to_dict()))
-            args = request.args.to_dict()
-            for arg in args:
-                arg_val = args[arg]
-                query_dict = {
-                    "match": {
-                        arg: str(arg_val)
-                        }
-                    }
-                query.append(query_dict)
-            current_app.logger.debug("query_list = %s" %
-                                    (query))
-            script = "[doc.lab_id.value, doc.lab_name.value, " +\
-              "doc.discipline_name.value, doc.institute_name.value].join('::')"
-            
-        elif entity == "institutes":
-            args = request.args.to_dict()
-            for arg in args:
-                arg_val = args[arg]
-                query_dict = {
-                    "match": {
-                        arg: str(arg_val)
-                        }
-                    }
-                query.append(query_dict)
-            current_app.logger.debug("query_list = %s" %
-                                    (query))
+        index = VLABS_USAGE
 
-            script = "[doc.institute_id.value, "+\
-              "doc.institute_name.value].join('::')"
-        elif entity == "disciplines":
-            args = request.args.to_dict()
-            for arg in args:
-                arg_val = args[arg]
-                query_dict = {
-                    "match": {
-                        arg: str(arg_val)
-                        }
-                    }
-                query.append(query_dict)
-            current_app.logger.debug("query_list = %s" %
-                                    (query))
-            
-            script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
-              "doc.institute_name.value].join('::')"
+        allowed_entities = ["labs", "disciplines", "institutes"]
+        if entity not in allowed_entities:
+            message = "Not found results for entity : %s" % entity
+            abort(make_response(jsonify(message=message), 404))
+
+        allowed_platforms = ["openedx", "nonopenedx", "vlabs"]
+
+        if platform not in allowed_platforms:
+            message = "Not found results for entity : %s" % platform
+            abort(make_response(jsonify(message=message), 404))
+
+        elif platform == "openedx":
+            doc_type = OPENEDX_USAGE
+
         else:
-            abort(500, "invalid query")
+            doc_type = NONOPENEDX_USAGE
 
-        headers = {'Content-Type': 'application/json'}
-        query_payload =  {
-            "query": {
-                "bool": {
-                    "must": query
-                    }
-                },
-                "aggs": {
-                    "entity_details": {
-                        "terms": {
-                            "script": script,
-                            "size": 0
+
+        user_query_params = request.args.to_dict()
+
+        if len(user_query_params) == 0:
+            message = "Expecting at least one query parameter"
+            abort(make_response(jsonify(message=message), 400))
+
+        if platform == "openedx" or platform == "nonopenedx":
+            query = []
+
+            if entity == "labs":
+                entity_id = "lab_id"
+                current_app.logger.debug("request.args dict = %s" %
+                                         (request.args.to_dict()))
+                args = request.args.to_dict()
+                for arg in args:
+                    arg_val = args[arg]
+                    query_dict = {
+                        "match": {
+                            arg: str(arg_val)
                             }
                         }
-                    }
-            }
+                    query.append(query_dict)
+                current_app.logger.debug("query_list = %s" %
+                                        (query))
+                script = "[doc.lab_id.value, doc.lab_name.value, " +\
+                  "doc.discipline_name.value, doc.institute_name.value].join('::')"
 
-            
-        ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, type)
-        usage_dict = {}
-        try:
-            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD),\
-                                data=json.dumps(query_payload), \
-                                    headers=headers)
+            elif entity == "institutes":
+                entity_id = "institute_id"
+                args = request.args.to_dict()
+                for arg in args:
+                    arg_val = args[arg]
+                    query_dict = {
+                        "match": {
+                            arg: str(arg_val)
+                            }
+                        }
+                    query.append(query_dict)
+                current_app.logger.debug("query_list = %s" %
+                                        (query))
+
+                script = "[doc.institute_id.value, "+\
+                  "doc.institute_name.value].join('::')"
+            else:
+                entity_id = "discipline_id"
+                args = request.args.to_dict()
+                for arg in args:
+                    arg_val = args[arg]
+                    query_dict = {
+                        "match": {
+                            arg: str(arg_val)
+                            }
+                        }
+                    query.append(query_dict)
+                current_app.logger.debug("query_list = %s" %
+                                        (query))
+
+                script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
+                  "doc.institute_name.value].join('::')"
+
+            headers = {'Content-Type': 'application/json'}
+            query =  {
+                "query": {
+                    "bool": {
+                        "must": query
+                        }
+                    },
+                    "aggs": {
+                        "entity_details": {
+                            "terms": {
+                                "script": script,
+                                "size": 0
+                                }
+                            }
+                        }
+                }
+
+
+            ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, \
+                                                         doc_type)
+            current_app.logger.debug("ANALYTICS_DB_API = %s" % ANALYTICS_DB_API)
+            usage_dict = {}
+            try:
+                res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD),\
+                                    data=json.dumps(query), \
+                                        headers=headers)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
             if res.status_code == 200:
                 if len(res.json()['hits']['hits']) == 0:
-                    abort(500, "Invalid query")
-                current_app.logger.debug("query result = %s" % (res.json()))
-                entity_bucket = res.json()['aggregations']['entity_details']\
-                  ['buckets'][0]
-                entity_usage = entity_bucket['doc_count']
-                entity_details = entity_bucket['key'].split("::")
-                usage_dict['usage'] = entity_usage
+                    message = "No records found for search query : %s" % \
+                      user_query_params
+                    abort(make_response(jsonify(message=message), 404))
+                try:
+                    entity_bucket = res.json()['aggregations']['entity_details']\
+                      ['buckets'][0]
+                    entity_usage = entity_bucket['doc_count']
+                    entity_details = entity_bucket['key'].split("::")
+                    usage_dict['usage'] = entity_usage
 
-                if entity == "labs":
-                    usage_dict['lab_id'] = entity_details[0]
-                    usage_dict['lab_name'] = entity_details[1]
-                    usage_dict['discipline_name'] = entity_details[2]
-                    usage_dict['institute_name'] = entity_details[3]
+                    if entity == "labs":
+                        usage_dict['lab_id'] = entity_details[0]
+                        usage_dict['lab_name'] = entity_details[1]
+                        usage_dict['discipline_name'] = entity_details[2]
+                        usage_dict['institute_name'] = entity_details[3]
 
-                elif entity == "institutes":
-                    usage_dict['institute_id'] = entity_details[0]
-                    usage_dict['institute_name'] = entity_details[1]
+                    elif entity == "institutes":
+                        usage_dict['institute_id'] = entity_details[0]
+                        usage_dict['institute_name'] = entity_details[1]
 
-                elif entity == "disciplines":
-                    usage_dict['discipline_id'] = entity_details[0]
-                    usage_dict['discipline_name'] = entity_details[1]
-                    usage_dict['institute_name'] = entity_details[2]
+                    elif entity == "disciplines":
+                        usage_dict['discipline_id'] = entity_details[0]
+                        usage_dict['discipline_name'] = entity_details[1]
+                        usage_dict['institute_name'] = entity_details[2]
+                    else:
+                        pass
+                    return jsonify(usage_dict)
+
+                except Exception as e:
+                    current_app.logger.error("Exception error = %s" % str(e))
+                    message = "Exception occured : %s" % str(e)
+                    abort(make_response(jsonify(message=message), 500))
+        else:
+            user_query_params = urlencode(user_query_params)
+            ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = "%s/%s/openedx/_search?%s"\
+              % (APP_URL, entity, user_query_params)
+            current_app.logger.debug\
+              ("ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = %s" % \
+                   ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE)
+            try:
+                headers = {'Content-Type': 'application/json'}
+                res = requests.get(ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE, \
+                                 headers=headers)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+            if res.status_code == 200:
+                open_edx_lab = True
+                open_edx_usage = res.json()
+            else:
+                open_edx_lab = False
+                status_code = res.status_code
+                current_app.logger.error("Error code = %s" % (status_code))
+                message = "Error code : %s" % status_code
+                abort(make_response(jsonify(message=message), status_code))
+
+            ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE = \
+              "%s/%s/nonopenedx/_search?%s" % \
+              (APP_URL, entity, user_query_params)
+            current_app.logger.debug\
+              ("ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE = %s" % \
+                   ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE)
+
+            try:
+                res = requests.get(ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE, \
+                                   headers=headers)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+            if res.status_code == 200:
+                non_open_edx_lab = True
+                non_open_edx_usage = res.json()
+            else:
+                non_open_edx_lab = False
+                status_code = res.status_code
+                current_app.logger.error("Error code = %s" % (status_code))
+                message = "Error code : %s" % status_code
+                abort(make_response(jsonify(message=message), status_code))
+
+            try:
+                vlabs_dict = {}
+                if (open_edx_lab and non_open_edx_lab):
+                    non_openedx_usage = non_open_edx_usage['usage']
+                    openedx_usage = open_edx_usage['usage']
+                    open_edx_usage['usage'] = {}
+                    open_edx_usage['usage']["nonopenedx_usage"] = \
+                      non_openedx_usage
+                    open_edx_usage['usage']["openedx_usage"] = openedx_usage
+                    vlabs_dict = open_edx_usage
+
+                elif (not open_edx_lab and non_open_edx_lab):
+                    non_openedx_usage = non_open_edx_usage['usage']
+                    non_open_edx_usage['usage'] = {}
+                    non_open_edx_usage['usage']["nonopenedx_usage"] = \
+                      non_openedx_usage
+                    non_open_edx_usage['usage']["openedx_usage"] = 0
+                    vlabs_dict = non_open_edx_usage
+
+                elif (open_edx_lab and not non_open_edx_lab):
+                    openedx_usage = open_edx_usage['usage']
+                    open_edx_usage['usage'] = {}
+                    open_edx_usage['usage']["nonopenedx_usage"] = 0
+                    open_edx_usage['usage']["openedx_usage"] = openedx_usage
+                    vlabs_dict = open_edx_usage
+
                 else:
                     pass
-                return jsonify(usage_dict)
-            else:
-                current_app.logger.error("Error code = %s" % (res.status_code))
-                abort(res.status_code)
 
-        except Exception as e:
-            current_app.logger.error("Exception error = %s" % str(e))
-            abort(500, str(e))
+                total_usage = vlabs_dict['usage']['openedx_usage'] + \
+                  vlabs_dict['usage']['nonopenedx_usage']
+                vlabs_dict['usage']['total_usage'] = total_usage
+
+                return jsonify(vlabs_dict)
+
+
+            except Exception as e:
+                current_app.logger.error("Exception = %s" % (str(e)))
+                message = "Exception : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
 
     else:
-        return "Method not allowed"
+        abort(make_response(jsonify(message="Method not allowed"), 405))
+
 #+END_SRC 
 *** Test Cases
 #+NAME: test_get_openedx_lab_wise_usage
@@ -991,10 +1116,13 @@ def vlabs_usage(entity):
         else:
             status_code = res.status_code
             current_app.logger.error("Error code = %s" % (status_code))
-            abort(status_code)
+            message = "Error code : %s" % status_code
+            abort(make_response(jsonify(message=message), status_code))
 
-        ANALYTICS_DB_API = "%s/%s/nonopenedx?top=%s&till_date=%s" % (APP_URL, entity, size, current_date)
-        current_app.logger.debug("non openedx Usage url = %s" % (ANALYTICS_DB_API))
+        ANALYTICS_DB_API = "%s/%s/nonopenedx?top=%s&till_date=%s" % \
+          (APP_URL, entity, size, till_date)
+        current_app.logger.debug("non openedx Usage url = %s" % \
+                                 (ANALYTICS_DB_API))
 
         try:
             res = requests.get(ANALYTICS_DB_API)
@@ -1011,70 +1139,79 @@ def vlabs_usage(entity):
             current_app.logger.error("Error code = %s" % (status_code))
             message = "Error code : %s" % status_code
             abort(make_response(jsonify(message=message), status_code))
+        try:
+            non_openedx_entity_ids = [entity[entity_id] \
+                                          for entity in non_open_edx_usage ]
+            openedx_entity_ids = [entity[entity_id] \
+                                      for entity in open_edx_usage ]
 
-        non_openedx_entity_ids = [entity[entity_id] for entity in non_open_edx_usage ]
-        openedx_entity_ids = [entity[entity_id] for entity in open_edx_usage ]
+            vlabs_ids = list(set(openedx_entity_ids) | \
+                             set(non_openedx_entity_ids))
+            vlabs_usage = []
 
-        vlabs_ids = list(set(openedx_entity_ids) | set(non_openedx_entity_ids))
-        vlabs_usage = []
+            for vlabs_id in vlabs_ids:
+                openedx_usage = [ entity for entity in open_edx_usage \
+                                 if entity[entity_id] == vlabs_id ]
+                if len(openedx_usage) == 0:
+                    openedx_lab = False
+                else:
+                    openedx_lab = True
+                    openedx_dict = openedx_usage[0]
 
-        for vlabs_id in vlabs_ids:
-            ol_usage = [ entity for entity in open_edx_usage \
-                             if entity[entity_id] == vlabs_id ]
-            if len(ol_usage) == 0:
-                openedx_lab = False
+                non_openedx_usage = [ entity for entity in non_open_edx_usage \
+                                  if entity[entity_id] == vlabs_id ]
+                if len(non_openedx_usage) == 0:
+                    non_openedx_lab = False
+                else:
+                    non_openedx_lab = True
+                    non_openedx_dict = non_openedx_usage[0]
+
+                if (openedx_lab and non_openedx_lab):
+                    non_openedx_usage = non_openedx_dict['usage']
+                    openedx_usage = openedx_dict['usage']
+                    openedx_dict['usage'] = {}
+                    openedx_dict['usage']["nonopenedx_usage"] = \
+                      non_openedx_usage
+                    openedx_dict['usage']["openedx_usage"] = openedx_usage
+                    vlabs_dict = openedx_dict
+
+                elif (not openedx_lab and non_openedx_lab):
+                    non_openedx_usage = non_openedx_dict['usage']
+                    non_openedx_dict['usage'] = {}
+                    non_openedx_dict['usage']["nonopenedx_usage"] = \
+                      non_openedx_usage
+                    non_openedx_dict['usage']["openedx_usage"] = 0
+                    vlabs_dict = non_openedx_dict
+
+                elif (openedx_lab and not non_openedx_lab):
+                    openedx_usage = openedx_dict['usage']
+                    openedx_dict['usage'] = {}
+                    openedx_dict['usage']["nonopenedx_usage"] = 0
+                    openedx_dict['usage']["openedx_usage"] = openedx_usage
+                    vlabs_dict = openedx_dict
+
+                else:
+                    pass
+
+                total_usage = vlabs_dict['usage']['openedx_usage'] + \
+                  vlabs_dict['usage']['nonopenedx_usage']
+                vlabs_dict['usage']['total_usage'] = total_usage
+                vlabs_usage.append(vlabs_dict)
+
+            vlabs_usage.sort(key=lambda e: e['usage']['total_usage'], \
+                             reverse=True)
+
+            if size == 0 or len(vlabs_usage )== size:
+                return jsonify(vlabs_usage)
             else:
-                openedx_lab = True
-                openedx_dict = ol_usage[0]
+                return jsonify(vlabs_usage[:size])
 
-            nol_usage = [ entity for entity in non_open_edx_usage \
-                              if entity[entity_id] == vlabs_id ]
-            if len(nol_usage) == 0:
-                non_openedx_lab = False
-            else:
-                non_openedx_lab = True
-                non_openedx_dict = nol_usage[0]
-
-            if (openedx_lab and non_openedx_lab):
-                non_openedx_usage = non_openedx_dict['usage']
-                openedx_usage = openedx_dict['usage']
-                openedx_dict['usage'] = {}
-                openedx_dict['usage']["nonopenedx_usage"] = non_openedx_usage
-                openedx_dict['usage']["openedx_usage"] = openedx_usage
-                vlabs_dict = openedx_dict
-
-            elif (not openedx_lab and non_openedx_lab):
-                non_openedx_usage = non_openedx_dict['usage']
-                non_openedx_dict['usage'] = {}
-                non_openedx_dict['usage']["nonopenedx_usage"] = non_openedx_usage
-                non_openedx_dict['usage']["openedx_usage"] = 0
-                vlabs_dict = non_openedx_dict
-
-            elif (openedx_lab and not non_openedx_lab):
-                openedx_usage = openedx_dict['usage']
-                openedx_dict['usage'] = {}
-                openedx_dict['usage']["nonopenedx_usage"] = 0
-                openedx_dict['usage']["openedx_usage"] = openedx_usage
-                vlabs_dict = openedx_dict
-
-            else:
-                pass
-
-            total_usage = vlabs_dict['usage']['openedx_usage'] + \
-              vlabs_dict['usage']['nonopenedx_usage']
-            vlabs_dict['usage']['total_usage'] = total_usage
-            vlabs_usage.append(vlabs_dict)
-
-        vlabs_usage.sort(key=lambda e: e['usage']['total_usage'], reverse=True)
-
-        if size == 0 or len(vlabs_usage )== size:
-            return jsonify(vlabs_usage)
-        else:
-            return jsonify(vlabs_usage[:size])
-
+        except Exception as e:
+            current_app.logger.error("Exception = %s" % (str(e)))
+            message = "Exception : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
 
 #+END_SRC
-
 
 
 ** Add usage analytics of labs running on openedx platform
@@ -1117,24 +1254,33 @@ def vlabs_usage(entity):
 
 @api.route('/<exp_details>',methods= ['GET'])
 def add_openedx_usage_analytics(exp_details):
+
     if request.method == 'GET':
+
         exp_details = exp_details.split(",")
-        data_dict = {}
-        today = str(datetime.datetime.today()).split()[0]
+        if len(exp_details) != 5:
+            message = "Invalid  number of query parameters : %s " \
+              % exp_details
+            abort(make_response(jsonify(message=message), 404))
+        try:
+            student_id = exp_details[0]
+            lab_id = exp_details[1].lower()
+            lab_name = exp_details[2]
+            exp_id = exp_details[3].lower()
+            exp_name = exp_details[4]
 
-        student_id = exp_details[0]
-        lab_id = exp_details[1].lower()
-        lab_name = exp_details[2]
-        exp_id = exp_details[3].lower()
-        exp_name = exp_details[4]
+            data_dict = {}
+            data_dict["student_id"] = student_id
+            data_dict["lab_id"] = lab_id
+            data_dict["lab_name"] = lab_name
 
-        data_dict["student_id"] = student_id
-        data_dict["lab_id"] = lab_id
-        data_dict["lab_name"] = lab_name
-
-        data_dict["experiment_id"] = exp_id
-        data_dict["experiment_name"] = exp_name
-
+            data_dict["experiment_id"] = exp_id
+            data_dict["experiment_name"] = exp_name
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+            
         LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_id)
         try:
             r = requests.get(LDS_API)
@@ -1155,7 +1301,9 @@ def add_openedx_usage_analytics(exp_details):
                 current_app.logger.debug("Error in getting lab_name from LDS = %s" \
                                          % (lab_name))
         except Exception as e:
-            abort(500, str(e))
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
             
         LDS_API = "%s/experiments?exp_id=%s" % (LDS_URL, exp_id)
         try:
@@ -1167,7 +1315,7 @@ def add_openedx_usage_analytics(exp_details):
             else:
                 current_app.logger.debug("Error in getting exp_name from LDS = %s" \
                                          % (exp_name))
-
+            today = str(datetime.datetime.today()).split()[0]                                         
             data_dict["date_of_experiment"] = today
             data_dict["time_of_experiment"] = time.strftime("%H:%M")
             data_dict["ip_address"] = request.environ.get('HTTP_X_REAL_IP',\
@@ -1196,9 +1344,12 @@ def add_openedx_usage_analytics(exp_details):
                 return jsonify({"status" : "failed" })
             
         except Exception as e:
-            abort(500, str(e))
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+
     else:
-        return "Method not allowed"
+        abort(make_response(jsonify(message="Method not allowed"), 405))
  #+END_SRC
 *** Test Cases
 #+NAME: test_post_analytics
@@ -1654,6 +1805,7 @@ from runtime.config.system_config import *
 from runtime.config.flask_app_config import *
 from flask import send_from_directory, current_app, abort
 from flask import request, Blueprint, make_response, jsonify
+from urllib import urlencode
 #from elasticsearch import Elasticsearch
 import requests
 import ast
