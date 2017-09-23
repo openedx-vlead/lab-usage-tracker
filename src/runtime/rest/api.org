@@ -32,7 +32,7 @@
   :END:          
 **** API design  
 
-    - URL :: /usage/nonopenedx?till_date=<<YYYY-MM-DD>
+    - URL :: /usage/nonopenedx?till_date=<<YYYY-MM-DD>>
 
     - Method :: GET
 
@@ -87,7 +87,7 @@
   :END:          
 **** API design  
 
-    - URL :: /usage/openedx?till_date=<<YYYY-MM-DD>
+    - URL :: /usage/openedx?till_date=<<YYYY-MM-DD>>
 
     - Method :: GET
 
@@ -142,7 +142,7 @@
   :END:          
 **** API design  
 
-    - URL :: /usage/vlabs?till_date=<<YYYY-MM-DD>
+    - URL :: /usage/vlabs?till_date=<<YYYY-MM-DD>>
 
     - Method :: GET
 
