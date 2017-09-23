@@ -953,6 +953,8 @@ def get_openedx_search_usage(entity, platform):
             message = "Expecting at least one query parameter"
             abort(make_response(jsonify(message=message), 400))
 
+        entity_id_map = {"institutes" : "institute_id", "disciplines" : \
+                             "discipline_id" , "labs" : "lab_id"}
         if platform == "openedx" or platform == "nonopenedx":
             query = []
             if entity == "labs":
@@ -1045,7 +1047,8 @@ def get_openedx_search_usage(entity, platform):
                       ['buckets']
                     usage_list = []
                     
-                    if entity == "labs":                        
+                    if entity == "labs":
+
                         for lab in search_result:
                             usage_dict = {}
                             usage_dict['usage'] = lab['doc_count']
@@ -1057,6 +1060,7 @@ def get_openedx_search_usage(entity, platform):
                             usage_list.append(usage_dict)
                             
                     elif entity == "institutes":
+
                         for institute in search_result:
                             usage_dict = {}
                             usage_dict['usage'] = institute['doc_count']
@@ -1066,6 +1070,7 @@ def get_openedx_search_usage(entity, platform):
                             usage_list.append(usage_dict)
 
                     elif entity == "disciplines":
+
                         for discipline in search_result:
                             usage_dict = {}
                             usage_dict['usage'] = discipline['doc_count']
@@ -1099,10 +1104,9 @@ def get_openedx_search_usage(entity, platform):
                 abort(make_response(jsonify(message=message), 500))
 
             if res.status_code == 200:
-                open_edx_lab = True
                 open_edx_usage = res.json()
             else:
-                open_edx_lab = False
+                open_edx_usage = []
                 status_code = res.status_code
                 current_app.logger.error("Error code = %s" % (status_code))
 
@@ -1122,56 +1126,129 @@ def get_openedx_search_usage(entity, platform):
                 abort(make_response(jsonify(message=message), 500))
 
             if res.status_code == 200:
-                non_open_edx_lab = True
                 non_open_edx_usage = res.json()
             else:
-                non_open_edx_lab = False
+                non_open_edx_usage = []
                 status_code = res.status_code
                 current_app.logger.error("Error code = %s" % (status_code))
 
+            entity_id = entity_id_map[entity]
+
+            non_openedx_entity_ids = [entity[entity_id] \
+                                        for entity in non_open_edx_usage ]
+            openedx_entity_ids = [entity[entity_id] \
+                                    for entity in open_edx_usage ]
+
+            vlabs_ids = list(set(openedx_entity_ids) | \
+                             set(non_openedx_entity_ids))
+            if len(vlabs_ids) == 0:
+                message = "No records found for search query : %s" % \
+                  user_query_params
+                abort(make_response(jsonify(message=message), 404))
+
             try:
-                vlabs_dict = {}
-                if (open_edx_lab and non_open_edx_lab):
-                    non_openedx_usage = non_open_edx_usage['usage']
-                    openedx_usage = open_edx_usage['usage']
-                    open_edx_usage['usage'] = {}
-                    open_edx_usage['usage']["nonopenedx_usage"] = \
-                      non_openedx_usage
-                    open_edx_usage['usage']["openedx_usage"] = openedx_usage
-                    vlabs_dict = open_edx_usage
+                vlabs_usage = []
 
-                elif (not open_edx_lab and non_open_edx_lab):
-                    non_openedx_usage = non_open_edx_usage['usage']
-                    non_open_edx_usage['usage'] = {}
-                    non_open_edx_usage['usage']["nonopenedx_usage"] = \
-                      non_openedx_usage
-                    non_open_edx_usage['usage']["openedx_usage"] = 0
-                    vlabs_dict = non_open_edx_usage
+                for vlabs_id in vlabs_ids:
+                    openedx_usage = [ entity for entity in open_edx_usage \
+                                     if entity[entity_id] == vlabs_id ]
+                    if len(openedx_usage) == 0:
+                        openedx_lab = False
+                    else:
+                        openedx_lab = True
+                        openedx_dict = openedx_usage[0]
 
-                elif (open_edx_lab and not non_open_edx_lab):
-                    openedx_usage = open_edx_usage['usage']
-                    open_edx_usage['usage'] = {}
-                    open_edx_usage['usage']["nonopenedx_usage"] = 0
-                    open_edx_usage['usage']["openedx_usage"] = openedx_usage
-                    vlabs_dict = open_edx_usage
+                    non_openedx_usage = [ entity for entity in non_open_edx_usage \
+                                      if entity[entity_id] == vlabs_id ]
+                    if len(non_openedx_usage) == 0:
+                        non_openedx_lab = False
+                    else:
+                        non_openedx_lab = True
+                        non_openedx_dict = non_openedx_usage[0]
 
-                else:
-                    vlabs_dict = {}
+                    if (openedx_lab and non_openedx_lab):
+                        non_openedx_usage = non_openedx_dict['usage']
+                        openedx_usage = openedx_dict['usage']
+                        openedx_dict['usage'] = {}
+                        openedx_dict['usage']["nonopenedx_usage"] = \
+                          non_openedx_usage
+                        openedx_dict['usage']["openedx_usage"] = openedx_usage
+                        vlabs_dict = openedx_dict
+
+                    elif (not openedx_lab and non_openedx_lab):
+                        non_openedx_usage = non_openedx_dict['usage']
+                        non_openedx_dict['usage'] = {}
+                        non_openedx_dict['usage']["nonopenedx_usage"] = \
+                          non_openedx_usage
+                        non_openedx_dict['usage']["openedx_usage"] = 0
+                        vlabs_dict = non_openedx_dict
+
+                    elif (openedx_lab and not non_openedx_lab):
+                        openedx_usage = openedx_dict['usage']
+                        openedx_dict['usage'] = {}
+                        openedx_dict['usage']["nonopenedx_usage"] = 0
+                        openedx_dict['usage']["openedx_usage"] = openedx_usage
+                        vlabs_dict = openedx_dict
+
+                    else:
+                        pass
+
+                    total_usage = vlabs_dict['usage']['openedx_usage'] + \
+                      vlabs_dict['usage']['nonopenedx_usage']
+                    vlabs_dict['usage']['total_usage'] = total_usage
+                    vlabs_usage.append(vlabs_dict)
+
+                vlabs_usage.sort(key=lambda e: e['usage']['total_usage'], \
+                                 reverse=True)
+                return jsonify(vlabs_usage)
 
             except Exception as e:
                 current_app.logger.error("Exception = %s" % (str(e)))
                 message = "Exception : %s" % str(e)
                 abort(make_response(jsonify(message=message), 500))
 
-            if len(vlabs_dict) == 0:
-                message = "No records found for search query : %s" % \
-                user_query_params
-                abort(make_response(jsonify(message=message), 404))
+            #     vlabs_dict = {}
+            #     if (open_edx_lab and non_open_edx_lab):
+            #         non_openedx_usage = non_open_edx_usage['usage']
+            #         openedx_usage = open_edx_usage['usage']
+            #         open_edx_usage['usage'] = {}
+            #         open_edx_usage['usage']["nonopenedx_usage"] = \
+            #           non_openedx_usage
+            #         open_edx_usage['usage']["openedx_usage"] = openedx_usage
+            #         vlabs_dict = open_edx_usage
 
-            total_usage = vlabs_dict['usage']['openedx_usage'] + \
-              vlabs_dict['usage']['nonopenedx_usage']
-            vlabs_dict['usage']['total_usage'] = total_usage
-            return jsonify(vlabs_dict)
+            #     elif (not open_edx_lab and non_open_edx_lab):
+            #         non_openedx_usage = non_open_edx_usage['usage']
+            #         non_open_edx_usage['usage'] = {}
+            #         non_open_edx_usage['usage']["nonopenedx_usage"] = \
+            #           non_openedx_usage
+            #         non_open_edx_usage['usage']["openedx_usage"] = 0
+            #         vlabs_dict = non_open_edx_usage
+
+            #     elif (open_edx_lab and not non_open_edx_lab):
+            #         openedx_usage = open_edx_usage['usage']
+            #         open_edx_usage['usage'] = {}
+            #         open_edx_usage['usage']["nonopenedx_usage"] = 0
+            #         open_edx_usage['usage']["openedx_usage"] = openedx_usage
+            #         vlabs_dict = open_edx_usage
+
+            #     else:
+            #         vlabs_dict = {}
+
+            # except Exception as e:
+            #     current_app.logger.error("Exception = %s" % (str(e)))
+            #     message = "Exception : %s" % str(e)
+            #     abort(make_response(jsonify(message=message), 500))
+
+            # if len(vlabs_dict) == 0:
+            #     message = "No records found for search query : %s" % \
+            #     user_query_params
+            #     abort(make_response(jsonify(message=message), 404))
+
+            # total_usage = vlabs_dict['usage']['openedx_usage'] + \
+            #   vlabs_dict['usage']['nonopenedx_usage']
+            # vlabs_dict['usage']['total_usage'] = total_usage
+            # return jsonify(vlabs_dict)
     else:
         abort(make_response(jsonify(message="Method not allowed"), 405))
 
