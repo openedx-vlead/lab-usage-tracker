@@ -10,6 +10,7 @@
   This document illustrates the requirements, design, implementation and
   deployment of analytics service
 
+
 * Application
 
   Analytics service is a micro service which is designed to provide user,

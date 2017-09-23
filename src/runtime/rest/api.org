@@ -138,7 +138,7 @@
     This API returns total usage analytics of labs hosted on openedx (i.e 90)
     and non openedx platforms
   :PROPERTIES:
-  :CUSTOM_ID: get_vlabs_usage
+  :CUSTOM_ID: vlabs_usage
   :END:          
 **** API design  
 
@@ -986,7 +986,7 @@ def get_openedx_search_usage(entity, platform):
                                         (query))
 
                 script = "[doc.institute_id.value, "+\
-                  "doc.institute_name.value].join('::')"
+                "doc.institute_name.value].join('::')"
             else:
                 args = request.args.to_dict()
                 for arg in args:
@@ -1024,7 +1024,7 @@ def get_openedx_search_usage(entity, platform):
             ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, \
                                                          doc_type)
             current_app.logger.debug("ANALYTICS_DB_API = %s" % ANALYTICS_DB_API)
-            usage_dict = {}
+
             try:
                 res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD),\
                                     data=json.dumps(query), \
@@ -1035,34 +1035,48 @@ def get_openedx_search_usage(entity, platform):
                 abort(make_response(jsonify(message=message), 500))
 
             if res.status_code == 200:
-                if len(res.json()['hits']['hits']) == 0:
+                search_result_count = res.json()['hits']['hits']
+                if len(search_result_count) == 0:
                     message = "No records found for search query : %s" % \
                       user_query_params
                     abort(make_response(jsonify(message=message), 404))
                 try:
-                    entity_bucket = res.json()['aggregations']['entity_details']\
-                      ['buckets'][0]
-                    entity_usage = entity_bucket['doc_count']
-                    entity_details = entity_bucket['key'].split("::")
-                    usage_dict['usage'] = entity_usage
-
-                    if entity == "labs":
-                        usage_dict['lab_id'] = entity_details[0]
-                        usage_dict['lab_name'] = entity_details[1]
-                        usage_dict['discipline_name'] = entity_details[2]
-                        usage_dict['institute_name'] = entity_details[3]
-
+                    search_result = res.json()['aggregations']['entity_details']\
+                      ['buckets']
+                    usage_list = []
+                    
+                    if entity == "labs":                        
+                        for lab in search_result:
+                            usage_dict = {}
+                            usage_dict['usage'] = lab['doc_count']
+                            lab = lab['key'].split("::")
+                            usage_dict['lab_id'] = lab[0]
+                            usage_dict['lab_name'] = lab[1]
+                            usage_dict['discipline_name'] = lab[2]
+                            usage_dict['institute_name'] = lab[3]
+                            usage_list.append(usage_dict)
+                            
                     elif entity == "institutes":
-                        usage_dict['institute_id'] = entity_details[0]
-                        usage_dict['institute_name'] = entity_details[1]
+                        for institute in search_result:
+                            usage_dict = {}
+                            usage_dict['usage'] = institute['doc_count']
+                            institute = institute['key'].split("::")
+                            usage_dict['institute_id'] = institute[0]
+                            usage_dict['institute_name'] = institute[1]
+                            usage_list.append(usage_dict)
 
                     elif entity == "disciplines":
-                        usage_dict['discipline_id'] = entity_details[0]
-                        usage_dict['discipline_name'] = entity_details[1]
-                        usage_dict['institute_name'] = entity_details[2]
+                        for discipline in search_result:
+                            usage_dict = {}
+                            usage_dict['usage'] = discipline['doc_count']
+                            discipline = discipline['key'].split("::")
+                            usage_dict['discipline_id'] = discipline[0]
+                            usage_dict['discipline_name'] = discipline[1]
+                            usage_dict['institute_name'] = discipline[2]
+                            usage_list.append(usage_dict)
                     else:
                         pass
-                    return jsonify(usage_dict)
+                    return jsonify(usage_list)
 
                 except Exception as e:
                     current_app.logger.error("Exception error = %s" % str(e))
