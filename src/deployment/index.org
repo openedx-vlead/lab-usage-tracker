@@ -174,6 +174,123 @@ exit 0;
 #+END_SRC
 
 
+* Run vlabs-analytics-serevice on development environment
+   
+1. Install =pip= and =nginx= server 
+
+    #+BEGIN_EXAMPLE
+    sudo apt-get update
+    sudo apt-get install python-pip python-dev nginx
+    #+END_EXAMPLE
+
+2. Create a virtual environment for python
+
+     #+BEGIN_EXAMPLE
+     virtualenv analytics-service
+     #+END_EXAMPLE
+
+3. Install =virtualenv= package
+   
+     #+BEGIN_EXAMPLE
+     sudo pip install virtualenv
+     #+END_EXAMPLE
+
+4. Activate the virtual environment
+
+     #+BEGIN_EXAMPLE
+     source analytics-service/bin/activate
+     #+END_EXAMPLE
+
+5. Clone the repository
+
+     #+BEGIN_EXAMPLE
+     git clone https://github.com/vlead/vlabs-analytics-service
+     #+END_EXAMPLE
+
+6. Checkout branch to =develop= and build the sources
+
+     #+BEGIN_EXAMPLE
+     cd vlabs-analytics-service
+     git checkout develop
+     make readtheorg=true
+     #+END_EXAMPLE
+
+7. Install pre-requisites inside virutal environment
+
+     #+BEGIN_EXAMPLE
+     cd build/code/deployment
+     python setup.py install
+     #+END_EXAMPLE
+     
+8. export =PYTHONPATH= to =build/code= to run the application
+
+     #+BEGIN_EXAMPLE
+     cd build/code
+     export PYTHONPATH=$(pwd)
+     #+END_EXAMPLE 
+
+9. Configure application variables in =runtime/config/system_config.py=
+   
+    #+BEGIN_EXAMPLE
+    # Application URL
+    APP_URL = "http://localhost:5000"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # Configure key
+    KEY = "defaultkey"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # Lab Data Service URL
+    LDS_URL = "http://lds.vlabs.ac.in"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # Analytics database (i.e elasticsearch) URL
+    ANALYTICS_DB_URL = "http://192.168.33.3"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # Analytics database (i.e elasticsearch) indexes & doc_types to store the
+    # analytics data
+    ## Index to store vlabs analytics
+    VLABS_USAGE = "vlabs"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    ## Types to store openedx & nonopenedx usages
+    OPENEDX_USAGE = "openedx_usage"
+    NONOPENEDX_USAGE = "nonopenedx_usage"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # PATH to analytics of nonopenedx labs file which is copied from
+    # stats.vlabs.ac.in server
+    NONOPENEDX_USAGE_INFO_FILE_PATH = "/home/sripathi/output.txt"
+    #+END_EXAMPLE
+    
+    #+BEGIN_EXAMPLE
+    ###Credentials to analytics-db
+    USER="username"
+    PASSWORD="password"
+    #+END_EXAMPLE
+
+
+
+10. Run flask application server
+      #+BEGIN_EXAMPLE
+      cd build/code/runtime/rest
+      python app.py
+      #+END_EXAMPLE
+
+11. Access application on browser
+
+      #+BEGIN_EXAMPLE
+      firefox http://localhost:5000
+      #+END_EXAMPLE
+
+
 * Script to sanitize openedx analytics data
 #+BEGIN_SRC python :tangle sanitize_openedx_analytics.py :eval no
 

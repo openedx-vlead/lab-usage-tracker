@@ -16,18 +16,37 @@ This holds the application's configuration parameters.
 * System Config
 #+NAME: system_config
 #+BEGIN_SRC python
-#Fill the value during deployment.  Generate the key. 
+
+# Application URL
+APP_URL = "http://localhost:5000"
+
+# Configure key
 KEY = "defaultkey"
+
+# Lab Data Service URL
 LDS_URL = "http://lds.vlabs.ac.in"
+
+# Analytics database (i.e elasticsearch) URL
 ANALYTICS_DB_URL = "http://192.168.33.3"
-VLABS_INDEX = "vlabs"
+
+# Analytics database (i.e elasticsearch) indexes & doc_types to store the
+# analytics data
+
+## Index to store vlabs analytics
+VLABS_USAGE = "vlabs"
+
+## Types to store openedx & nonopenedx usages
 OPENEDX_USAGE = "openedx_usage"
 NONOPENEDX_USAGE = "nonopenedx_usage"
 
+# PATH to analytics of nonopenedx labs file which is copied from
+# stats.vlabs.ac.in server
+
 NONOPENEDX_USAGE_INFO_FILE_PATH = "/home/sripathi/output.txt"
+
 ###Credentials to analytics-db
-USER="sripathi"
-PASSWORD="sudswathi"
+USER="username"
+PASSWORD="password"
 #+END_SRC
 
 
@@ -35,24 +54,6 @@ PASSWORD="sudswathi"
   Configuration for the flask application. 
 #+NAME: flask_app_config
 #+BEGIN_SRC python
-#Elasticsearch DB variables 
-#Elasticsearch DB variables 
-elastic_host = "http://10.100.2.40:9400/"
-#elastic_port =  "9400"
-elastic_index = "vlabs/usage"
-elastic_count = "vlabs/_count"
-#elastic_doc_type = "usage"
-
-elk_count_url = elastic_host + elastic_count
-elk_url = elastic_host + elastic_index
-
-headers = {"Content-type":"application/json", "Accept":"text/plain"}
-
-stats_server_url= "http://stats.vlabs.ac.in/analytics"
-
-#Request body for disabling string analyzer in elasticsearch
-request_body = {"index" : {"analysis": {"analyzer": {"default": {"type":"keyword"}}}}}
-
 
 # List of allowed origins for CORS
 ALLOWED_ORIGINS = "['*']"
@@ -62,14 +63,11 @@ WHITELIST_IPS = ["127.0.0.1"]
 
 # Configure your log paths
 LOG_FILE_DIRECTORY = 'logs'
-LOG_FILE = 'analytics.log'
+LOG_FILE = 'vlabs-analytics-service.log'
 
 # Log level for the application
 #10=DEBUG, 20=INFO, 30=WARNING, 40=ERROR, 50=CRITICAL",
 LOG_LEVEL = 10
-
-#Configure the versions of generic feedback forms
-GENERIC_FEEDBACK_VERSION = 'generic-analytics-v1.0'
 
 
 #+END_SRC
