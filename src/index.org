@@ -1,6 +1,6 @@
 #+Title: Analytics Service for Virtual Labs
 #+Date: [2017-09-12 Tue]
-#+Author: VLEAD Systems team
+#+Author: Sripathi.K & VLEAD
 #+SETUPFILE: ./org-templates/level-0.org
 #+TAGS: boilerplate(b)
 #+EXCLUDE_TAGS: boilerplate
