@@ -1,6 +1,6 @@
-#+TITLE: Design of Virtual Labs Analytics Service
+#+TITLE: Design of Analytics Service
 #+AUTHOR: VLEAD
-#+DATE: [2016-09-09 Fri]
+#+DATE: [2017-09-09 Fri]
 #+SETUPFILE: ../org-templates/level-1.org
 #+TAGS: boilerplate(b)
 #+EXCLUDE_TAGS: boilerplate
@@ -8,67 +8,118 @@
 
 
 * Introduction 
-  This document illustrates the =design= of the =Analytics Service= for Virtual
-  Labs
+  This document illustrates the =design= of the [[https://github.com/vlead/vlabs-analytics-service][vlabs-analytics-service]] for
+  Virtual Labs
 
 
 * Service Interplay
+  1. =vlabs-analytics-service= is a micro service which is designed to provide
+     REST API(s) interface to obtain the usage analytics of Virutal Labs
+  2. =vlabs-analytics-service= service is built on top of =analytics-db= (i.e
+     elasticsearch) and which consumes REST API(s) of =elasticsearch= service
+     for querying the user needed information
+  3. This service interacts with several other micro services using REST API(s)
+     calls to accomidate usage analytics information at single place i.e on
+     =analytics-db= to analyze the data further
+  4. Following diagram illustrates the communication between other micro
+     services.
 
 #+BEGIN_HTML
 <img src="https://docs.google.com/drawings/d/e/2PACX-1vTkpeiZc8CGKQUed7q_LcA5VdKEKN4yFZRgO6Gd4RrjQBZGsuM5IOFQjeUSNkSRsyYninO_di9XM_mb/pub?w=960&amp;h=720">
 <p align="center"> Analytics Services Interplay </p>
 #+END_HTML
-To edit the feedback relations image click [[https://docs.google.com/drawings/d/1TO8JiZiQB6ZiH-5hmm7qbNvL2lZ4auGR-NgdfOuBrEs/edit][here]]
+To edit the analytics-service design image click [[https://docs.google.com/drawings/d/1TO8JiZiQB6ZiH-5hmm7qbNvL2lZ4auGR-NgdfOuBrEs/edit][here]]
 
 - Outreach Portal ::
-     =Analytics REST Service= calls =Outreach Portal= service to get the user
-     analytics such as current logged in and total registered users in
-     the portal.
+
+  + =Outreach Portal= is a web application which is being used by several
+    coordinators for managing outreach activities over the country India
+
+  + =Analytics REST Service= is a micro service which makes REST API call to
+    =Outreach Portal= to obtain the user analytics such as current logged in
+    and total registered users in the portal.
+    
 - Feedback ::
-              =Feedback= service pushes the feedback records into database using POST
-              API of =Analytics REST Service= for every regular interval of
-              time. This is required to analyze the feedback data from the database
+
+  + =Feedback= service is a micro service which serves various feedback forms
+
+  + This service pushes the feedback records into =analytics-db= using REST API
+    of =Analytics REST Service= for every regular interval of time. These
+    records will be used to analyze the feedback data further
 
 - Virtual Labs on Openedx :: 
-   - Users visit Virtual Labs on OpenedX and will access a Lab. When a user
-     clicks simulation link of an experiment section data related to the
-     experiment (Experiment name, Experiment ID, Lab name, Lab ID, User ID) is
-     added to analytics database using analytics service API
+  
+  + Work-flow to obtain usage 
+  
+    - Users visit Virtual Labs on OpenedX and will access a Lab.
 
-   - Analytics API server further evaluates the IP address of the Lab User and
-     obtains the location of the IP address using
-     http://freegeoip.net/json/<your-ip-address>.
+    - When a user clicks simulation link of an experiment section data related
+      to the experiment (Experiment name, Experiment ID, Lab name, Lab ID, User
+      ID) is added to =analytics-db= using =Analytics RESTI service= API
+    
+    - =Analytics REST Service= further evaluates the IP address of the Lab User
+      and obtains the location of the IP address using
+      http://freegeoip.net/json/<your-ip-address>.
+    
+    - =Analytics REST Service= API then adds the data into =analytics-db= in
+    JSON format.
 
-   - Analytics API server then adds the data into Elasticsearch database in
-     JSON format.
+  + Work-flow to obtain active users
+    
+    - =Logstash= is log reader tool which is configured on =openedx= machine
+      and which reads the =nginx= log entries which contains =login= and
+      =logout= activity logs and push them to =analytics-db=.
 
+    - From these log entries =Analytics REST Service= calculates the total
+      active users
 - Virtual Labs on Nonopenedx ::
+  + Work-flow to obtain usage 
+    
+    - =erlang= script was built and which runs on =AWS= =stats.vlabs.ac.in=
+      machine.
 
+    - This script reads the server logs of =reverse-proxy= machine and
+      calculates the usage, hits and visits of each and every lab and write the
+      results into =nonopenedx-usage-analytics.txt= file
+
+    - For every regular interval of time (about 2 hrs)
+      =nonopenedx-usage-analytics.txt= file is copied from =stats.vlabs.ac.in=
+      to =Analytics REST Service=
+
+    - =Analytics REST Service= has a POST =API= which reads the
+      =nonopenedx-usage-analytics.txt= file copied from =stats.vlabs.ac.in= and
+      convert the lines into =json= records and add them into =analytics-db=
+    
 - LDS ::
-         =Analytics REST Service= calls Lab-data Service (LDS) before storing
-         lab analytics data into database. This is required to make all the
-         records consistent in the database
+
+  + =Lab Data Service= is a micro service which provides all the information
+    about lab's data such a hosting, developer and assets information.
+
+  + This service is invoked by =Analytics REST Service= before storing lab
+    analytics =json= records into database. This is required to make ensure all
+    the records consistent in the database
 
 - Analytics REST Service ::
-     This service exposes =REST APIs= to add/retrieve various user, usage and
+
+   + This service exposes =REST APIs= to add/retrieve various user, usage and
      feedback analytics of Virtual Labs
      
 
-- Elasticsearch REST Service ::
-     This service comes with =elasticsearch= database which uses NoSQL as
-     back end.
+- Analytics-db ::
+
+  + This is a database service which uses =elasticsearch= =NoSQL=  database
+
+  + This service provides REST API(s) interface to query the data on =json=
+    records
   
 
-* Data flow of usage analytics 
+* Security
+  Security for REST APIs of =vlabs-analytics-service= is designed as follows
 
-  - Users visit Virtual Labs on OpenedX and will access a Lab. When a user
-    clicks simulation link of an experiment section data related to the
-    experiment (Experiment name, Experiment ID, Lab name, Lab ID, User ID) is
-    added to analytics database using analytics service API
+    + GET ::
+             Anyone from outside world can make GET requests to
+             =vlabs-analytics-service= service APIs without any authentication
 
-  - Analytics API server further evaluates the IP address of the Lab User and
-    obtains the location of the IP address using
-    http://freegeoip.net/json/<your-ip-address>.
-
-  - Analytics API server then adds the data into Elasticsearch database in JSON
-    format.
+    + POST :: 
+             Anyone who owns the 16 characters =<key>= is allowed to make API
+              requests on =POST= method

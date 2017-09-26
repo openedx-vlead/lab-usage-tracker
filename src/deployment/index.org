@@ -7,8 +7,8 @@
 #+OPTIONS: ^:nil
 
 * Introduction
-  This document illustrate the steps to configure & install the dependencies
-  required for running the application
+  This document illustrate the steps to configure & install the required
+  dependencies for running the =vlabs-analytics-service= application
 
 
 * Install dependendent python packages
@@ -31,7 +31,7 @@ requires = [
 
 setup(
     name='vlabs-analytics-service',
-    version='1.0',
+    version='v0.0.1',
     install_requires=requires
 )
 
@@ -90,86 +90,6 @@ server {
         proxy_pass http://unix:/usr/share/nginx/html/deployment/analytics-service.sock;
     }
 }
-
-#+END_SRC
-
-
-* Configuring the application and its deployment
-  The following program configures the application, configures the web server
-  to use WSGI and use the application scripts.
-
-#+BEGIN_SRC sh :tangle configure.sh :eval no
-#!/bin/bash
-# Configure the application in the deployment environment
-# 1. Update the config.py file with appropriate values
-# 2. Update the apache config to server via WSGI
-# 3. Run the database setup scripts to setup the database
-
-if [[ `id -u` -ne 0 ]]; then
-  echo "You have to execute this script as super user!"
-  exit 1;
-fi
-
-ABS_PATH_DS=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
-
-update_app_config () {
-  #CONFIG_FILE="../runtime/config/flask_app_config.py"
-
-  # the list of white-listed IPs for POST/PUT requests to data service
-  WHITELIST_IPS="['127.0.0.1']"
-
-  # the list of allowed domains for CORS
-  ALLOWED_ORIGINS="['*']"
-
-  echo "Updating config.py.."
-  # Update parts of the DB URI
-  # update WHITELIST_IPS
-  #sed -i "s/^WHITELIST_IPS.*$/WHITELIST_IPS = $WHITELIST_IPS/" $CONFIG_FILE
-  # update ALLOWED_ORIGINS
-  #sed -i "s/^ALLOWED_ORIGINS.*$/ALLOWED_ORIGINS = $ALLOWED_ORIGINS/" $CONFIG_FILE
-
-  # NOTE: this is hardcoded now..somehow the log file when dynamically created
-  # is owned by root. then the app fails to run.. hence the following is
-  # necessary
-}
-
-update_apache_config() {
-  PROC_NAME="analytics"
-  WSGI_SCRIPT="analytics.wsgi"
-  APACHE_VHOST_FILE="/etc/apache2/sites-available/default"
-
-  sed -i "/<\/VirtualHost>/i \
-    WSGIScriptAlias / $ABS_PATH_DS/$WSGI_SCRIPT
-  " $APACHE_VHOST_FILE
-
-  #sed -i '/<\/VirtualHost>/i \
-  #  WSGIDaemonProcess $PROC_NAME user=www-data group=www-data threads=5
-  #  WSGIScriptAlias / $ABS_PATH_DS/$WSGI_SCRIPT
-
-  #  <Directory $ABS_PATH_DS>
-  #    WSGIProcessGroup $PROC_NAME
-  #    WSGIApplicationGroup %{GLOBAL}
-  #    Order deny,allow
-  #    Allow from all
-  #  </Directory>
-  #' $APACHE_VHOST_FILE
-
-}
-
-update_app_config
-if [[ $? -ne 0 ]]; then
-  echo "FATAL: Failed to update application flask_app_config.py"
-  exit 1;
-fi
-update_apache_config
-if [[ $? -ne 0 ]]; then
-  echo "FATAL: Failed to update apache config"
-  exit 1;
-fi
-
-service apache2 restart
-export PYTHONPATH="/var/www"
-exit 0;
 
 #+END_SRC
 

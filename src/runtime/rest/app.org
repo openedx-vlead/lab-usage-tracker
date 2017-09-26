@@ -1,6 +1,6 @@
 #+TITLE: The Flask Web Server
 #+AUTHOR: VLEAD
-#+DATE: [2016-06-07 Tue]
+#+DATE: [2017-09-26 Tue]
 #+SETUPFILE: ../../org-templates/level-2.org
 #+TAGS: boilerplate(b)
 #+EXCLUDE_TAGS: boilerplate
@@ -20,15 +20,10 @@ def create_app(config):
     #load config values from the config file
     #app.config.from_object(config)
     cors = CORS(app, resources={r"/*": {"origins": "*"}})
-    
     # register blueprints
     app.register_blueprint(api)
     configure_logging(app)
     configure_errorhandlers(app)
-    #configure_cors(app)
-    # all set; return app object
-    #configure_system()
-    #return app.run(host="0.0.0.0")
     return app
 
 #+END_SRC
