@@ -1,6 +1,6 @@
-#+TITLE: Virtual Labs Analytics Service REST API
+#+TITLE: Analytics Service REST API
 #+AUTHOR: VLEAD
-#+DATE: [2016-07-26 Tue]
+#+DATE: [2017-09-26 Tue]
 #+SETUPFILE: ../../org-templates/level-2.org
 #+TAGS: boilerplate(b)
 #+EXCLUDE_TAGS: boilerplate
@@ -2335,7 +2335,7 @@ class TestAddNonOpenedxUsageAnalytics(TestCase):
 
 *** API Design
   :PROPERTIES:
-  :CUSTOM_ID: get_total_user_in_op
+  :CUSTOM_ID: get_total_session_vlabs
   :END:    
 
   - URL :: /api/vlabs_user_analytics
@@ -2741,8 +2741,8 @@ if __name__ == '__main__':
 <<test_get_entity_non_openedx>>
 #<<test_get_vlabs_usage>>
 <<test_get_entity_openedx_search>>
-<<test_add_openedx_usage_analytics>>
-<<test_add_nonopenedx_usage_analytics>>
+#<<test_add_openedx_usage_analytics>>
+#<<test_add_nonopenedx_usage_analytics>>
 #<<test_get_vlabs_logged_in_users>>
 <<run_test_cases>>
 #+end_src

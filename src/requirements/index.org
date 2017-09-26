@@ -1,4 +1,4 @@
-#+TITLE: Requirements for Virtual Labs Analytics Service
+#+TITLE: Requirements for Analytics Service
 #+AUTHOR: VLEAD
 #+DATE: [2017-09-11 Mon]
 #+PROPERTY: results output
@@ -8,49 +8,48 @@
 #+LATEX: Literal LaTeX code for export
 
 * Introduction 
-  This document illustrates the requirements to build =Analytics Service= for
-  Virtual Labs
+  This document illustrates the requirements to build a micro service
+  [[https://github.com/vlead/vlabs-analytics-service][vlabs-analytics-service]] for Virtual Labs.
 
-* Definitions 
-
-  + Usage ::
-
-    - A user performing an experiments of a lab is considered to be a single
-      usage. This is captured by click event on the simulation link of an
-      experiment section of Open edX.
-
-    - If there are 3 experiments in a lab, A lab will have 3 usages
-      and experiment will have 1 usage.
 
 * Requirements
   :PROPERTIES:
   :CUSTOM_ID: requirements
   :END: 
+
 ** Req1
   :PROPERTIES:
   :CUSTOM_ID: req1
   :END: 
-  - Ability to design REST APIs to store/retrieve the usage analytics of the Virtual
-    Labs hosted on Openedx, College Cloud and other platforms
+  - Ability to design REST API(s) interface to store/retrieve the usage analytics
+    of the Virtual Labs hosted on Openedx and other platforms
+  - [[../runtime/rest/api.org::#get_non_openedx_usage][API Design & Implementation]]
+
+
 ** Req2 
   :PROPERTIES:
   :CUSTOM_ID: req2
   :END: 
-  - Ability to design REST APIs to store/retrieve the user analytics of the
-    Openedx platform running Virtual Labs
-     
+  - Ability to design REST API(s) interface to store/retrieve the user
+    analytics of the Openedx platform running Virtual Labs
+  - [[../runtime/rest/api.org::#get_total_session_vlabs][API Design & Implementation]]
+
 ** Req3
   :PROPERTIES:
   :CUSTOM_ID: req3
   :END:
-  - Ability to design REST APIs to store/retrieve the user analytics of the
-    Outreach Portal
+  - Ability to design REST API(s) interface to store/retrieve the user
+    analytics of the Outreach Portal
+
 
 ** Req4
   :PROPERTIES:
   :CUSTOM_ID: req4
   :END: 
-  - Ability to design REST APIs to store/retrieve the feedback analytics of
-    Virtual Labs hosted on Openedx, College Cloud and other platforms
+  - Ability to design REST API(s) interface to store/retrieve the feedback
+    analytics of Virtual Labs hosted on Openedx, College Cloud and other
+    platforms
+
+
 
 

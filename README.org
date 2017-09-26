@@ -1,6 +1,7 @@
 * Virtual Labs Analytics Service
 ** Introduction
-   This repository contains the RESTfull APIs to fetch vlabs analytics
+   This repository contains the model & implementation of [[https://github.com/vlead/vlabs-analytics-service/blob/analytics-apis/src/runtime/rest/api.org#rest-api][RESTfull APIs]] to
+   fetch vlabs analytics
 ** Run vlabs-analytics-service on development environment
    Use [[https://github.com/vlead/vlabs-analytics-service/blob/analytics-apis/src/deployment/index.org#run-vlabs-analytics-serevice-on-development-environment][documentation]] to run the service on development environment
 ** Post installation steps

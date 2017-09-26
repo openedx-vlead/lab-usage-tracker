@@ -8,14 +8,17 @@
 
 * Introduction 
   This document illustrates the requirements, design, implementation and
-  deployment of analytics service
+  deployment of analytics service for Virtual Labs
 
 
 * Application
 
-  Analytics service is a micro service which is designed to provide user,
-  feedback and usage analytics of Virtual Labs.
-  analytics,
+  1. Analytics service is a micro service which is designed to provide user,
+     feedback and usage analytics of Virtual Labs using REST API(s) interface.
+  2. This service built on top [[https://github.com/vlead/analytics-db/tree/develop#analytics-database-service][analytics-db]] which is a =NoSQL= database service
+     (i.e elasticsearch). Therefore before running this service it is required
+     to provision and run =analytics-db= service first.
+  
 
 1. [[./requirements/index.org][Requirements]]
 
