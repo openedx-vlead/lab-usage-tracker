@@ -1,21 +1,20 @@
 #+TITLE: Deploying the application on a server
 #+AUTHOR: VLEAD
-#+DATE: [2016-06-07 Tue]
+#+DATE: [2017-09-12 Tue]
 #+SETUPFILE: ../org-templates/level-1.org
 #+TAGS: boilerplate(b)
 #+EXCLUDE_TAGS: boilerplate
 #+OPTIONS: ^:nil
 
 * Introduction
-  This document will illustrate installation of all the dependencies required
-  for setting up the application.
+  This document illustrate the steps to configure & install the dependencies
+  required for running the application
 
 
 * Install dependendent python packages
   Here we use the =setuptools= module from the standard lib, to make a
-  =setup.py= file, which will install all the python library
-  dependencies.  Python packages required are to be mentioned in the
-  requires list.
+  =setup.py= file, which installs all the python library dependencies required
+  to run the application.
 
 #+BEGIN_SRC python :tangle setup.py :eval no
 from setuptools import setup
@@ -23,12 +22,15 @@ from setuptools import setup
 requires = [
     'flask',
     'flask-cors',
+    'flask-testing',
     'requests',
-    'elasticsearch'
+    'pyyaml',
+    'GitPython',
+    'gunicorn'
 ]
 
 setup(
-    name='analytics',
+    name='vlabs-analytics-service',
     version='1.0',
     install_requires=requires
 )
@@ -36,60 +38,58 @@ setup(
 #+END_SRC
 
 
-* Install all dependencies and setup the software
-  Install all dependencies, including the OS related packages, Python packages,
-  setup the database, configure the webserver, and finally deploy the
-  application.
+* WSGI configuration
+ - The Web Server Gateway Interface (WSGI) is a specification for simple and
+   universal interface between web servers and web applications or frameworks
+   for the Python programming language.
+ - This application runs behind =nginx= webserver.
+ - Following code snippet in =wsgi.py= makes the connection between =nginx= and
+   =flask= python's micro framework.
+#+BEGIN_SRC python :tangle wsgi.py :eval no
 
-#+BEGIN_SRC sh :tangle setup.sh :eval no
-#!/bin/bash
-# Shell script to install deb package dependencies as well as python package
-# dependencies for dataservice.
+import sys, os
 
-# if any proxy server
-#PROXY=""
-# file to store the generated password
+sys.path.insert(0, "/usr/share/nginx/html/")
+from runtime.rest.app import create_app
+from runtime.config import flask_app_config as config
 
-if [[ `id -u` -ne 0 ]]; then
-  echo "You have to execute this script as super user!"
-  exit 1;
-fi
+application = create_app(config)
 
-# Update the packages
-echo "Updating package cache.."
-apt-get -y update
-if [[ $? -ne 0 ]]; then
-  echo "Updating package cache failed!"
-  exit 1;
-fi
-
-# Install pre-requsite dependencies: python-dev, mysqld-dev, setuptools,
-# apache, mod_wsgi etc.
-echo "Installing pre-requisite dependencies.."
-apt-get install -y python-dev libmysqld-dev python-setuptools apache2 libapache2-mod-wsgi
-if [[ $? -ne 0 ]]; then
-  echo "FATAL: Installing pre-requisite dependencies failed!"
-  exit 1;
-fi
-
-echo "Enabling the mod WSGI on apache"
-a2enmod wsgi
-if [[ $? -ne 0 ]]; then
-  echo "FATAL: Unable to enable mod wsgi!"
-  exit 1;
-fi
+#+END_SRC
 
 
-python setup.py install
+* Make analytics as service
+  Following snippet
+#+BEGIN_SRC python :tangle analytics-service.conf :eval no
 
-pip install Flask Flask-SQLAlchemy oursql requests flask-cors flask-testing
+description "Gunicorn application server runninng anlytics-service"
 
-if [[ $? -ne 0 ]]; then
-  echo "FATAL: Installation failed!"
-  exit 1;
-fi
+start on runlevel [2345]
+stop on runlevel [!2345]
 
-exit 0
+respawn
+setuid root
+setgid www-data
+
+chdir /usr/share/nginx/html/deployment
+exec gunicorn --workers 3 --bind unix:analytics-service.sock -m 007 wsgi
+
+#+END_SRC
+
+
+* Nginx socket configuration
+
+#+BEGIN_SRC python :tangle analytics-service :eval no
+
+server {
+    listen 80;
+    server_name localhost;
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/usr/share/nginx/html/deployment/analytics-service.sock;
+    }
+}
 
 #+END_SRC
 
@@ -174,26 +174,437 @@ exit 0;
 #+END_SRC
 
 
-* Deploying the application
+* Run vlabs-analytics-serevice on development environment
+   
+1. Install =pip= and =nginx= server 
 
-#+BEGIN_SRC python :tangle analytics.wsgi :eval no
+    #+BEGIN_EXAMPLE
+    sudo apt-get update
+    sudo apt-get install python-pip python-dev nginx
+    #+END_EXAMPLE
 
-import sys, os
+2. Create a virtual environment for python
 
-BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+     #+BEGIN_EXAMPLE
+     virtualenv analytics-service
+     #+END_EXAMPLE
 
-#sys.path.insert(0, BASE_DIR)
-sys.path.insert(0, "/var/www")
+3. Install =virtualenv= package
+   
+     #+BEGIN_EXAMPLE
+     sudo pip install virtualenv
+     #+END_EXAMPLE
 
-from runtime.rest.app import create_app
-from runtime.config import flask_app_config as config
+4. Activate the virtual environment
 
-application = create_app(config)
+     #+BEGIN_EXAMPLE
+     source analytics-service/bin/activate
+     #+END_EXAMPLE
+
+5. Clone the repository
+
+     #+BEGIN_EXAMPLE
+     git clone https://github.com/vlead/vlabs-analytics-service
+     #+END_EXAMPLE
+
+6. Checkout branch to =develop= and build the sources
+
+     #+BEGIN_EXAMPLE
+     cd vlabs-analytics-service
+     git checkout develop
+     make readtheorg=true
+     #+END_EXAMPLE
+
+7. Install pre-requisites inside virutal environment
+
+     #+BEGIN_EXAMPLE
+     cd build/code/deployment
+     python setup.py install
+     #+END_EXAMPLE
+     
+8. export =PYTHONPATH= to =build/code= to run the application
+
+     #+BEGIN_EXAMPLE
+     cd build/code
+     export PYTHONPATH=$(pwd)
+     #+END_EXAMPLE 
+
+9. Configure application variables in =runtime/config/system_config.py=
+   
+    #+BEGIN_EXAMPLE
+    # Application URL
+    APP_URL = "http://localhost:5000"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # Configure key
+    KEY = "defaultkey"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # Lab Data Service URL
+    LDS_URL = "http://lds.vlabs.ac.in"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # Analytics database (i.e elasticsearch) URL
+    ANALYTICS_DB_URL = "http://192.168.33.3"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # Analytics database (i.e elasticsearch) indexes & doc_types to store the
+    # analytics data
+    ## Index to store vlabs analytics
+    VLABS_USAGE = "vlabs"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    ## Types to store openedx & nonopenedx usages
+    OPENEDX_USAGE = "openedx_usage"
+    NONOPENEDX_USAGE = "nonopenedx_usage"
+    #+END_EXAMPLE
+
+    #+BEGIN_EXAMPLE
+    # PATH to analytics of nonopenedx labs file which is copied from
+    # stats.vlabs.ac.in server
+    NONOPENEDX_USAGE_INFO_FILE_PATH = "/home/sripathi/output.txt"
+    #+END_EXAMPLE
+    
+    #+BEGIN_EXAMPLE
+    ###Credentials to analytics-db
+    USER="username"
+    PASSWORD="password"
+    #+END_EXAMPLE
+
+
+
+10. Run flask application server
+      #+BEGIN_EXAMPLE
+      cd build/code/runtime/rest
+      python app.py
+      #+END_EXAMPLE
+
+11. Access application on browser
+
+      #+BEGIN_EXAMPLE
+      firefox http://localhost:5000
+      #+END_EXAMPLE
+
+
+* Script to sanitize openedx analytics data
+#+BEGIN_SRC python :tangle sanitize_openedx_analytics.py :eval no
+
+import requests
+import json
+
+ELASTIC_URL = "http://192.168.33.10"
+GET_INDEXS_API = "%s/_cat/indices" % (ELASTIC_URL)
+#r = requests.get(GET_INDEXS_API)
+
+#indexes = r.json()
+
+
+file_names = []
+def backup():
+    indexes = ['vlabs' , 'college_cloud' , 'college_cloud', 'matrusri-college_70:54:d2:7b:3d:70', 'juit_70:54:d2:7b:3d:36']
+    for index_name in indexes:
+        #index_name = index[index]
+        GET_TYPES_API = "%s/%s" % (ELASTIC_URL, index_name)
+        r = requests.get(GET_TYPES_API)
+        types = r.json()[index_name]['mappings'].keys()
+        for t in types:
+            temp = []
+            GET_DOCS_API = "%s/%s/%s/_search" % (ELASTIC_URL, index_name, str(t))
+            r = requests.get(GET_DOCS_API)
+            docs = r.json()['hits']['hits']
+
+            for doc in docs:
+                temp.append(doc['_source'])
+            file_name = "%s_%s.json" % (index_name, str(t))
+            file_names.append(file_name)
+            f = open(file_name, 'w')
+            json.dump(temp, f)
+            f.close()
+
+def restore():
+
+    for file_name in file_names:
+        if file_name == "vlabs_usage.json":
+            index = "vlabs"
+            type = "openedx-usage"
+            with open(file_name) as data_file:
+                usages = json.load(data_file)
+            for usage in usages:
+
+        if file_name == "vlabs_usage.json":
+            print "dfd"
+
+        if file_name == "matrusri-college_70:54:d2:7b:3d:70_usages.json":
+            print "Dfd"
+
+        if file_name == "matrusri-college_70:54:d2:7b:3d:70_feedback.json":
+            print "Dfd"
+
+        if file_name == "college_cloud_details.json":
+            print "Dfd"
+
+        if file_name == "juit_70:54:d2:7b:3d:36_feedback.json";
+            print "Dfd"
+        if file_name == "juit_70:54:d2:7b:3d:36_usages.json":
+            print "dfd"
 
 #+END_SRC
-  
+
+
+* Setup logstash service
+** Installation 
+*** Pre requisites =java= version =8=    
+    =java= version =8= is the pre-requisite to install =elasticsearch=
+    #+BEGIN_EXAMPLE
+    sudo apt-add-repository ppa:webupd8team/java -y
+    sudo apt-get update -y
+    echo 'oracle-java8-installer shared/accepted-oracle-license-v1-1 select true' | sudo debconf-set-selections
+    sudo apt-get install oracle-java8-installer -y
+    #+END_EXAMPLE
+*** Install logstash
+    Download and install the Public Signing Key:
+    #+BEGIN_EXAMPLE
+    wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+    #+END_EXAMPLE
+    You may need to install the apt-transport-https package on Debian before
+    proceeding:
+    #+BEGIN_EXAMPLE
+    sudo apt-get install apt-transport-https
+    #+END_EXAMPLE
+    Run sudo apt-get update and the repository is ready for use. You can install
+    it with:
+    #+BEGIN_EXAMPLE
+    sudo apt-get update && sudo apt-get install logstash
+    #+END_EXAMPLE
+*** Run logstash  
+    To run =logstash= service
+    #+BEGIN_EXAMPLE
+    service logstash start
+    #+END_EXAMPLE
+** Configuration file 
+   - Configuration to dump the =login= and =logout= =nginx= server logs into
+     the =elasticsearch= database service
+     #+NAME: logged_in_users
+     #+BEGIN_SRC conf
+     input {
+        file {
+            path => "/home/sripathi/test-logs.log"
+            start_position => "beginning"
+        }
+     }        
+     filter {
+
+           grok {
+                 match => ["message", "%{IP:clientip} \- \- \[%{MONTHDAY:day}/%{MONTH:month}/%{YEAR:year}\:%{TIME:time} \+%{INT:zone}\]  \"%{WORD:method} %{URIPATHPARAM:api_endpoint} %{URIPROTO:protocal}/%{NUMBER:version}\" %{INT:status_code} %{INT:byte} %{NUMBER:byte1} \"%{URI:referrer}"]
+
+                }
+                geoip {
+                source => "clientip"
+                }
+            if [month] == "Jan" {
+             mutate { replace => { "month" => "01" } } 
+            }
+            else if [month] == "Feb" {
+             mutate { replace => { "month" => "02" } } 
+            }
+            else if [month] == "Mar" {
+             mutate { replace => { "month" => "03" } } 
+            }
+            else if [month] == "Apr" {
+             mutate { replace => { "month" => "04" } } 
+            }
+            else if [month] == "May" {
+             mutate { replace => { "month" => "05" } } 
+            }
+            else if [month] == "Jun" {
+             mutate { replace => { "month" => "06" } } 
+            }
+            else if [month] == "Jul" {
+             mutate { replace => { "month" => "07" } } 
+            }
+            else if [month] == "Aug" {
+             mutate { replace => { "month" => "08" } } 
+            }
+            else if [month] == "Sep" {
+             mutate { replace => { "month" => "09" } } 
+            }
+            else if [month] == "Oct" {
+             mutate { replace => { "month" => "10" } } 
+            }    
+            else if [month] == "Nov" {
+             mutate { replace => { "month" => "11" } } 
+            }
+            else {
+             mutate { replace => { "month" => "12" } } 
+            }    
+            mutate {
+
+              add_field => {
+                            "date" => "%{year}-%{month}-%{day}"
+                            }
+              remove_field => ["year", "month", "day", "path", "host"]
+             }
+           if [api_endpoint] == "/dashboard" {
+
+                 if [status_code] != "200" {
+                    drop {}
+                 }
+                 else if [referrer] != "https://vlabs.ac.in/login?next=/dashboard" {
+                      drop {}
+                 }
+           }
+           else if [api_endpoint] == "/logout" {
+               if [status_code] != "302" or [referrer] == "https://vlabs.ac.in/" {
+                  drop {}
+               }
+
+           }
+           else {
+                drop {}
+           }
+
+     }
+
+     output {
+
+            elasticsearch {
+                 #protocol => "http"
+                 hosts => "192.168.33.3:80"
+                 user => "user"
+                 password => "pswd"
+                 index => "vlabs"
+                 document_type => "openedx_user_session_analytics_%{date}"
+             }
+        }
+
+     #+END_SRC
+     
+
+* Script to get openedx user analytics
+
+  1. This scripts gets the user analytics (registred, active and inactive) from
+     openedx mysql database and forms the json record.
+  2. Also it pushes obtained json data in step(1) into analytics database (i.e
+     elasticsearch)
+
+#+NAME: openedx_user_analytics
+#+BEGIN_SRC python
+#!/usr/bin/python                                                                                                   
+import MySQLdb
+import json
+import datetime
+import requests
+
+cursor = None
+db = None
+analytics_db_url = "http://192.168.33.3"
+analytics_db_user = "<username>"
+analytics_db_password = "<password>"
+
+mysql_db_url = "localhost"
+mysql_user = "<username>"
+mysql_password = "<password>"
+mysql_db = "edxapp"
+
+def connect_db():
+  try:
+      global db
+      global cursor
+      db = MySQLdb.connect(mysql_db_url, mysql_user, mysql_password, mysql_db)
+      cursor = db.cursor()
+
+  except Exception as e:
+      print "Exception = %s" % (str(e))
+      exit(1)
+
+def dis_connect_db():
+    try:
+        db.close()
+    except Exception as e:
+        print "Exception = %s" % (str(e))
+        exit(1)
+
+def get_users_count(query):
+    try:
+        cursor.execute(query)
+        results = cursor.fetchall()
+        for row in results:
+            users_count = row[0]
+        return int(users_count)
+    except:
+        print "Error: unable to fecth data"
+        exit(1)
+
+def push_data_to_analytics_db(data_dict):
+    index = "vlabs"
+    doc_type = "openedx_user_analytics"
+    date = data_dict['date']
+    analytics_db_api = "%s/%s/%s_%s" % \
+                       (analytics_db_url, index, doc_type, date)
+    auth = (analytics_db_user, analytics_db_password)
+    headers = {'Content-Type': 'application/json'}
+    try:
+        r = requests.post(analytics_db_api, auth=auth, \
+                          data=json.dumps(data_dict), headers=headers)
+        if r.status_code == 201 or r.status_code == 200:
+            print "data_dict is added = %s" % (data_dict)
+        else:
+            print "Error in adding data_dic = %s" % (data_dict)
+
+    except Exception as e:
+        print "Exception = %s" % (str(e))
+        exit(1)
+
+if __name__== "__main__":
+
+    ### Connect to mysql database
+    connect_db()
+
+    ### Form SQL Queries
+    active_users_query = "SELECT count(*) FROM auth_user WHERE is_active=1"
+    inactive_users_query = "SELECT count(*) FROM auth_user WHERE is_active=0"
+    registered_users_query = "SELECT count(*) FROM auth_user"
+
+    ### Get users count 
+    active_users = get_users_count(active_users_query)
+    inactive_users = get_users_count(inactive_users_query)
+    registered_users = get_users_count(registered_users_query)
+
+    ### Form json dict
+    today_date = str(datetime.datetime.today()).split()[0]
+    data_dict = {
+        "date" : today_date,
+        "registered_users" : registered_users,
+        "active_users" : active_users,
+        "inactive_users" : inactive_users
+    }
+    ### disconnect database connection
+    dis_connect_db()
+
+    ### push data to anlytics db
+    push_data_to_analytics_db(data_dict)
+
+#+END_SRC
+
+o
+
 
 * Tangle                                       :boilerplate:
+
 #+BEGIN_SRC python :eval no :tangle __init__.py
 print "deployment package"
 #+END_SRC
+
+#+BEGIN_SRC conf :tangle openedx-logged-in-users.conf :eval no :noweb yes
+<<logged_in_users>>
+#+END_SRC
+
+#+BEGIN_SRC python :tangle openedx-users-analytics.py :eval no :noweb yes
+<<openedx_user_analytics>>
+#+END_SRC
+

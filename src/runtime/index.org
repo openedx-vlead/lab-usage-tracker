@@ -8,7 +8,8 @@
 
 The =runtime= of the application is defined by:
 
- - =REST API=
+ - [[./rest/index.org][=REST API=]]
+
 
 * Tangle                                       :boilerplate:
 #+BEGIN_SRC python :eval no :tangle __init__.py

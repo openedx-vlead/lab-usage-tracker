@@ -1,19 +1,21 @@
-#+Title: Vlabs Analytics API for Open edX
-#+Date: Tuesday, September 20, 2016 
-#+Author: VLEAD Systems team
-#+SETUPFILE: ./org-templates/level-1.org
+#+Title: Analytics Service for Virtual Labs
+#+Date: [2017-09-12 Tue]
+#+Author: Sripathi.K & VLEAD
+#+SETUPFILE: ./org-templates/level-0.org
 #+TAGS: boilerplate(b)
 #+EXCLUDE_TAGS: boilerplate
 #+OPTIONS: ^:nil
 
 * Introduction 
-  This document reveals the technologies used, architecture diagram,
-  installation and configuration of analytics API server.
+  This document illustrates the requirements, design, implementation and
+  deployment of analytics service
 
 
 * Application
-  Analytics APi is used to fetch get analytics from VLABS Open edX.
-  Following are the sections to illustrate API server.
+
+  Analytics service is a micro service which is designed to provide user,
+  feedback and usage analytics of Virtual Labs.
+  analytics,
 
 1. [[./requirements/index.org][Requirements]]
 
@@ -23,72 +25,7 @@
 
 4. [[./deployment/index.org][Deployment]]
 
-
-* Technologies used
-  + Python Flask 
-  + Apache web server 
- 
-
-* Steps to install and configure Analytics Server 
-** Installing server components 
-*** Install required packages, libraries 
-   #+BEGIN_SRC command
-   sudo apt-get update
-   sudo apt-get -y install build-essential
-   sudo apt-get -y install binutils 
-   sudo apt-get -y install binutils-doc 
-   sudo apt-get -y install python-dev python3-dev
-   sudo apt-get -y install python-pip
-   sudo apt-get -y intall git emacs 
-   #+END_SRC
-
-*** Install Python flask and flask CORS
-   #+BEGIN_SRC command
-   pip install Flask
-   pip install -U flask-cors
-   #+END_SRC
-
-*** Install Elasticsearch-python client
-   #+BEGIN_SRC command
-   sudo apt-get update
-   pip install elasticsearch
-   #+END_SRC
-
-
-
-
-* Sample analytics obtained in elasticsearch database 
-  #+BEGIN_SRC command
-  {
-  "_index": "vlabs",
-  "_type": "usage",
-  "_id": "AVbb0iWtWJEj-iw4NHBA",
-  "_score": 1,
-  "_source": {
-    "STUDENT_LONG_ID": "85e628b9a69e69bf2ed9360f397dde90",
-    "DATE_OF_EXPERIMENT": "30-8-2016",
-    "LAB_NAME": "PopulationEcologyII",
-    "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
-    "TIME_OF_EXPERIMENT": "19:49",
-    "COURSE_ID": "blockv1UniversityYPS01Anytime",
-    "IP_ADDRESS": "196.12.53.130",
-    "Location" : Telengana"
-   }
- }
-  #+END_SRC 
-
-* Post Deployment 
-  + Login to the analytics api server
-  + Open file /var/www/runtime/config/flask_app_config.py
-  + Set the following variables accordingly
-    #+BEGIN_SRC command
-    elastic_host = "http://<host-name-of-elk-analytics-server>:9400/"
-    elastic_index = "vlabs/usage"
-
-    #+END_SRC
-
-
-
+   
 * References
   + [[https://hostpresto.com/community/tutorials/how-to-install-and-configure-redis-on-ubuntu-14-04/][Install Redis]]
   + [[https://flask-cors.readthedocs.io/en/latest/][Install Flask CORS]]

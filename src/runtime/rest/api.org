@@ -1,4 +1,4 @@
-#+TITLE: The Analytics REST API
+#+TITLE: Virtual Labs Analytics Service REST API
 #+AUTHOR: VLEAD
 #+DATE: [2016-07-26 Tue]
 #+SETUPFILE: ../../org-templates/level-2.org
@@ -7,143 +7,2675 @@
 #+OPTIONS: ^:nil
 
 * Introduction 
-  This document illustrates building of the Analytics REST API.
+  This document illustrates API design, implementation and test cases of the
+  REST API service for Virtual Labs analytics
 
-
-* Analytics REST
   
+* REST API 
 
-** Get total Analytics Count
-   + Total Analytics = Usage(stats.vlabs.ac.in) + Usage(vlabs-analytics.vlabs.ac.in)
+  This section contains API design documentation followed by its implementation
+  and test cases
+  
+** Get total usage analytics of labs
 
+   1. As of date =2017-09-21= total labs hosted on openedx platform are =90=
 
-#+NAME: get_total_usage
+   2. Usage for labs hosted on openedx platform is calculated as follows
+
+      - When user click on =simulation= section of an experiment results +1
+        usage
+
+   3. This API returns total usage count of all labs hosted on openedx platform
+      from the date =2016-10-07=
+
+*** Get total usage analytics of labs hosted on non-openedx platform
+  :PROPERTIES:
+  :CUSTOM_ID: get_non_openedx_usage
+  :END:          
+**** API design  
+
+    - URL :: /usage/nonopenedx
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD]
+
+        - example : till_date=2017-09-20
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+        {
+        "hits": 41314869,
+        "till_date": "2017-09-20",
+        "usage": 585045,
+        "visits": 9908263
+        }
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2012-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost/usage/nonopenedx?till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+               If query parameter =till_date= not passed by default server
+               calculates =till_date= as today's date
+
+*** Get total usage analytics of labs hosted on openedx platform
+  :PROPERTIES:
+  :CUSTOM_ID: get_openedx_usage
+  :END:          
+**** API design  
+
+    - URL :: /usage/openedx
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD]
+
+        - example : till_date=2017-09-20
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      {
+      "till_date": "2017-09-20",
+      "usage": 887
+      }
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2012-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost/usage/openedx?till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+               If query parameter =till_date= not passed by default server
+               calculates =till_date= as today's date
+
+*** Get total vlabs(openedx+nonopenedx) usage
+    This API returns total usage analytics of labs hosted on openedx (i.e 90)
+    and non openedx platforms
+  :PROPERTIES:
+  :CUSTOM_ID: vlabs_usage
+  :END:          
+**** API design  
+
+    - URL :: /usage/vlabs
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD]
+
+        - example : till_date=2017-09-20
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      {
+      "till_date": "2017-09-20",
+      "usage": {
+               "nonopenedx_usage": 585045,
+               "openedx_usage": 887,
+               "total_usage": 585932
+               }
+      }
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2012-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost/usage/vlabs?till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+               If query parameter =till_date= not passed by default server
+               calculates =till_date= as today's date
+
+*** Implementation
+#+NAME: get_usage_entity
 #+BEGIN_SRC python
-@api.route('/api/totalusage')
-def get_total_usage():
-        try:
-                res = requests.get(elk_count_url)
-                elk_response = json.loads(res.content)
 
-		req = requests.get(stats_server_url)
-		stats_response = json.loads(req.content)total_analytics["status"] = "sucess"
+#@api.route('/api/elkusage', methods=['GET'])
+@api.route('/usage/<entity>', methods=['GET'])
+def get_openedx_usage(entity):
 
-		total_analytics = {}
-                total_analytics["hits"] = stats_response["hits"]
-                total_analytics["visits"] =  stats_response["visits"]
-		total_analytics["description"] = "Total analytics = Usage(stats.vlabs.ac.in/analytics/) + Usage(Elasticsearch Server)"
-		total_analytics["total_usage"] = elk_response["count"] + stats_response["usage"]
-                total_analytics["status"] = "success"
-		return json.dumps(total_analytics)
+    if request.method == 'GET':
+        index = VLABS_USAGE
 
-        except:
-                total_analytics["description"] = "Total analytics = Usage(stats.vlabs.ac.in/analytics/) + Usage(Elasticsearch Server)
-                total_analytics["status"] = "failure"
-                return "Error in communication"
+        allowed_entities = ["openedx", "nonopenedx", "vlabs"]
+        if entity not in allowed_entities:
+            message = "Not found results for entity : %s" % entity
+            abort(make_response(jsonify(message=message), 404))
+
+        allowed_query_params = ["till_date"]
+        user_query_params = request.args.keys()
+        res_set = list(set(user_query_params) - set(allowed_query_params))
+
+        if len(res_set) != 0:
+            message = "Invalid query parameters : %s" % res_set
+            abort(make_response(jsonify(message=message), 400))
+
+        if 'till_date' in request.args:
+            till_date = request.args['till_date']
+        else:
+            today_date = str(datetime.datetime.today()).split()[0]
+            till_date = today_date
+
+        if entity == "openedx":
+
+            doc_type = OPENEDX_USAGE
+            query = {
+                "query": {
+                    "range": {
+                        "date_of_experiment": {
+                            "lte": till_date,
+                            "format": "yyyy-MM-dd"
+                        }
+                    }
+                }
+            }
+            ANALYTICS_DB_API = "%s/%s/%s/_count" % \
+              (ANALYTICS_DB_URL, index, doc_type)
+            current_app.logger.debug("openedx usage url = %s" % \
+                                     (ANALYTICS_DB_API))
+
+            try:
+                res = requests.get(ANALYTICS_DB_API, data=json.dumps(query))
+
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
 
 
+            if res.status_code == 200:
+                usage = res.json()['count']
+                if usage != 0:
+                    usage_dict = {
+                        "till_date" : till_date,
+                        "usage" : usage
+                    }
+                    return jsonify(usage_dict)
+                else:
+                    message = "No records found on till_date : %s" % till_date
+                    abort(make_response(jsonify(message=message), 404))
+
+            else:
+                status_code = res.status_code
+                current_app.logger.error("Error code = %s" % (status_code))
+                message = "Error code : %s" % status_code
+                abort(make_response(jsonify(message=message), status_code))
+
+
+        elif entity == "nonopenedx":
+
+            doc_type = NONOPENEDX_USAGE
+
+            ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=10000" % \
+              (ANALYTICS_DB_URL, index, doc_type, till_date)
+            try:
+                res = requests.get(ANALYTICS_DB_API)
+
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+            if res.status_code == 200:
+                labs = res.json()['hits']['hits']
+                visits = 0
+                hits = 0
+                usage = 0
+                if len(labs) != 0:
+                    for lab in labs:
+                        visits = visits + int(lab['_source']['visits'])
+                        hits = hits + int(lab['_source']['hits'])
+                        usage = usage + int(lab['_source']['usage'])
+                    analytics_data = {"visits" : visits, "hits" : hits, \
+                                          "usage" : usage, \
+                                          "till_date" : till_date}
+                else:
+                    message = "No records found on till_date : %s" % till_date
+                    abort(make_response(jsonify(message=message), 404))
+  
+            return jsonify(analytics_data)
+
+        else:
+
+            ANALYTICS_DB_API_FOR_EDX_USAGE = "%s/usage/openedx?till_date=%s" %\
+              (APP_URL, till_date)
+            ANALYTICS_DB_API_FOR_NONEDX_USAGE = \
+              "%s/usage/nonopenedx?till_date=%s" % (APP_URL, till_date)
+
+            try:
+                headers = {'Content-Type': 'application/json'}
+                res = requests.get(ANALYTICS_DB_API_FOR_EDX_USAGE, \
+                                 headers=headers)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+            if res.status_code == 200:
+                openedx_usage = res.json()
+            else:
+                current_app.logger.error\
+                  ("Error in getting openedx usage, status_code = %s" % \
+                       (res.status_code))
+
+            try:
+                res = requests.get(ANALYTICS_DB_API_FOR_NONEDX_USAGE, \
+                                   headers=headers)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+            if res.status_code == 200:
+                nonopenedx_usage = res.json()
+            else:
+                current_app.logger.error\
+                  ("Error in getting nonopenedx usage, status_code = %s" %\
+                       (res.status_code))
+
+            vlabs_usage = {}
+            vlabs_usage['till_date'] = till_date
+            vlabs_usage['usage'] = {}
+
+            try:
+                vlabs_usage['usage']['openedx_usage'] = openedx_usage['usage']
+
+            except Exception as e:
+                vlabs_usage['usage']['openedx_usage'] = 0
+
+            try:
+                vlabs_usage['usage']['nonopenedx_usage'] = nonopenedx_usage['usage']
+
+            except Exception as e:
+                vlabs_usage['usage']['nonopenedx_usage'] = 0
+
+            vlabs_usage['usage']['total_usage'] = vlabs_usage['usage']['nonopenedx_usage']+\
+              vlabs_usage['usage']['openedx_usage']
+
+            current_app.logger.debug("vlabs_usage =  %s" % (vlabs_usage))
+
+            return jsonify(vlabs_usage)
+
+    else:
+        abort(make_response(jsonify(message="Method not allowed"), 405))
 
 #+END_SRC 
-
-
-** Get Elasticsearch Analytics Count 
-   + Route/API to fetch analytics from Elasticsearch Server.
-   + API makes a get request to Elasticsearch and gets the total
-     number of analytics record holded.
-   + A call is made as shown using curl command
-     #+BEGIN_SRC command
-     curl http://analytics-api.vlabs.ac.in/elkusage
-     #+END_SRC
-   + Sample response is as shown
-     #+BEGIN_SRC example_response
-     {'count': 7827, '_shards': {'successful': 5, 'failed': 0, 'total': 5}}
-     #+END_SRC
-
-#+NAME: get_elkusage
+*** Test Cases
+#+NAME: test_get_usage_entity
 #+BEGIN_SRC python
-@api.route('/api/elkusage')
-def get_elkusage():
-        try:
-                res = requests.get(elk_count_url)
-                elk_response = ast.literal_eval(res.text)
-                return json.dumps(elk_response)
-        except:
-                return "Error in communication"
-#+END_SRC 
+class TestGetUsageEntity(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
 
+    def setUp(self):
+        pass
 
-** Fetch analytics 
-   + Route/API to fetch analytics from Open edX.  OpenedX POSTs data
-     to analytics server API. Data POSTed is in the url.  Analytics
-     server further converts that data into JSON and sends POST it to
-     Elasticsearch database.
-   + IP address of the Client making the request is evaluated by
-     Analytics server.
-   + Location of the Client is idenfied using an available opensource API 
-     http://freegeoip.net/json/ 
-   + Following sample analytics is captured in JSON format -
-     #+BEGIN_SRC command
-     {
-    "DATE_OF_EXPERIMENT": "30-8-2016",
-    "LAB_NAME": "PopulationEcologyII",
-    "EXPERIMENT_NAME": "OptimalforagingSitAndWaitPredators",
-    "TIME_OF_EXPERIMENT": "19:49",
-    "COURSE_ID": "blockv1UniversityYPS01Anytime",
-    "IP_ADDRESS": "196.12.53.130"
-    "Location" : "Telengana"
-    }
-     #+END_SRC
-  
-#+NAME: get_analytics
-#+BEGIN_SRC python
+    def tearDown(self):
+        pass
 
-@api.route('/<analytics>',methods= ['GET','POST'])
-def fetch_analytics(analytics):
-        data = request.data
-        fetch_data = analytics
-        data_list = fetch_data.split(",") 
-        data_dict = {}
-        today = str(datetime.date.today())
-        data_dict["STUDENT_ID"] = data_list[0]
-        data_dict["LAB_ID"] = data_list[1]
-        data_dict["LAB_NAME"] = data_list[2]
-        #data_dict["EXPERIMENT_NAME"] = data_list[3] + "-" + data_list[2]
-        #data_dict["EXPERIMENT_ID"] = data_list[4]
-        data_dict["EXPERIMENT_ID"] = data_list[3]
-        data_dict["EXPERIMENT_NAME"] = data_list[4]
-        data_dict["DATE_OF_EXPERIMENT"] = today
-        data_dict["TIME_OF_EXPERIMENT"] = time.strftime("%H:%M")
-        data_dict["IP_ADDRESS"] = request.environ.get('HTTP_X_REAL_IP',request.remote_addr)
-   
-        res = requests.get("http://freegeoip.net/json/" + data_dict["IP_ADDRESS"])
-        data = res.text
-        ip_dir = ast.literal_eval(data)
-        data_dict["REGION"] = ip_dir["region_name"]
+    def test_get_usage_openedx(self):
+        print "test_get_usage_openedx"
+
+        headers = {'Content-Type': 'application/json'}
+
+        response = self.client.get("/usage/openedx?till_date=2017-09-21")
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_usage_nonopenedx(self):
+        print "test_get_usage_nonopenedx"
         
-        json_data = json.dumps(data_dict)
-	res = requests.post(elk_url, data=json_data, headers=headers)   
-   
-        return "".format(analytics) 
-   
- #+END_SRC
+        headers = {'Content-Type': 'application/json'}
+    
+        response = self.client.get("/usage/nonopenedx?till_date=2017-09-21")
+        self.assertEqual(response.status_code, 200)
 
+#+END_SRC
+
+
+** Get usage analytics of (openedx or nonopenedx) platform
+   
+   - Currently 90 number of labs are hosted on openedx platform.
+   - When user clicks on =simulation= section of an experiment 1 usage is added
+     to elastic search database.
+   - This API return total number open edx labs usages
+   - This API makes a internal get request to Elasticsearch and gets the total
+     number of analytics record holded.
+   - Query to get the lab-wise usage of openedx platform
+    #+BEGIN_EXAMPLE
+    {
+    "aggs": {
+        "lab_ids": {
+            "terms": {
+                       "field": "lab_id",
+                       "order" : { "_count" : "desc" },
+                   "size": 0
+                },
+
+          "aggs": {
+            "total_value": {
+            "terms": {
+            "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')"
+          }
+
+            }
+          }
+        }
+      }
+     }
+
+    #+END_EXAMPLE
+*** Get usage analytics of labs
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /labs/<platform>
+
+             where =<platform>=
+
+      + openedx
+
+      + nonopenedx
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "discipline_name": "Computer Science and Engineering",
+          "institute_name": "IIIT Hyderabad",
+          "lab_id": "cse01",
+          "lab_name": "Data Structures",
+          "usage": 119
+        },
+        {
+          "discipline_name": "Electronics and Communication",
+          "institute_name": "IIT Bombay",
+          "lab_id": "ece40",
+          "lab_name": "Electronic Devices and Circuits",
+          "usage": 46
+         }
+      ] 
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/labs/openedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+
+*** Get usage analytics of institutes
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /institutes/<platform>
+
+             where =<platform>=
+             
+      + openedx
+
+      + nonopenedx
+
+             
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "institute_id": "iiith",
+          "institute_name": "IIIT Hyderabad",
+          "usage": 460
+        },
+        {
+          "institute_id": "iitg",
+          "institute_name": "IIT Guwahati",
+          "usage": 111
+        }  
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/institutes/openedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+*** Get usage analytics of disciplines labs
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /disciplines/<platform>
+
+             where =<platform>=
+             
+      + openedx
+
+      + nonopenedx
+
+             
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "discipline_id": "cse",
+          "discipline_name": "Computer Science and Engineering",
+          "institute_name": "IIIT Hyderabad",
+          "usage": 277
+        },
+        {
+          "discipline_id": "ece",
+          "discipline_name": "Electronics and Communication",
+          "institute_name": "IIT Guwahati",
+          "usage": 124
+        }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/disciplines/openedx?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+
+*** Implementation for openedx platform
+#+NAME: get_entity_openedx
+#+BEGIN_SRC python
+
+@api.route('/<entity>/openedx', methods=['GET'])
+def get_openedx_lab_wise_usage(entity):
+
+    if request.method == 'GET':
+
+        index = VLABS_USAGE
+        doc_type = OPENEDX_USAGE
+
+        allowed_entities = ["labs", "disciplines", "institutes"]
+        if entity not in allowed_entities:
+            message = "Not found results for entity : %s" % entity
+            abort(make_response(jsonify(message=message), 404))
+
+        allowed_query_params = ["top", "till_date"]
+        user_query_params = request.args.keys()
+        res_set = list(set(user_query_params) - set(allowed_query_params))
+
+        if len(res_set) != 0:
+            message = "Invalid query parameters : %s" % res_set
+            abort(make_response(jsonify(message=message), 400))
+
+            
+        if 'till_date' in request.args:
+            till_date = request.args['till_date']
+        else:
+            today_date = str(datetime.datetime.today()).split()[0]
+            till_date = today_date
+
+        if "top" in request.args:
+            size = int(request.args.get("top"))
+        else:
+            size = 0
+    
+        if entity == "labs":
+            field = "lab_id"
+            script = "[doc.lab_id.value, doc.lab_name.value, "+\
+              "doc.discipline_name.value, doc.institute_name.value].join('::')"
+            
+        elif entity == "institutes":
+            field = "institute_id"
+            script = "[doc.institute_id.value, "+\
+              "doc.institute_name.value].join('::')"
+            
+        else:
+            field = "discipline_id"
+            script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
+              "doc.institute_name.value].join('::')"
+
+        headers = {'Content-Type': 'application/json'}
+        query =  {
+            "query": {
+                "range": {
+                    "date_of_experiment": {
+                        "lte": till_date,
+                        "format": "yyyy-MM-dd"
+                        }
+                    }
+                },
+                "aggs": {
+                    "entity": {
+                        "terms": {
+                            "field": field,
+                            "order": {
+                                "_count": "desc"
+                                },
+                                "size": size
+                            },
+                            "aggs": {
+                                "entity_details": {
+                                    "terms": {
+                                        "script": script
+                                    }
+                                }
+                            }
+                        }
+                    }
+            }
+            
+        ANALYTICS_DB_API = "%s/%s/%s/_search" % \
+          (ANALYTICS_DB_URL, index, doc_type)
+        usage_list = []
+
+        try:
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD),\
+                                data=json.dumps(query), headers=headers)
+
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+                                
+        if res.status_code == 200:
+
+            entity_usages = res.json()['aggregations']['entity']['buckets']
+
+            for entity_usage in entity_usages:
+                entity_usage_dict = {}
+                entity_usage_dict[field] = str(entity_usage['key'])
+                entity_details = entity_usage['entity_details']\
+                  ['buckets'][0]['key'].split("::")
+
+                if entity == "labs":
+                    entity_usage_dict['lab_name'] = str(entity_details[1])
+                    entity_usage_dict['discipline_name'] = \
+                      str(entity_details[2])
+                    entity_usage_dict['institute_name'] = \
+                      str(entity_details[3])
+
+                elif entity == "institutes":
+                    entity_usage_dict['institute_name'] = \
+                      str(entity_details[1])
+
+                else:
+                    entity_usage_dict['discipline_name'] = \
+                      str(entity_details[1])
+                    entity_usage_dict['institute_name'] = \
+                      str(entity_details[2])
+
+                entity_usage_dict['usage'] = entity_usage['doc_count']
+                usage_list.append(entity_usage_dict)
+                
+            return jsonify(usage_list)
+
+        else:
+            status_code = res.status_code
+            current_app.logger.error("Error code = %s" % (status_code))
+            message = "Error code : %s" % status_code
+            abort(make_response(jsonify(message=message), status_code))
+
+    else:
+        abort(make_response(jsonify(message="Method not allowed"), 405))
+        
+#+END_SRC 
+*** Test Cases
+#+NAME: test_get_entity_openedx
+#+BEGIN_SRC python
+class TestGetEntityOpenedx(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_labs_openedx(self):
+	print "test_get_labs_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/openedx")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_openedx(self):
+	print "test_get_institutes_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/openedx")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_openedx(self):
+	print "test_get_disciplines_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/disciplines/openedx")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+*** Implementation for nonopenedx platform
+
+#+NAME: get_entity_nonopenedx
+#+BEGIN_SRC python
+
+#@api.route('/analytics/labs', methods=['POST', 'GET'])
+@api.route('/<entity>/nonopenedx', methods=['GET'])
+#@api.cache.cached(timeout=360)
+def nonopenedx_search_usage(entity):
+    
+    if request.method == 'GET':
+        index = VLABS_USAGE
+        doc_type = NONOPENEDX_USAGE
+
+        allowed_entities = ["labs", "disciplines", "institutes"]
+        if entity not in allowed_entities:
+            message = "Not found results for entity : %s" % entity
+            abort(make_response(jsonify(message=message), 404))
+
+        allowed_query_params = ["top", "till_date"]
+        user_query_params = request.args.keys()
+        res_set = list(set(user_query_params) - set(allowed_query_params))
+
+        if len(res_set) != 0:
+            message = "Invalid query parameters : %s" % res_set
+            abort(make_response(jsonify(message=message), 400))
+
+            
+        if 'till_date' in request.args:
+            till_date = request.args['till_date']
+        else:
+            today_date = str(datetime.datetime.today()).split()[0]
+            till_date = today_date
+
+        if "top" in request.args:
+            size = int(request.args.get("top"))
+        else:
+            size = 0
+
+        if entity == "labs":
+            script = "[doc.lab_id.value, doc.lab_name.value, "+\
+              "doc.discipline_name.value, doc.institute_name.value].join('::')"
+            
+        elif entity == "institutes":
+            script = "[doc.institute_id.value, "+\
+              "doc.institute_name.value].join('::')"
+            
+        else:
+            field = "discipline_id"
+            script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
+              "doc.institute_name.value].join('::')"
+              
+        query = {
+            "aggs": {
+                "entity": {
+                "terms": {
+                    "script": script,
+                    "size": size,
+                    "order": {
+                    "usage": "desc"
+                    }
+                },
+                "aggs": {
+                    "usage": {
+                    "sum": {
+                        "field": "usage"
+                        }
+                    }
+                }
+            }
+          }
+        }
+        total_labs = []
+        
+        headers = {'Content-Type': 'application/json'}
+
+        ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=1000" % \
+          (ANALYTICS_DB_URL, index, doc_type, till_date)
+        try:
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), \
+                                data=json.dumps(query), headers=headers)
+
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+
+        if res.status_code == 200:
+            entity_buckets = res.json()['aggregations']['entity']['buckets']
+
+            for entity_bucket in entity_buckets:
+                temp_dict = {}
+                temp_dict['usage'] = entity_bucket['usage']['value']
+                entity_info = entity_bucket['key'].split("::")
+                if entity == "labs":
+                    temp_dict['lab_id'] = entity_info[0]
+                    temp_dict['lab_name'] = entity_info[1]
+                    temp_dict['discipline_name'] = entity_info[2]
+                    temp_dict['institute_name'] = entity_info[3]
+
+                elif entity == "institutes":
+                    temp_dict['institute_id'] = entity_info[0]
+                    temp_dict['institute_name'] = entity_info[1]
+
+                elif entity == "disciplines":
+                    temp_dict['discipline_id'] = entity_info[0]
+                    temp_dict['discipline_name'] = entity_info[1]
+                    temp_dict['institute_name'] = entity_info[2]
+
+                total_labs.append(temp_dict)
+            return jsonify(total_labs)
+        else:
+            status_code = res.status_code
+            current_app.logger.error("Error code = %s" % (status_code))
+            message = "Error code : %s" % status_code
+            abort(make_response(jsonify(message=message), status_code))
+
+
+#+END_SRC
+
+*** Test Cases
+#+NAME: test_get_entity_non_openedx
+#+BEGIN_SRC python
+class TestGetEntityNonOpenedx(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_labs_non_openedx(self):
+	print "test_get_labs_non_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/nonopenedx")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_non_openedx(self):
+	print "test_get_institutes_non_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/nonopenedx")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_non_openedx(self):
+	print "test_get_disciplines_non_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/disciplines/nonopenedx")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
+** Get usage analytics of labs on vlabs (openedx+nonopenedx) platform
+*** Get usage analytics of labs
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /labs/vlabs
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "discipline_name": "Chemical Engineering",
+          "institute_name": "NIT Surathkal",
+          "lab_id": "chem05",
+          "lab_name": "unit operation, reaction engg. & process control",
+          "usage": {
+            "nonopenedx_usage": 88477,
+            "openedx_usage": 0,
+            "total_usage": 88477
+          }
+        },
+        {
+          "discipline_name": "Computer Science and Engineering",
+          "institute_name": "IIIT Hyderabad",
+          "lab_id": "cse02",
+          "lab_name": "Computer Programming",
+          "usage": {
+            "nonopenedx_usage": 56373,
+            "openedx_usage": 0,
+            "total_usage": 56373
+          }
+        }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/labs/vlabs?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+
+*** Get usage analytics of institutes
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /institutes/vlabs?top=n&till_date=<YYYY-MM-DD>
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+          {
+              "institute_id": "iiith",
+              "institute_name": "IIIT Hyderabad",
+              "usage": {
+                  "nonopenedx_usage": 253581,
+                  "openedx_usage": 0,
+                  "total_usage": 253581
+              }
+          },
+          {
+              "institute_id": "nitk",
+              "institute_name": "NIT Surathkal",
+              "usage": {
+                  "nonopenedx_usage": 218094,
+                  "openedx_usage": 0,
+                  "total_usage": 218094
+              }
+          }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/institutes/vlabs?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+*** Get usage analytics of disciplines
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx_usage
+  :END:          
+
+    - URL :: /disciplines/vlabs?top=n&till_date=<YYYY-MM-DD>
+             
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD], top=n
+
+        - example1 : till_date=2017-09-20
+
+        - example2 : top=2
+
+        - example3 : till_date=2017-09-20&top=2
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+          {
+              "discipline_id": "cse",
+              "discipline_name": "Computer Science and Engineering",
+              "institute_name": "IIIT Hyderabad",
+              "usage": {
+                  "nonopenedx_usage": 167751,
+                  "openedx_usage": 0,
+                  "total_usage": 167751
+              }
+          },
+          {
+              "discipline_id": "chem-engg",
+              "discipline_name": "Chemical Engineering",
+              "institute_name": "NIT Surathkal",
+              "usage": {
+                  "nonopenedx_usage": 88477,
+                  "openedx_usage": 0,
+                  "total_usage": 88477
+              }
+          }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2020-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/disciplines/vlabs?top=2&till_date=2017-09-20
+      #+END_EXAMPLE
+    - Notes ::
+
+      + If query parameter =till_date= is not passed by default server calculates
+        =till_date= as today's date
+      + If query parameter =top= is not passed by default API returns all the
+        labs in =descending= order
+
+
+*** Implementation
+
+#+NAME: get_vlabs_usage
+#+BEGIN_SRC python
+
+#@api.route('/analytics/labs', methods=['POST', 'GET'])
+@api.route('/<entity>/vlabs', methods=['POST', 'GET'])
+#@api.cache.cached(timeout=360)
+def vlabs_usage(entity):
+    
+    if request.method == 'GET':
+        index = VLABS_USAGE
+        doc_type = NONOPENEDX_USAGE
+
+        allowed_entities = ["labs", "disciplines", "institutes"]
+        if entity not in allowed_entities:
+            message = "Not found results for entity : %s" % entity
+            abort(make_response(jsonify(message=message), 404))
+
+        allowed_query_params = ["top", "till_date"]
+        user_query_params = request.args.keys()
+        res_set = list(set(user_query_params) - set(allowed_query_params))
+
+        if len(res_set) != 0:
+            message = "Invalid query parameters : %s" % res_set
+            abort(make_response(jsonify(message=message), 400))
+
+            
+        if 'till_date' in request.args:
+            till_date = request.args['till_date']
+        else:
+            today_date = str(datetime.datetime.today()).split()[0]
+            till_date = today_date
+
+        if "top" in request.args:
+            size = int(request.args.get("top"))
+        else:
+            size = 0
+
+        if entity == "labs":
+            entity_id = "lab_id"
+
+        elif entity == "disciplines":
+            entity_id = "discipline_id"
+        else:
+            entity_id = "institute_id"
+            
+        ANALYTICS_DB_API = "%s/%s/openedx?top=%s&till_date=%s" % \
+          (APP_URL, entity, size, till_date)
+        current_app.logger.debug("openedx usage url = %s" % (ANALYTICS_DB_API))
+
+        try:
+            res = requests.get(ANALYTICS_DB_API)
+
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+
+        if res.status_code == 200:
+            open_edx_usage = res.json()
+        else:
+            status_code = res.status_code
+            current_app.logger.error("Error code = %s" % (status_code))
+            message = "Error code : %s" % status_code
+            abort(make_response(jsonify(message=message), status_code))
+
+        ANALYTICS_DB_API = "%s/%s/nonopenedx?top=%s&till_date=%s" % \
+          (APP_URL, entity, size, till_date)
+        current_app.logger.debug("non openedx Usage url = %s" % \
+                                 (ANALYTICS_DB_API))
+
+        try:
+            res = requests.get(ANALYTICS_DB_API)
+
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+        
+        if res.status_code == 200:
+            non_open_edx_usage = res.json()
+        else:
+            status_code = res.status_code
+            current_app.logger.error("Error code = %s" % (status_code))
+            message = "Error code : %s" % status_code
+            abort(make_response(jsonify(message=message), status_code))
+        try:
+            non_openedx_entity_ids = [entity[entity_id] \
+                                          for entity in non_open_edx_usage ]
+            openedx_entity_ids = [entity[entity_id] \
+                                      for entity in open_edx_usage ]
+
+            vlabs_ids = list(set(openedx_entity_ids) | \
+                             set(non_openedx_entity_ids))
+            vlabs_usage = []
+
+            for vlabs_id in vlabs_ids:
+                openedx_usage = [ entity for entity in open_edx_usage \
+                                 if entity[entity_id] == vlabs_id ]
+                if len(openedx_usage) == 0:
+                    openedx_lab = False
+                else:
+                    openedx_lab = True
+                    openedx_dict = openedx_usage[0]
+
+                non_openedx_usage = [ entity for entity in non_open_edx_usage \
+                                  if entity[entity_id] == vlabs_id ]
+                if len(non_openedx_usage) == 0:
+                    non_openedx_lab = False
+                else:
+                    non_openedx_lab = True
+                    non_openedx_dict = non_openedx_usage[0]
+
+                if (openedx_lab and non_openedx_lab):
+                    non_openedx_usage = non_openedx_dict['usage']
+                    openedx_usage = openedx_dict['usage']
+                    openedx_dict['usage'] = {}
+                    openedx_dict['usage']["nonopenedx_usage"] = \
+                      non_openedx_usage
+                    openedx_dict['usage']["openedx_usage"] = openedx_usage
+                    vlabs_dict = openedx_dict
+
+                elif (not openedx_lab and non_openedx_lab):
+                    non_openedx_usage = non_openedx_dict['usage']
+                    non_openedx_dict['usage'] = {}
+                    non_openedx_dict['usage']["nonopenedx_usage"] = \
+                      non_openedx_usage
+                    non_openedx_dict['usage']["openedx_usage"] = 0
+                    vlabs_dict = non_openedx_dict
+
+                elif (openedx_lab and not non_openedx_lab):
+                    openedx_usage = openedx_dict['usage']
+                    openedx_dict['usage'] = {}
+                    openedx_dict['usage']["nonopenedx_usage"] = 0
+                    openedx_dict['usage']["openedx_usage"] = openedx_usage
+                    vlabs_dict = openedx_dict
+
+                else:
+                    pass
+
+                total_usage = vlabs_dict['usage']['openedx_usage'] + \
+                  vlabs_dict['usage']['nonopenedx_usage']
+                vlabs_dict['usage']['total_usage'] = total_usage
+                vlabs_usage.append(vlabs_dict)
+
+            vlabs_usage.sort(key=lambda e: e['usage']['total_usage'], \
+                             reverse=True)
+
+            if size == 0 or len(vlabs_usage )== size:
+                return jsonify(vlabs_usage)
+            else:
+                return jsonify(vlabs_usage[:size])
+
+        except Exception as e:
+            current_app.logger.error("Exception = %s" % (str(e)))
+            message = "Exception : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+
+#+END_SRC
+
+*** Test Cases
+#+NAME: test_get_vlabs_usage
+#+BEGIN_SRC python
+class TestGetVlabsUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_labs_vlabs(self):
+	print "test_get_labs_vlabs"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/vlabs")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_vlabs(self):
+	print "test_get_institutes_vlabs"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/vlabs")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_vlabs(self):
+	print "test_get_disciplines_vlabs"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/disciplines/vlabs")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
+** Search usage analytics of vlabs
+ 
+*** Search lab usage analytics
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx-usage
+  :END:          
+
+
+    - URL :: /labs/<platform>/_search
+             
+             where =<platform>= is of follows
+
+      + vlabs
+
+      + nonopenedx
+
+      + openedx
+             
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : At least one query parameter of mentioned below
+
+      + Optional : 
+
+        - lab_id=[varchar], example : lab_id=cse04
+
+        - lab_name = [string], example : lab_name=Problem Solving
+
+        - institute_name = [string], example : institute_name=IIIT Hyderabad
+
+        - institute_id = [string], example : institute_id=iiith
+
+        - discipline_name = [string], example : discipline_name=Computer Science and Engineering
+
+        - discipline_id = [varchar], example : discipline_id=cse
+
+        - date = [YYYY-MM-DD], example : 2017-09-20
+
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+         {
+           "discipline_name": "Computer Science and Engineering",
+           "institute_name": "IIIT Hyderabad",
+           "lab_id": "cse04",
+           "lab_name": "Problem Solving",
+           "usage": 10
+        }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+        "message": "Expecting at least one query parameter"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+        "message": "No records found for search query : {'labid': u'cse02'}"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/labs/openedx/_search?lab_id=cse04&institute_id=iiith
+      #+END_EXAMPLE
+    - Notes ::
+               
+*** Search institute usage analytics
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx-usage
+  :END:          
+
+
+    - URL :: /institutes/<platform>/_search
+             
+             where =<platform>= is of follows
+
+      + vlabs
+
+      + nonopenedx
+
+      + openedx
+
+    - Method ::
+                GET
+
+    - URL Params ::
+
+      + Required : At least one query parameter of mentioned below
+
+      + Optional : 
+
+        - institute_id = [string], example : institute_id=iiith
+
+        - institute_name = [string], example : institute_name=IIIT Hyderabad
+
+        - lab_id=[varchar], example : lab_id=cse04
+
+        - lab_name = [string], example : lab_name=Problem Solving
+
+        - discipline_name = [string], example : discipline_name=Computer Science and Engineering
+
+        - discipline_id = [varchar], example : discipline_id=cse
+
+        - date = [YYYY-MM-DD], example : 2017-09-20
+
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+          "institute_id": "iiith",
+          "institute_name": "IIIT Hyderabad",
+          "usage": 460
+        }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+        "message": "Expecting at least one query parameter"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+        "message": "No records found for search query : {'instid': u'cse02'}"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/institutes/openedx/_search?institute_id=iiith
+      #+END_EXAMPLE
+    - Notes ::
+               
+*** Search discipline usage analytics
+**** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: openedx-usage
+  :END:          
+
+    - URL :: /disciplines/<platform>/_search
+             
+             where =<platform>= is of follows
+
+      + vlabs
+
+      + nonopenedx
+
+      + openedx
+
+    - Method ::
+                GET
+
+    - URL Params ::
+
+      + Required : At least one query parameter of mentioned below
+
+      + Optional : 
+
+        - discipline_id = [varchar], example : discipline_id=cse
+
+        - discipline_name = [string], example : discipline_name=Computer Science and Engineering
+
+        - institute_id = [string], example : institute_id=iiith
+
+        - institute_name = [string], example : institute_name=IIIT Hyderabad
+
+        - lab_id=[varchar], example : lab_id=cse04
+
+        - lab_name = [string], example : lab_name=Problem Solving
+
+        - date = [YYYY-MM-DD], example : 2017-09-20
+
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+          {
+              "discipline_id": "cse",
+              "discipline_name": "Computer Science and Engineering",
+              "institute_name": "IIIT Hyderabad",
+              "usage": 277
+          }
+      ]
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+        "message": "Expecting at least one query parameter"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+        "message": "No records found for search query : {'distid': u'cse02'}"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      curl -XGET http://localhost:5000/disciplines/openedx/_search?discipline_id=cse
+      #+END_EXAMPLE
+    - Notes ::
+
+*** Implementation
+#+NAME: get_entity_openedx_search
+#+BEGIN_SRC python
+@api.route('/<entity>/<platform>/_search', methods=['GET'])
+def get_openedx_search_usage(entity, platform):
+
+    if request.method == 'GET':
+        index = VLABS_USAGE
+
+        allowed_entities = ["labs", "disciplines", "institutes"]
+        if entity not in allowed_entities:
+            message = "Not found results for entity : %s" % entity
+            abort(make_response(jsonify(message=message), 404))
+
+        allowed_platforms = ["openedx", "nonopenedx", "vlabs"]
+
+        if platform not in allowed_platforms:
+            message = "Not found results for entity : %s" % platform
+            abort(make_response(jsonify(message=message), 404))
+
+        elif platform == "openedx":
+            doc_type = OPENEDX_USAGE
+
+        else:
+            doc_type = NONOPENEDX_USAGE
+
+
+        user_query_params = request.args.to_dict()
+
+        if len(user_query_params) == 0:
+            message = "Expecting at least one query parameter"
+            abort(make_response(jsonify(message=message), 400))
+
+        entity_id_map = {"institutes" : "institute_id", "disciplines" : \
+                             "discipline_id" , "labs" : "lab_id"}
+        if platform == "openedx" or platform == "nonopenedx":
+            query = []
+            if entity == "labs":
+                current_app.logger.debug("request.args dict = %s" %
+                                         (request.args.to_dict()))
+                args = request.args.to_dict()
+                for arg in args:
+                    arg_val = args[arg]
+                    query_dict = {
+                        "match": {
+                            arg: str(arg_val)
+                            }
+                        }
+                    query.append(query_dict)
+                current_app.logger.debug("query_list = %s" %
+                                        (query))
+                script = "[doc.lab_id.value, doc.lab_name.value, " +\
+                  "doc.discipline_name.value, doc.institute_name.value].join('::')"
+
+            elif entity == "institutes":
+                args = request.args.to_dict()
+                for arg in args:
+                    arg_val = args[arg]
+                    query_dict = {
+                        "match": {
+                            arg: str(arg_val)
+                            }
+                        }
+                    query.append(query_dict)
+                current_app.logger.debug("query_list = %s" %
+                                        (query))
+
+                script = "[doc.institute_id.value, "+\
+                "doc.institute_name.value].join('::')"
+            else:
+                args = request.args.to_dict()
+                for arg in args:
+                    arg_val = args[arg]
+                    query_dict = {
+                        "match": {
+                            arg: str(arg_val)
+                            }
+                        }
+                    query.append(query_dict)
+                current_app.logger.debug("query_list = %s" %
+                                        (query))
+
+                script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
+                  "doc.institute_name.value].join('::')"
+
+            headers = {'Content-Type': 'application/json'}
+            query =  {
+                "query": {
+                    "bool": {
+                        "must": query
+                        }
+                    },
+                    "aggs": {
+                        "entity_details": {
+                            "terms": {
+                                "script": script,
+                                "size": 0
+                                }
+                            }
+                        }
+                }
+
+
+            ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, \
+                                                         doc_type)
+            current_app.logger.debug("ANALYTICS_DB_API = %s" % ANALYTICS_DB_API)
+
+            try:
+                res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD),\
+                                    data=json.dumps(query), \
+                                        headers=headers)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+            if res.status_code == 200:
+                search_result_count = res.json()['hits']['hits']
+                if len(search_result_count) == 0:
+                    message = "No records found for search query : %s" % \
+                      user_query_params
+                    abort(make_response(jsonify(message=message), 404))
+                try:
+                    search_result = res.json()['aggregations']['entity_details']\
+                      ['buckets']
+                    usage_list = []
+                    
+                    if entity == "labs":
+
+                        for lab in search_result:
+                            usage_dict = {}
+                            usage_dict['usage'] = lab['doc_count']
+                            lab = lab['key'].split("::")
+                            usage_dict['lab_id'] = lab[0]
+                            usage_dict['lab_name'] = lab[1]
+                            usage_dict['discipline_name'] = lab[2]
+                            usage_dict['institute_name'] = lab[3]
+                            usage_list.append(usage_dict)
+                            
+                    elif entity == "institutes":
+
+                        for institute in search_result:
+                            usage_dict = {}
+                            usage_dict['usage'] = institute['doc_count']
+                            institute = institute['key'].split("::")
+                            usage_dict['institute_id'] = institute[0]
+                            usage_dict['institute_name'] = institute[1]
+                            usage_list.append(usage_dict)
+
+                    elif entity == "disciplines":
+
+                        for discipline in search_result:
+                            usage_dict = {}
+                            usage_dict['usage'] = discipline['doc_count']
+                            discipline = discipline['key'].split("::")
+                            usage_dict['discipline_id'] = discipline[0]
+                            usage_dict['discipline_name'] = discipline[1]
+                            usage_dict['institute_name'] = discipline[2]
+                            usage_list.append(usage_dict)
+                    else:
+                        pass
+                    return jsonify(usage_list)
+
+                except Exception as e:
+                    current_app.logger.error("Exception error = %s" % str(e))
+                    message = "Exception occured : %s" % str(e)
+                    abort(make_response(jsonify(message=message), 500))
+        else:
+            form_user_query_params = urlencode(user_query_params)
+            ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = "%s/%s/openedx/_search?%s"\
+              % (APP_URL, entity, form_user_query_params)
+            current_app.logger.debug\
+              ("ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = %s" % \
+                   ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE)
+            try:
+                headers = {'Content-Type': 'application/json'}
+                res = requests.get(ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE, \
+                                 headers=headers)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+            if res.status_code == 200:
+                open_edx_usage = res.json()
+            else:
+                open_edx_usage = []
+                status_code = res.status_code
+                current_app.logger.error("Error code = %s" % (status_code))
+
+            ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE = \
+              "%s/%s/nonopenedx/_search?%s" % \
+              (APP_URL, entity, form_user_query_params)
+            current_app.logger.debug\
+              ("ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE = %s" % \
+                   ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE)
+
+            try:
+                res = requests.get(ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE, \
+                                   headers=headers)
+            except Exception as e:
+                current_app.logger.error("Exception error = %s" % str(e))
+                message = "Exception occured : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+            if res.status_code == 200:
+                non_open_edx_usage = res.json()
+            else:
+                non_open_edx_usage = []
+                status_code = res.status_code
+                current_app.logger.error("Error code = %s" % (status_code))
+
+            entity_id = entity_id_map[entity]
+
+            non_openedx_entity_ids = [entity[entity_id] \
+                                        for entity in non_open_edx_usage ]
+            openedx_entity_ids = [entity[entity_id] \
+                                    for entity in open_edx_usage ]
+
+            vlabs_ids = list(set(openedx_entity_ids) | \
+                             set(non_openedx_entity_ids))
+            if len(vlabs_ids) == 0:
+                message = "No records found for search query : %s" % \
+                  user_query_params
+                abort(make_response(jsonify(message=message), 404))
+
+            try:
+                vlabs_usage = []
+
+                for vlabs_id in vlabs_ids:
+                    openedx_usage = [ entity for entity in open_edx_usage \
+                                     if entity[entity_id] == vlabs_id ]
+                    if len(openedx_usage) == 0:
+                        openedx_lab = False
+                    else:
+                        openedx_lab = True
+                        openedx_dict = openedx_usage[0]
+
+                    non_openedx_usage = [ entity for entity in non_open_edx_usage \
+                                      if entity[entity_id] == vlabs_id ]
+                    if len(non_openedx_usage) == 0:
+                        non_openedx_lab = False
+                    else:
+                        non_openedx_lab = True
+                        non_openedx_dict = non_openedx_usage[0]
+
+                    if (openedx_lab and non_openedx_lab):
+                        non_openedx_usage = non_openedx_dict['usage']
+                        openedx_usage = openedx_dict['usage']
+                        openedx_dict['usage'] = {}
+                        openedx_dict['usage']["nonopenedx_usage"] = \
+                          non_openedx_usage
+                        openedx_dict['usage']["openedx_usage"] = openedx_usage
+                        vlabs_dict = openedx_dict
+
+                    elif (not openedx_lab and non_openedx_lab):
+                        non_openedx_usage = non_openedx_dict['usage']
+                        non_openedx_dict['usage'] = {}
+                        non_openedx_dict['usage']["nonopenedx_usage"] = \
+                          non_openedx_usage
+                        non_openedx_dict['usage']["openedx_usage"] = 0
+                        vlabs_dict = non_openedx_dict
+
+                    elif (openedx_lab and not non_openedx_lab):
+                        openedx_usage = openedx_dict['usage']
+                        openedx_dict['usage'] = {}
+                        openedx_dict['usage']["nonopenedx_usage"] = 0
+                        openedx_dict['usage']["openedx_usage"] = openedx_usage
+                        vlabs_dict = openedx_dict
+
+                    else:
+                        pass
+
+                    total_usage = vlabs_dict['usage']['openedx_usage'] + \
+                      vlabs_dict['usage']['nonopenedx_usage']
+                    vlabs_dict['usage']['total_usage'] = total_usage
+                    vlabs_usage.append(vlabs_dict)
+
+                vlabs_usage.sort(key=lambda e: e['usage']['total_usage'], \
+                                 reverse=True)
+                return jsonify(vlabs_usage)
+
+            except Exception as e:
+                current_app.logger.error("Exception = %s" % (str(e)))
+                message = "Exception : %s" % str(e)
+                abort(make_response(jsonify(message=message), 500))
+
+    else:
+        abort(make_response(jsonify(message="Method not allowed"), 405))
+
+#+END_SRC 
+*** Test Cases
+#+NAME: test_get_entity_openedx_search
+#+BEGIN_SRC python
+class TestGetEntityPlatformSearch(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_labs_openedx_search(self):
+	print "test_get_labs_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/openedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_labs_non_openedx_search(self):
+	print "test_get_labs_non_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/nonopenedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_openedx_search(self):
+	print "test_get_institutes_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/openedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_non_openedx_search(self):
+	print "test_get_institutes_non_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/nonopenedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_openedx_search(self):
+	print "test_get_disciplines_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/disciplines/openedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_non_openedx_search(self):
+	print "test_get_labs_non_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/nonopenedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+
+#+END_SRC
+
+
+
+** Add usage analytics of labs running on openedx platform
+
+   - Route/API to fetch analytics from Open edX.  OpenedX POSTs data
+     to analytics server API. Data POSTed is in the url.  
+   - IP address of the Client making the request is evaluated by
+     Analytics server.
+   - Analytics server further converts that data into JSON and sends POST it to
+     Elasticsearch database.
+   - Location of the Client is idenfied using an available opensource API 
+     http://freegeoip.net/json/ 
+**** TODO
+     This API is badly implemented this is to be refactored. This is already
+     integrated to 91 number labs in openedx hence not possible to break all
+     such apis by refactoring it.
+     
+*** API Design
+   :PROPERTIES:
+   :CUSTOM_ID: openedx-usage
+   :END:          
+
+    - URL :: /server_url,user_id,lab_id,lab_name,exp_id,exp_name
+
+    - Method :: GET
+
+    - URL Params :: None
+
+    - Success Response ::
+      + Code: 200
+      #+BEGIN_EXAMPLE
+      {
+      "status" : "success"
+      }
+      #+END_EXAMPLE
+
+*** Implementation
+#+NAME: add_openedx_usage_analytics
+#+BEGIN_SRC python
+
+@api.route('/<exp_details>',methods= ['GET'])
+def add_openedx_usage_analytics(exp_details):
+
+    if request.method == 'GET':
+
+        exp_details = exp_details.split(",")
+        if len(exp_details) != 5:
+            message = "Invalid  number of query parameters : %s " \
+              % exp_details
+            abort(make_response(jsonify(message=message), 404))
+        try:
+            student_id = exp_details[0]
+            lab_id = exp_details[1].lower()
+            lab_name = exp_details[2]
+            exp_id = exp_details[3].lower()
+            exp_name = exp_details[4]
+
+            data_dict = {}
+            data_dict["student_id"] = student_id
+            data_dict["lab_id"] = lab_id
+            data_dict["lab_name"] = lab_name
+
+            data_dict["experiment_id"] = exp_id
+            data_dict["experiment_name"] = exp_name
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+            
+        LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_id)
+        try:
+            r = requests.get(LDS_API)
+
+            if r.status_code == 200:
+                lab_name = r.json()['lab_name']
+                inst_id = r.json()['institute']['institute_id']
+                inst_name = r.json()['institute']['institute_name']
+                disc_name = r.json()['discipline']['discipline_name']
+                disc_id = r.json()['discipline']['discipline_id']
+                current_app.logger.debug("lab_name from LDS = %s" % (lab_name))
+                data_dict["lab_name"] = lab_name
+                data_dict["institute_id"] = inst_id
+                data_dict["institute_name"] = inst_name
+                data_dict["discipline_name"] = disc_name
+                data_dict["discipline_id"] = disc_id
+                current_app.logger.debug("LDS data = %s" % data_dict)
+            else:
+                current_app.logger.debug("Error in getting lab_name from LDS = %s" \
+                                         % (lab_name))
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+            
+        LDS_API = "%s/experiments?exp_id=%s" % (LDS_URL, exp_id)
+        try:
+            r = requests.get(LDS_API)
+            if r.status_code == 200:
+                exp_name = r.json()['exp_name']
+                current_app.logger.debug("experiment_name from LDS = %s" % \
+                                         (exp_name))
+                data_dict["experiment_name"] = exp_name
+            else:
+                current_app.logger.debug\
+                  ("Error in getting exp_name from LDS = %s" \
+                       % (exp_name))
+            today = str(datetime.datetime.today()).split()[0]
+            data_dict["date"] = today
+            data_dict["time_of_experiment"] = time.strftime("%H:%M")
+            data_dict["ip_address"] = request.environ.get('HTTP_X_REAL_IP',\
+                                                          request.remote_addr)
+
+            res = requests.get("http://freegeoip.net/json/" + \
+                               data_dict["ip_address"])
+            data = res.text
+            ip_dir = ast.literal_eval(data)
+            data_dict["region"] = ip_dir["region_name"]
+
+            json_data = json.dumps(data_dict)
+            headers = {'Content-Type': 'application/json'}
+            index = VLABS_USAGE
+            doc_type = OPENEDX_USAGE
+            ANALYTICS_DB_API = "%s/%s/%s" % (ANALYTICS_DB_URL, index, doc_type)
+
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), \
+                                data=json_data, headers=headers)
+            if res.status_code == 201:
+                current_app.logger.debug("Added usage record = %s" % \
+                                         (json_data))
+                return jsonify({"status" : "success" })
+            else:
+                current_app.logger.error\
+                  ("Error in adding usage record = %s, staus_code = %s" % \
+                       (json_data, res.status_code))
+                return jsonify({"status" : "failed" })
+            
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+
+    else:
+        abort(make_response(jsonify(message="Method not allowed"), 405))
+ #+END_SRC
+*** Test Cases
+#+NAME: test_add_openedx_usage_analytics
+#+BEGIN_SRC python
+class TestPostAnalytics(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_add_openedx_usage_analytics(self):
+        print "test_add_openedx_usage_analytics"        
+        os.environ['http_proxy'] = 'http://proxy.iiit.ac.in:8080'
+        os.environ['https_proxy'] = 'http://proxy.iiit.ac.in:8080'
+        url = "/user123,data structures,cse02,arrays,eee123"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
+** Add usage analytics of labs running on nonopenedx platform
+
+   1. This API reads the records from the file =/root/nonopenedx-lab-usage-info.txt=
+      which is being pushed from =stats.vlabs.ac.in= server for every =2hrs= of
+      time interval
+   2. Every record in file =nonopenedx-lab-usage-info.txt= has the following format
+      #+BEGIN_EXAMPLE
+      lab_id, lab_name, hists, visits, usage
+      #+END_EXAMPLE
+   3. From the each record it picks up the =lab_id= field and gets the details
+      of that lab from [[http://lds.vlabs.ac.in/labs?lab_id=cse02][LDS]] service and then forms the =json= as below
+      #+BEGIN_EXAMPLE
+      {
+          "lab_name" : "principles of programming languages",
+          "lab_id" : "cse05",
+          "discipline_name" : "Computer Science and Engineering",
+          "discipline_id" : "cse"
+          "institute_name" : "IIIT Hyderabad",
+          "institute_id" : "iiith",
+          "visits" : 4500,
+          "hits" :4000 ,
+          "usage" : 1000,
+          "date" : 2017-07-25
+       }
+      #+END_EXAMPLE
+   4. Every =json= record is pushed into =elasticsearch= database with index
+      =vlabs= , type =nonopenedx_usage= and id =cse05_2017-07-25=
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: push_lab_wise_analytics
+  :END:          
+
+    - URL :: /nonopenedx/add_usage
+
+    - Method :: POST
+
+    - URL Params :: None
+    
+    - Payload JSON ::
+        #+BEGIN_EXAMPLE
+       {
+          "lab_name" : "principles of programming languages",
+          "lab_id" : "cse05",
+          "discipline_name" : "Computer Science and Engineering",
+          "discipline_id" : "cse",
+          "institute_name" : "IIIT Hyderabad",
+          "institute_id" : "iiith",
+          "visits" : 4500,
+          "hits" :4000 ,
+          "usage" : 1000,
+          "date" : 2017-07-25
+       }
+
+       #+END_EXAMPLE
+
+    - Success Response ::
+      + Code: 200
+    
+*** Implementation
+#+NAME: add_nonopenedx_usage_analytics
+#+BEGIN_SRC python
+
+@api.route('/nonopenedx/add_usage', methods= ['POST'])
+def add_nonopenedx_usage_analytics():
+
+    if request.method == 'POST':
+
+        index = VLABS_USAGE
+        doc_type = NONOPENEDX_USAGE
+        
+        current_date = str(datetime.datetime.today()).split()[0]
+        file_path = NONOPENEDX_USAGE_INFO_FILE_PATH
+        rows = []
+        labs_count = 0
+        with open(file_path, 'r') as f:
+          lines = f.readlines()
+          for line in lines:
+             lab_info = {}
+             row = line.split(",")
+             if len(row)>0:
+                 lab_info["lab_id"] = row[0]
+                 lab_info["hits"] = int(row[3])
+                 lab_info["visits"] = int(row[4])
+                 lab_info["usage"] = int(row[5].strip())
+                 lab_info["date"] = current_date
+                 lab_id = lab_info['lab_id']
+                 LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_id)
+                 current_app.logger.debug("LDS API = %s" % (LDS_API))
+                 req = requests.get(LDS_API)
+                 if req.status_code == 200:
+                     current_app.logger.debug\
+                       ("Found record on LDS for lab_id= \%s" % (lab_id))
+                     lab_info["lab_name"] = str(req.json()["lab_name"])
+                     lab_info["institute_name"] = str(req.json()["institute"]\
+                                                    ["institute_name"])
+                     lab_info["discipline_name"] = str(req.json()\
+                                                       ["discipline"]\
+                                                           ["discipline_name"])
+                     lab_info['institute_id'] = str(req.json()['institute']\
+                                                    ['institute_id'])
+
+                     lab_info['discipline_id'] = str(req.json()['discipline']\
+                                                     ['discipline_id'])
+
+                     ANALYTICS_DB_API = "%s/%s/%s/%s_%s" % \
+                       (ANALYTICS_DB_URL, index, doc_type, lab_id, current_date)
+
+                     req = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), data=json.dumps(lab_info))
+                     if req.status_code == 200 or req.status_code == 201:
+                         labs_count = labs_count + 1
+                         current_app.logger.debug("Added record %s" % (lab_info))
+                     else:
+                         current_app.logger.error("Failed to add record %s" \
+                                                  % (lab_info))
+                 else:
+                     current_app.logger.error\
+                       ("Not found on LDS = %s, status_code = %s" \
+                            % (lab_info, req.status_code))
+
+             else:
+                 break
+        return_dict = {"records_added" : labs_count}
+        current_app.logger.debug("Total records added to elastic database=%s" \
+                                 % (return_dict))
+        return jsonify(return_dict)
+
+#+END_SRC
+
+*** Test Cases
+#+NAME: test_add_nonopenedx_usage_analytics
+#+BEGIN_SRC python
+class TestAddNonOpenedxUsageAnalytics(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_add_non_openedx_usage_analytics(self):
+        print "test_add_non_openedx_usage_analytics"        
+        url = "/nonopenedx/add_usage"
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
+** Get users analytics of vlabs.ac.in
+
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_user_in_op
+  :END:    
+
+  - URL :: /api/vlabs_user_analytics
+
+  - Method :: GET
+
+  - URL Params ::  
+
+    + Required : None
+
+    + Optional : date=<YYYY-MM-DD>
+      
+      example : date=2017-09-20
+
+  - Data Params :: None
+
+  - Success Response ::
+    + Code: 200
+    + Content:                 
+    #+BEGIN_EXAMPLE
+    {
+      "active_user_sessions": {
+        "details": [
+          {
+            "client_location": {
+              "langitude": 5.6615,
+              "latitude": 51.6459
+            },
+            "clientip": "83.82.186.105",
+            "count": 5
+          }
+        ],
+        "total": 5
+      },
+      "active_users": 2,
+      "date": "2017-09-14",
+      "inactive_users": 1,
+      "registered_users": 3
+    }
+
+    #+END_EXAMPLE
+
+*** Implementation
+#+NAME: get_vlabs_logged_in_users
+#+BEGIN_SRC python
+def get_ip_info(ip_address, res):
+    data = {}
+    clients_info = res.json()['hits']['hits']
+
+    for client_info in clients_info:
+        if client_info['_source']['clientip'] == ip_address:
+
+            data['clientip'] = ip_address
+            data['client_location'] = {}
+
+            try:
+                data['client_location']['latitude'] = \
+                  client_info['_source']['geoip']['latitude']
+                data['client_location']['langitude'] = \
+                  client_info['_source']['geoip']['longitude']
+            except Exception as e:
+                data['client_location']['latitude'] = ""
+                data['client_location']['langitude'] = ""
+    return data
+
+@api.route('/api/vlabs_user_analytics', methods=['GET'])
+def get_openedx_logged_in_users():
+
+    if request.method == 'GET':
+        current_date = str(datetime.datetime.today()).split()[0]
+        headers = {'Content-Type': 'application/json'}
+        data = {
+            "aggs": {
+                "client_ips": {
+                    "terms": {
+                        "field": "clientip",
+                        "order" : { "_count" : "asc" },
+                        "size": 0
+                        },
+                    
+                    "aggs": {
+                        "client_status": {
+                            "terms": {
+                                "script": "[doc.clientip.value, doc.api_endpoint.value].join('::')"
+                                }
+
+                            }
+                        }
+                    }
+                }
+        }
+        index = VLABS_USAGE
+        doc_type = "openedx_user_session_analytics_%s" % (current_date)
+
+        ANALYTICS_DB_API = "%s/%s/%s/_search?size=10000" % \
+          (ANALYTICS_DB_URL, index, doc_type)
+        current_app.logger.debug("analytics_db_api =%s" % (ANALYTICS_DB_API))
+        openedx_user_analytics = {}
+        total_active_user_sessions = 0
+
+        try:
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), \
+                                data=json.dumps(data), \
+                                headers=headers)
+
+            if res.status_code == 200 or res.status_code == 201:
+                clients_ip_info = res.json()\
+                  ['aggregations']['client_ips']['buckets']
+                active_user_details = []
+
+                for client_action in clients_ip_info:
+                    if len(client_action['client_status']['buckets']) == 1:
+                        geo_codes_info = get_ip_info(client_action['key'], res)
+                        login_end_point = client_action['client_status']\
+                          ['buckets'][0]['key'].split("::")[1]
+                          
+                        if login_end_point == "/dashboard":
+                            active_user_sessions_count = \
+                              client_action['doc_count']
+                        else:
+                            active_user_sessions_count = 0
+                            
+                        geo_codes_info['count'] = \
+                          int(active_user_sessions_count)
+                        total_active_user_sessions = \
+                          total_active_user_sessions + \
+                          geo_codes_info['count']
+
+                    elif len(client_action['client_status']['buckets']) == 2:
+                        geo_codes_info = get_ip_info(client_action['key'], res)
+                        login_end_point = client_action['client_status']\
+                          ['buckets'][0]['key'].split("::")[1]
+                        logout_end_point = client_action['client_status']\
+                          ['buckets'][1]['key'].split("::")[1]
+                          
+                        if login_end_point == "/dashboard":
+                            login_count = int(client_action['client_status']\
+                                              ['buckets'][0]['doc_count'])
+                        else:
+                            login_count = 0
+                            
+                        if logout_end_point == "/logout":
+                            logout_count = int(client_action['client_status']\
+                                               ['buckets'][1]['doc_count'])
+                        else:
+                            logout_count = 0
+                            
+                        active_user_sessions_count = login_count - logout_count
+                        current_app.logger.debug("active user count = %s" % \
+                                                 (active_user_sessions_count))
+                                                 
+                        if active_user_sessions_count > 0:
+                            geo_codes_info['count'] = \
+                              int(active_user_sessions_count)
+                            total_active_user_sessions = \
+                              total_active_user_sessions + \
+                              geo_codes_info['count']
+                        if active_user_sessions_count == 0:
+                            geo_codes_info['count'] = 0
+                    else:
+                        pass
+                    active_user_details.append(geo_codes_info)
+                openedx_user_analytics['active_user_sessions'] = {}
+                openedx_user_analytics['date'] = current_date
+                openedx_user_analytics['active_user_sessions']['details'] = \
+                  active_user_details
+                openedx_user_analytics['active_user_sessions']['total'] = \
+                  total_active_user_sessions
+                current_app.logger.debug("openedx_user_analytics =%s" % \
+                    (openedx_user_analytics))
+                    
+                doc_type = "openedx_user_analytics"
+                ANALYTICS_DB_API = "%s/%s/%s/%s" % \
+                  (ANALYTICS_DB_URL, index, doc_type, current_date)
+                
+                r = requests.get(ANALYTICS_DB_API, headers=headers)
+                if r.status_code == 200:
+                    analytics_data = r.json()['_source']
+                    openedx_user_analytics['registered_users'] = \
+                      analytics_data['registered_users']
+                    openedx_user_analytics['active_users'] = \
+                      analytics_data['active_users']
+                    openedx_user_analytics['inactive_users'] = \
+                      analytics_data['inactive_users']
+                else:
+                    current_app.logger.error\
+                      ("Error in getting openedx user analytics")
+                return jsonify(openedx_user_analytics)
+
+            else:
+                current_app.logger.error\
+                  ("Error in getting nonopenedx usage, status_code = %s" %\
+                       (r.status_code))
+
+        except Exception as e:
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+
+    else:
+        abort(make_response(jsonify(message="Method not allowed"), 405))
+
+#+END_SRC 
+
+*** Test Cases
+#+NAME: test_get_vlabs_logged_in_users
+#+BEGIN_SRC python
+class TestGetVlabsLoggedInUsers(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_vlabs_logged_in_users(self):
+        print "test_get_vlabs_logged_in_users"
+        url = "/api/vlabs_user_analytics"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
+
+
+
+
+** Get current logged in users and total registered users in outreach portal
+*** API Design
+  :PROPERTIES:
+  :CUSTOM_ID: get_total_user_in_op
+  :END:    
+
+  - URL :: /api/outreach_user_analytics
+
+  - Method :: GET
+
+  - URL Params ::  None
+
+  - Data Params :: None
+
+  - Success Response ::
+    + Status_Code: 200
+    + Content:                 
+    #+BEGIN_EXAMPLE
+    {
+    "current_logged_in_users" : 20,
+    "total_registered_users"" : 1000,
+    "date" : "2017-08-25"
+    }
+    #+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
+
+
+** Get total offline/online feedbacks
+*** API Design
+
+  :PROPERTIES:
+  :CUSTOM_ID: get_feedbacks
+  :END:    
+
+  - URL :: /get_feedbacks
+
+  - Method :: GET
+
+  - URL Params ::  
+     + ?version=offline/online&date=dd-mm-yyyy
+     + ?version=offilne/online&date=dd-mm-yyyy&mac_addr=<mac_id>
+  - Payload :: None
+
+  - Success Response ::
+    + Status_Code: 200
+    + Content:                 
+    #+BEGIN_EXAMPLE
+    {
+    "total_feedbacks" : 30 
+    }
+    #+END_EXAMPLE
+*** Implementation
+*** Test Cases
+
+    
+** Get all feedbacks =from= and =to= date
+*** API Design
+
+  :PROPERTIES:
+  :CUSTOM_ID: get_all_feedback_forms_for_a_date
+  :END:          
+
+    - URL :: /get_feedbakcs
+
+    - Method :: GET
+
+    - URL Params ::
+      Required : from_date=[string]
+                 to_date=[string]
+      the format of the string is in 'dd-mm-yyyy' format
+
+    - Success Response ::
+      + Code: 200
+    #+BEGIN_EXAMPLE
+    {
+    "from_date" : "2015-08-20",
+    "to_date" : "2017-09-18",
+    "total_feedbacks" : 1000
+    }
+    #+END_EXAMPLE
+
+*** Implementation
+*** Test Cases
    
    
+
+
 * Infra                                                         :boilerplate:
+
 ** sources
 *** Imports 
 #+name: imports_for_sources
 #+BEGIN_SRC python
 # -*- coding: utf-8 -*-
+
 import os
 import json
 import time
 import datetime
 import os
+import datetime
+from runtime.config.system_config import *
 from runtime.config.flask_app_config import *
-from flask import send_from_directory, current_app
-from flask import request, Blueprint
-from elasticsearch import Elasticsearch
+from flask import send_from_directory, current_app, abort
+from flask import request, Blueprint, make_response, jsonify
+from urllib import urlencode
+#from elasticsearch import Elasticsearch
 import requests
 import ast
 api = Blueprint('APIs', __name__)
@@ -151,15 +2683,67 @@ api = Blueprint('APIs', __name__)
 #+end_src
 
 
-* Tangle                                                        :boilerplate:
+** tests
+*** Imports 
+#+name: imports_for_tests
+#+BEGIN_SRC python
+# -*- coding: utf-8 -*-
+import unittest
+import shutil
+from flask_testing import TestCase
+from runtime.rest.app import create_app
+from runtime.rest.api import *
+import datetime
+config = {
+         'SQLALCHEMY_DATABASE_URI': ''
+         }
 
-** sources
-#+BEGIN_SRC python :tangle api.py :eval no :noweb yes
-<<imports_for_sources>>
-<<get_analytics>>
-<<get_elkusage>>
-<<get_total_usage>>
+#+end_src
+
+*** Running tests
+#+NAME: run_test_cases
+#+BEGIN_SRC python
+if __name__ == '__main__':
+    unittest.main()
+
 #+END_SRC
 
 
+* Tangle                                                        :boilerplate:
+
+** sources
+
+ #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
+
+<<imports_for_sources>>
+<<get_usage_entity>>
+<<get_entity_openedx>>
+<<get_entity_openedx_search>>
+<<get_entity_nonopenedx>>
+<<add_openedx_usage_analytics>>
+<<add_nonopenedx_usage_analytics>>
+<<get_vlabs_logged_in_users>>
+<<get_vlabs_usage>>
+#+END_SRC
+
+#+BEGIN_SRC conf :tangle openedx-logged-in-users.conf :eval no :noweb yes
+
+#<<logged_in_users>>
+
+#+END_SRC
+
+
+** tests
+#+BEGIN_SRC python :tangle test_api.py :eval no :noweb yes
+<<imports_for_tests>>
+<<test_get_usage_entity>>
+<<test_get_entity_openedx>>
+<<test_get_entity_non_openedx>>
+#<<test_get_vlabs_usage>>
+<<test_get_entity_openedx_search>>
+<<test_add_openedx_usage_analytics>>
+<<test_add_nonopenedx_usage_analytics>>
+#<<test_get_vlabs_logged_in_users>>
+<<run_test_cases>>
+#+end_src
 

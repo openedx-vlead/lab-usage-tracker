@@ -1,6 +1,6 @@
-#+TITLE: Requirements for Feedback Portal
+#+TITLE: Requirements for Virtual Labs Analytics Service
 #+AUTHOR: VLEAD
-#+DATE: [2016-08-15 Mon]
+#+DATE: [2017-09-11 Mon]
 #+PROPERTY: results output
 #+PROPERTY: exports code
 #+SETUPFILE: ../org-templates/level-1.org
@@ -8,18 +8,49 @@
 #+LATEX: Literal LaTeX code for export
 
 * Introduction 
-  The requirements of =Analytics Service= are listed here.
+  This document illustrates the requirements to build =Analytics Service= for
+  Virtual Labs
 
 * Definitions 
-  + Usages ::
-    + A student performing an experiments of a lab is considered to be
-      a single usage.  This is captured by capturing a click on the
-      Experiment section of Open edX.
-    + If there are 3 experiments in a lab, A lab will have 3 usages
+
+  + Usage ::
+
+    - A user performing an experiments of a lab is considered to be a single
+      usage. This is captured by click event on the simulation link of an
+      experiment section of Open edX.
+
+    - If there are 3 experiments in a lab, A lab will have 3 usages
       and experiment will have 1 usage.
 
-* Ability of the VLABS OpenedX plaform to fetch analytics when user performs experiment
-  A user visits OpenedX course.
-  - User clicks on Experiment section.
-  - Following Analytics (Student Id, Lab Name, Experiment Name, Lab Id, Experiment ID) is passed.
+* Requirements
+  :PROPERTIES:
+  :CUSTOM_ID: requirements
+  :END: 
+** Req1
+  :PROPERTIES:
+  :CUSTOM_ID: req1
+  :END: 
+  - Ability to design REST APIs to store/retrieve the usage analytics of the Virtual
+    Labs hosted on Openedx, College Cloud and other platforms
+** Req2 
+  :PROPERTIES:
+  :CUSTOM_ID: req2
+  :END: 
+  - Ability to design REST APIs to store/retrieve the user analytics of the
+    Openedx platform running Virtual Labs
+     
+** Req3
+  :PROPERTIES:
+  :CUSTOM_ID: req3
+  :END:
+  - Ability to design REST APIs to store/retrieve the user analytics of the
+    Outreach Portal
+
+** Req4
+  :PROPERTIES:
+  :CUSTOM_ID: req4
+  :END: 
+  - Ability to design REST APIs to store/retrieve the feedback analytics of
+    Virtual Labs hosted on Openedx, College Cloud and other platforms
+
 

@@ -1,9 +1,8 @@
-
 {
   "lab": {
     "description": {
-      "name": "Analytics API Server",
-      "id": "analyticsv1",
+      "name": "virtual labs analytics service",
+      "id": "vlabs analytics service",
       "status": "working code",
       "discipline": [],
       "type": "",
@@ -11,16 +10,46 @@
       "integration_level": 6,
       "developer": [
         {
-          "name": "Ashay Maheshwari",
+          "name": "Sripathi",
           "title": "",
-          "role": "Project Engineer",
+          "role": "Intern",
           "organization": "VLEAD",
           "institute": "IIIT Hyderabad",
           "web": "",
           "department": "Software Engg Research Lab (SERL)",
           "contact": {
-            "email": "ashay@vlabs.ac.in",
+            "email": "sripathi@vlabs.ac.in",
             "alternate_email": "",
+            "mobile_number": "",
+            "office_number": ""
+          }
+        },
+	{
+          "name": "Sripathi",
+          "title": "",
+          "role": "Intern",
+          "organization": "VLEAD",
+          "institute": "IIIT Hyderabad",
+          "web": "",
+          "department": "Software Engg Research Lab (SERL)",
+          "contact": {
+            "email": "sripathi@vlabs.ac.in",
+            "alternate_email": "",
+            "mobile_number": "",
+            "office_number": ""
+          }
+        },
+        {
+          "name": "",
+          "title": "",
+          "role": "",
+          "organization": "",
+          "institute": "",
+          "web": "",
+          "department": "",
+          "contact": {
+            "email": "",
+	    "alternate_email": "",
             "mobile_number": "",
             "office_number": ""
           }
@@ -30,7 +59,7 @@
     "build_requirements": {
       "platform": {
         "os": "ubuntu",
-        "osVersion": "12",
+        "osVersion": "14.04",
         "arch": "x64",
         "service_pack": "",
         "installer": [
@@ -39,13 +68,13 @@
           "configure": [],
           "pre_build": [],
           "build": [
-            "cd ../;make build"
+              "cd ../;make build"
           ],
           "post_build": [
-            "cp -R ../build/code/* /var/www/",
-            "chmod -R 755 /var/www",
-            "mkdir /var/www/logs",
-            "chmod -R 777 /var/www/logs"
+	      "cp -R ../build/code/* /usr/share/nginx/html/",
+              "chmod -R 755 /usr/share/nginx/html/",
+              "mkdir /usr/share/nginx/html/logs",
+              "chmod -R 777 /usr/share/nginx/html/logs"
           ],
           "status": []
         }
@@ -54,7 +83,7 @@
     "runtime_requirements": {
       "platform": {
         "os": "ubuntu",
-        "osVersion": "12",
+        "osVersion": "14.04",
         "arch": "x64",
         "servicepack": "",
         "hosting": "dedicated",
@@ -66,20 +95,16 @@
           "min_required": "10gb"
         },
         "installer": [
-	  "sudo apt-get update",
-	  "sudo apt-get -y install build-essential",
-	  "sudo apt-get -y install binutils",
-          "sudo apt-get -y install binutils-doc",
-          "sudo apt-get -y install python-dev python3-dev",
-          "sudo apt-get -y install python-pip",
-          "sudo apt-get -y install git curl",
-          "apt-get install -y libmysqld-dev python-setuptools apache2 libapache2-mod-wsgi",
-          "pip install Flask",
-          "pip install -U flask-cors",
-          "sudo apt-get update",
-          "pip install elasticsearch",
-          "python /var/www/deployment/setup.py install",
-          "bash /var/www/deployment/configure.sh"
+	    "apt-get update -y",
+	    "apt-get install python-pip python-dev nginx",
+	    "python /usr/share/nginx/html/deployment/setup.py install",
+	    "cp /usr/share/nginx/html/deployment/analytics-service.conf /etc/init/",
+	    "start analytics-service",
+	    "cp /usr/share/nginx/html/deployment/analytics-service /etc/nginx/sites-available/",
+	    "ln -s /etc/nginx/sites-available/analytics-service /etc/nginx/sites-enabled",
+	    "rm -v /etc/nginx/sites-enabled/default",
+	    "nginx -t",
+	    "service nginx restart"
         ],
         "lab_actions": {
           "init"    : [],

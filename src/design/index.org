@@ -1,4 +1,4 @@
-#+TITLE: Design of Analytics API Service
+#+TITLE: Design of Virtual Labs Analytics Service
 #+AUTHOR: VLEAD
 #+DATE: [2016-09-09 Fri]
 #+SETUPFILE: ../org-templates/level-1.org
@@ -8,73 +8,67 @@
 
 
 * Introduction 
-  The =design= of the =Analytics Service= is captured here.
+  This document illustrates the =design= of the =Analytics Service= for Virtual
+  Labs
 
-* Architecture diagram
-  Refer the diagram given below - 
-  [[https://github.com/openedx-vlead/port-labs-to-openedx/blob/develop/src/analytics-setup/presentations/sprint2/images/VLABS%20Open%20edx%20Architecture%20Diagram.jpg][VLABS architecture diagram]]
 
-  OpenedX server ---- POST ---->> Analytics API ---- POST ---->> Elasticsearch
+* Service Interplay
+
+#+BEGIN_HTML
+<img src="https://docs.google.com/drawings/d/e/2PACX-1vTkpeiZc8CGKQUed7q_LcA5VdKEKN4yFZRgO6Gd4RrjQBZGsuM5IOFQjeUSNkSRsyYninO_di9XM_mb/pub?w=960&amp;h=720">
+<p align="center"> Analytics Services Interplay </p>
+#+END_HTML
+To edit the feedback relations image click [[https://docs.google.com/drawings/d/1TO8JiZiQB6ZiH-5hmm7qbNvL2lZ4auGR-NgdfOuBrEs/edit][here]]
+
+- Outreach Portal ::
+     =Analytics REST Service= calls =Outreach Portal= service to get the user
+     analytics such as current logged in and total registered users in
+     the portal.
+- Feedback ::
+              =Feedback= service pushes the feedback records into database using POST
+              API of =Analytics REST Service= for every regular interval of
+              time. This is required to analyze the feedback data from the database
+
+- Virtual Labs on Openedx :: 
+   - Users visit Virtual Labs on OpenedX and will access a Lab. When a user
+     clicks simulation link of an experiment section data related to the
+     experiment (Experiment name, Experiment ID, Lab name, Lab ID, User ID) is
+     added to analytics database using analytics service API
+
+   - Analytics API server further evaluates the IP address of the Lab User and
+     obtains the location of the IP address using
+     http://freegeoip.net/json/<your-ip-address>.
+
+   - Analytics API server then adds the data into Elasticsearch database in
+     JSON format.
+
+- Virtual Labs on Nonopenedx ::
+
+- LDS ::
+         =Analytics REST Service= calls Lab-data Service (LDS) before storing
+         lab analytics data into database. This is required to make all the
+         records consistent in the database
+
+- Analytics REST Service ::
+     This service exposes =REST APIs= to add/retrieve various user, usage and
+     feedback analytics of Virtual Labs
+     
+
+- Elasticsearch REST Service ::
+     This service comes with =elasticsearch= database which uses NoSQL as
+     back end.
   
-* Flow 
-    + As per the design, students will visit VLABS OpenedX and will
-    access a Lab. When a student clicks an experiment section to
-    perform an experiment, data related to the experiment (Experiment
-    name, Experiment ID, Lab name, Lab ID, User ID) is POSTed to
-    Analytics API server.
-  + Analytics API server further evaluates the IP address of the
-    client and obtains (GET) the location of the IP address using
+
+* Data flow of usage analytics 
+
+  - Users visit Virtual Labs on OpenedX and will access a Lab. When a user
+    clicks simulation link of an experiment section data related to the
+    experiment (Experiment name, Experiment ID, Lab name, Lab ID, User ID) is
+    added to analytics database using analytics service API
+
+  - Analytics API server further evaluates the IP address of the Lab User and
+    obtains the location of the IP address using
     http://freegeoip.net/json/<your-ip-address>.
-  + Analytics API server then POST the data to Elasticsearch in JSON
+
+  - Analytics API server then adds the data into Elasticsearch database in JSON
     format.
-  + Kibana using its visualization then represents the graphs
-    obtained.
-  + Information on implementation of ELK node can be [[https://github.com/openedx-vlead/elk-stack-for-analytics][read here]]
-
-* Application Programming Interface
-  :PROPERTIES:
-  :CUSTOM_ID: api
-  :END: 
-** Post Data to Analytics Server 
-  :PROPERTIES:
-  :CUSTOM_ID: analytics_server_post_data
-  :END:    
-  - URL :: /
-
-  - Method :: POST
-
-  - URL Params
-    Required: Student_ID["string"], Lab_ID["string"], Lab_name["string"], Experiment_ID["string"], Experiment_name["string"], 
-
-  - Success Response
-    + Code: 200/201
-  
-** Get Records count from Elasticsearch server
-  :PROPERTIES:
-  :CUSTOM_ID: get_elasticseacrch_server_count
-  :END:    
-  - URL :: /api//elkusage
-
-  - Method :: GET
-
-  - URL Params
-    None
-
-  - Success Response
-    + Code: 200
-
-
-** Get total usage  count from Elasticsearch server and stats server
-  :PROPERTIES:
-  :CUSTOM_ID: total_usage-count
-  :END:
-  - URL :: /api/totalusage
-
-  - Method :: GET
-
-  - URL Params
-    None
-
-  - Success Response
-    + Code: 200
-
