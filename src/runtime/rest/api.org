@@ -15,7 +15,7 @@
 
   This section contains API design documentation followed by its implementation
   and test cases
-
+  
 ** Get total usage analytics of labs
 
    1. As of date =2017-09-21= total labs hosted on openedx platform are =90=
@@ -231,7 +231,7 @@ def get_openedx_usage(entity):
             query = {
                 "query": {
                     "range": {
-                        "date": {
+                        "date_of_experiment": {
                             "lte": till_date,
                             "format": "yyyy-MM-dd"
                         }
@@ -301,9 +301,7 @@ def get_openedx_usage(entity):
                 else:
                     message = "No records found on till_date : %s" % till_date
                     abort(make_response(jsonify(message=message), 404))
-                    # analytics_data = {"visits" : visits, "hits" : hits, \
-                    #                       "usage" : usage, \
-                    #                       "till_date" : till_date}
+  
             return jsonify(analytics_data)
 
         else:
@@ -372,27 +370,35 @@ def get_openedx_usage(entity):
 
 #+END_SRC 
 *** Test Cases
-#+NAME: test_get_openedx_usage
+#+NAME: test_get_usage_entity
 #+BEGIN_SRC python
-class TestgetOpenedxUsage(TestCase):
+class TestGetUsageEntity(TestCase):
     TESTING = True
     def create_app(self):
-    app = create_app(config)
-	return app
+        app = create_app(config)
+        return app
 
     def setUp(self):
-	pass
+        pass
 
     def tearDown(self):
-	pass
+        pass
 
-    def test_get_openedx_usage(self):
-	print "test_get_openedx_usage"
+    def test_get_usage_openedx(self):
+        print "test_get_usage_openedx"
 
-	headers = {'Content-Type': 'application/json'}
+        headers = {'Content-Type': 'application/json'}
 
-	response = self.client.get("/openedx/usage")
-	self.assertEqual(response.status_code, 200)
+        response = self.client.get("/usage/openedx?till_date=2017-09-21")
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_usage_nonopenedx(self):
+        print "test_get_usage_nonopenedx"
+        
+        headers = {'Content-Type': 'application/json'}
+    
+        response = self.client.get("/usage/nonopenedx?till_date=2017-09-21")
+        self.assertEqual(response.status_code, 200)
 
 #+END_SRC
 
@@ -717,7 +723,7 @@ def get_openedx_lab_wise_usage(entity):
         query =  {
             "query": {
                 "range": {
-                    "date": {
+                    "date_of_experiment": {
                         "lte": till_date,
                         "format": "yyyy-MM-dd"
                         }
@@ -798,6 +804,40 @@ def get_openedx_lab_wise_usage(entity):
         abort(make_response(jsonify(message="Method not allowed"), 405))
         
 #+END_SRC 
+*** Test Cases
+#+NAME: test_get_entity_openedx
+#+BEGIN_SRC python
+class TestGetEntityOpenedx(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_labs_openedx(self):
+	print "test_get_labs_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/openedx")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_openedx(self):
+	print "test_get_institutes_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/openedx")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_openedx(self):
+	print "test_get_disciplines_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/disciplines/openedx")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
 *** Implementation for nonopenedx platform
 
 #+NAME: get_entity_nonopenedx
@@ -917,26 +957,38 @@ def nonopenedx_search_usage(entity):
 
 
 #+END_SRC
+
 *** Test Cases
-#+NAME: test_get_openedx_lab_wise_usage
+#+NAME: test_get_entity_non_openedx
 #+BEGIN_SRC python
-class TestGetOpenedxLabWiseUsage(TestCase):
+class TestGetEntityNonOpenedx(TestCase):
     TESTING = True
     def create_app(self):
-    app = create_app(config)
-	return app
+        app = create_app(config)
+        return app
 
     def setUp(self):
-	pass
+        pass
 
     def tearDown(self):
-	pass
+        pass
 
-    def test_get_openedx_lab_wise_usage(self):
-	print "test_get_openedx_lab_wise_usage"
-
+    def test_get_labs_non_openedx(self):
+	print "test_get_labs_non_openedx"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/openedx/lab_wise_usage")
+	response = self.client.get("/labs/nonopenedx")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_non_openedx(self):
+	print "test_get_institutes_non_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/nonopenedx")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_non_openedx(self):
+	print "test_get_disciplines_non_openedx"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/disciplines/nonopenedx")
 	self.assertEqual(response.status_code, 200)
 
 #+END_SRC
@@ -1341,45 +1393,44 @@ def vlabs_usage(entity):
 
 #+END_SRC
 
+*** Test Cases
+#+NAME: test_get_vlabs_usage
+#+BEGIN_SRC python
+class TestGetVlabsUsage(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_labs_vlabs(self):
+	print "test_get_labs_vlabs"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/vlabs")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_vlabs(self):
+	print "test_get_institutes_vlabs"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/vlabs")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_vlabs(self):
+	print "test_get_disciplines_vlabs"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/disciplines/vlabs")
+	self.assertEqual(response.status_code, 200)
+
+#+END_SRC
+
 
 ** Search usage analytics of vlabs
-   
-   - Currently 90 number of labs are hosted on openedx platform.
-   - When user clicks on =simulation= section of an experiment 1 usage is added
-     to elastic search database.
-   - This API return total number open edx labs usages
-   - This API makes a internal get request to Elasticsearch and gets the total
-     number of analytics record holded.
-   - Query to get the lab-wise usage of openedx platform
-    #+BEGIN_EXAMPLE
-        {
-      "query": {
-        "bool": {
-          "must": [
-            {
-              "match": {
-                "lab_id": "eee05"
-              }
-            },
-            {
-              "match": {
-                "experiment_id": "e99317"
-              }
-            }
-          ]
-        }
-      },
-      "aggs": {
-        "lab_ids": {
-          "terms": {
-            "script": "[doc.lab_id.value, doc.lab_name.value, doc.discipline_name.value, doc.institute_name.value].join('::')",
-            "size": 0
-          }
-        }
-      }
-    }
-
-    #+END_EXAMPLE
+ 
 *** Search lab usage analytics
 **** API Design
   :PROPERTIES:
@@ -1905,28 +1956,59 @@ def get_openedx_search_usage(entity, platform):
 
 #+END_SRC 
 *** Test Cases
-#+NAME: test_get_openedx_lab_wise_usage
+#+NAME: test_get_entity_openedx_search
 #+BEGIN_SRC python
-class TestGetOpenedxLabWiseUsage(TestCase):
+class TestGetEntityPlatformSearch(TestCase):
     TESTING = True
     def create_app(self):
-    app = create_app(config)
-	return app
+        app = create_app(config)
+        return app
 
     def setUp(self):
-	pass
+        pass
 
     def tearDown(self):
-	pass
+        pass
 
-    def test_get_openedx_lab_wise_usage(self):
-	print "test_get_openedx_lab_wise_usage"
-
+    def test_get_labs_openedx_search(self):
+	print "test_get_labs_openedx_search"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/openedx/lab_wise_usage")
+	response = self.client.get("/labs/openedx/_search?lab_id=cse04")
 	self.assertEqual(response.status_code, 200)
 
+    def test_get_labs_non_openedx_search(self):
+	print "test_get_labs_non_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/nonopenedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_openedx_search(self):
+	print "test_get_institutes_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/openedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_institutes_non_openedx_search(self):
+	print "test_get_institutes_non_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/institutes/nonopenedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_openedx_search(self):
+	print "test_get_disciplines_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/disciplines/openedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+    def test_get_disciplines_non_openedx_search(self):
+	print "test_get_labs_non_openedx_search"
+	headers = {'Content-Type': 'application/json'}
+	response = self.client.get("/labs/nonopenedx/_search?lab_id=cse04")
+	self.assertEqual(response.status_code, 200)
+
+
 #+END_SRC
+
 
 
 ** Add usage analytics of labs running on openedx platform
@@ -2012,6 +2094,7 @@ def add_openedx_usage_analytics(exp_details):
                 data_dict["institute_name"] = inst_name
                 data_dict["discipline_name"] = disc_name
                 data_dict["discipline_id"] = disc_id
+                current_app.logger.debug("LDS data = %s" % data_dict)
             else:
                 current_app.logger.debug("Error in getting lab_name from LDS = %s" \
                                          % (lab_name))
@@ -2025,12 +2108,14 @@ def add_openedx_usage_analytics(exp_details):
             r = requests.get(LDS_API)
             if r.status_code == 200:
                 exp_name = r.json()['exp_name']
-                current_app.logger.debug("experiment_name from LDS = %s" % (exp_name))
+                current_app.logger.debug("experiment_name from LDS = %s" % \
+                                         (exp_name))
                 data_dict["experiment_name"] = exp_name
             else:
-                current_app.logger.debug("Error in getting exp_name from LDS = %s" \
-                                         % (exp_name))
-            today = str(datetime.datetime.today()).split()[0]                                         
+                current_app.logger.debug\
+                  ("Error in getting exp_name from LDS = %s" \
+                       % (exp_name))
+            today = str(datetime.datetime.today()).split()[0]
             data_dict["date"] = today
             data_dict["time_of_experiment"] = time.strftime("%H:%M")
             data_dict["ip_address"] = request.environ.get('HTTP_X_REAL_IP',\
@@ -2044,13 +2129,15 @@ def add_openedx_usage_analytics(exp_details):
 
             json_data = json.dumps(data_dict)
             headers = {'Content-Type': 'application/json'}
-            index = VLABS_INDEX
-            type = OPENEDX_USAGE
-            ANALYTICS_DB_API = "%s/%s/%s" % (ANALYTICS_DB_URL, index, type)
+            index = VLABS_USAGE
+            doc_type = OPENEDX_USAGE
+            ANALYTICS_DB_API = "%s/%s/%s" % (ANALYTICS_DB_URL, index, doc_type)
 
-            res = requests.post(ANALYTICS_DB_API, data=json_data, headers=headers)
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), \
+                                data=json_data, headers=headers)
             if res.status_code == 201:
-                current_app.logger.debug("Added usage record = %s" % (json_data))
+                current_app.logger.debug("Added usage record = %s" % \
+                                         (json_data))
                 return jsonify({"status" : "success" })
             else:
                 current_app.logger.error\
@@ -2067,31 +2154,27 @@ def add_openedx_usage_analytics(exp_details):
         abort(make_response(jsonify(message="Method not allowed"), 405))
  #+END_SRC
 *** Test Cases
-#+NAME: test_post_analytics
+#+NAME: test_add_openedx_usage_analytics
 #+BEGIN_SRC python
 class TestPostAnalytics(TestCase):
     TESTING = True
     def create_app(self):
-	app = create_app(config)
-	return app
+        app = create_app(config)
+        return app
 
     def setUp(self):
-	pass
+        pass
 
     def tearDown(self):
-	pass
+        pass
 
-    def test_post_analytics(self):
-	print "test_post_analytics"
-
-	headers = {'Content-Type': 'application/json'}
-	payload = {
-        "lab_id" : "cse04",
-        "lab_name" : "computer programming language"
-        }
-    response = self.client.post("/lab_name,lab_id", data=json.dumps(payload),
-                                headers=headers)
-    self.assertEqual(response.status_code, 200)
+    def test_add_openedx_usage_analytics(self):
+        print "test_add_openedx_usage_analytics"        
+        os.environ['http_proxy'] = 'http://proxy.iiit.ac.in:8080'
+        os.environ['https_proxy'] = 'http://proxy.iiit.ac.in:8080'
+        url = "/user123,data structures,cse02,arrays,eee123"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
 
 #+END_SRC
 
@@ -2123,12 +2206,12 @@ class TestPostAnalytics(TestCase):
       #+END_EXAMPLE
    4. Every =json= record is pushed into =elasticsearch= database with index
       =vlabs= , type =nonopenedx_usage= and id =cse05_2017-07-25=
-*** Design
+*** API Design
   :PROPERTIES:
   :CUSTOM_ID: push_lab_wise_analytics
   :END:          
 
-    - URL :: /nonopenedx/lab_wise_usage
+    - URL :: /nonopenedx/add_usage
 
     - Method :: POST
 
@@ -2158,12 +2241,13 @@ class TestPostAnalytics(TestCase):
 #+NAME: add_nonopenedx_usage_analytics
 #+BEGIN_SRC python
 
-@api.route('/nonopenedx/lab_wise_usage', methods= ['POST'])
+@api.route('/nonopenedx/add_usage', methods= ['POST'])
 def add_nonopenedx_usage_analytics():
 
     if request.method == 'POST':
-        index = VLABS_INDEX
-        doc_typ = NONOPENEDX_USAGE
+
+        index = VLABS_USAGE
+        doc_type = NONOPENEDX_USAGE
         
         current_date = str(datetime.datetime.today()).split()[0]
         file_path = NONOPENEDX_USAGE_INFO_FILE_PATH
@@ -2182,8 +2266,11 @@ def add_nonopenedx_usage_analytics():
                  lab_info["date"] = current_date
                  lab_id = lab_info['lab_id']
                  LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_id)
+                 current_app.logger.debug("LDS API = %s" % (LDS_API))
                  req = requests.get(LDS_API)
                  if req.status_code == 200:
+                     current_app.logger.debug\
+                       ("Found record on LDS for lab_id= \%s" % (lab_id))
                      lab_info["lab_name"] = str(req.json()["lab_name"])
                      lab_info["institute_name"] = str(req.json()["institute"]\
                                                     ["institute_name"])
@@ -2196,7 +2283,7 @@ def add_nonopenedx_usage_analytics():
                      lab_info['discipline_id'] = str(req.json()['discipline']\
                                                      ['discipline_id'])
 
-                     ANALYTICS_DB_API = "%s/%s/%s/id=%s_%s" % \
+                     ANALYTICS_DB_API = "%s/%s/%s/%s_%s" % \
                        (ANALYTICS_DB_URL, index, doc_type, lab_id, current_date)
 
                      req = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), data=json.dumps(lab_info))
@@ -2221,6 +2308,27 @@ def add_nonopenedx_usage_analytics():
 #+END_SRC
 
 *** Test Cases
+#+NAME: test_add_nonopenedx_usage_analytics
+#+BEGIN_SRC python
+class TestAddNonOpenedxUsageAnalytics(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_add_non_openedx_usage_analytics(self):
+        print "test_add_non_openedx_usage_analytics"        
+        url = "/nonopenedx/add_usage"
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+
+#+END_SRC
 
 
 ** Get users analytics of vlabs.ac.in
@@ -2293,7 +2401,7 @@ def get_ip_info(ip_address, res):
                 data['client_location']['langitude'] = ""
     return data
 
-@api.route('/apit/vlabs_user_analytics', methods=['GET'])
+@api.route('/api/vlabs_user_analytics', methods=['GET'])
 def get_openedx_logged_in_users():
 
     if request.method == 'GET':
@@ -2307,46 +2415,53 @@ def get_openedx_logged_in_users():
                         "order" : { "_count" : "asc" },
                         "size": 0
                         },
+                    
+                    "aggs": {
+                        "client_status": {
+                            "terms": {
+                                "script": "[doc.clientip.value, doc.api_endpoint.value].join('::')"
+                                }
 
-                "aggs": {
-                    "client_status": {
-                        "terms": {
-                            "script": "[doc.clientip.value, doc.api_endpoint.value].join('::')"
                             }
-
                         }
                     }
                 }
-            }
         }
-        index = VLABS_INDEX
-        type = "openedx_user_session_analytics_%s" % (current_date)
+        index = VLABS_USAGE
+        doc_type = "openedx_user_session_analytics_%s" % (current_date)
 
         ANALYTICS_DB_API = "%s/%s/%s/_search?size=10000" % \
-          (ANALYTICS_DB_URL, index, type)
+          (ANALYTICS_DB_URL, index, doc_type)
         current_app.logger.debug("analytics_db_api =%s" % (ANALYTICS_DB_API))
         openedx_user_analytics = {}
         total_active_user_sessions = 0
 
         try:
-            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), data=json.dumps(data), \
+            res = requests.post(ANALYTICS_DB_API, auth=(USER, PASSWORD), \
+                                data=json.dumps(data), \
                                 headers=headers)
+
             if res.status_code == 200 or res.status_code == 201:
                 clients_ip_info = res.json()\
                   ['aggregations']['client_ips']['buckets']
                 active_user_details = []
-                for client_action in clients_ip_info:
 
+                for client_action in clients_ip_info:
                     if len(client_action['client_status']['buckets']) == 1:
                         geo_codes_info = get_ip_info(client_action['key'], res)
                         login_end_point = client_action['client_status']\
                           ['buckets'][0]['key'].split("::")[1]
+                          
                         if login_end_point == "/dashboard":
-                            active_user_sessions_count = client_action['doc_count']
+                            active_user_sessions_count = \
+                              client_action['doc_count']
                         else:
                             active_user_sessions_count = 0
-                        geo_codes_info['count'] = int(active_user_sessions_count)
-                        total_active_user_sessions = total_active_user_sessions + \
+                            
+                        geo_codes_info['count'] = \
+                          int(active_user_sessions_count)
+                        total_active_user_sessions = \
+                          total_active_user_sessions + \
                           geo_codes_info['count']
 
                     elif len(client_action['client_status']['buckets']) == 2:
@@ -2361,16 +2476,20 @@ def get_openedx_logged_in_users():
                                               ['buckets'][0]['doc_count'])
                         else:
                             login_count = 0
+                            
                         if logout_end_point == "/logout":
                             logout_count = int(client_action['client_status']\
                                                ['buckets'][1]['doc_count'])
                         else:
                             logout_count = 0
+                            
                         active_user_sessions_count = login_count - logout_count
                         current_app.logger.debug("active user count = %s" % \
                                                  (active_user_sessions_count))
+                                                 
                         if active_user_sessions_count > 0:
-                            geo_codes_info['count'] = int(active_user_sessions_count)
+                            geo_codes_info['count'] = \
+                              int(active_user_sessions_count)
                             total_active_user_sessions = \
                               total_active_user_sessions + \
                               geo_codes_info['count']
@@ -2388,8 +2507,9 @@ def get_openedx_logged_in_users():
                 current_app.logger.debug("openedx_user_analytics =%s" % \
                     (openedx_user_analytics))
                     
-                type = "openedx_user_analytics"
-                ANALYTICS_DB_API = "%s/%s/%s/%s" % (ANALYTICS_DB_URL, index, type, current_date)
+                doc_type = "openedx_user_analytics"
+                ANALYTICS_DB_API = "%s/%s/%s/%s" % \
+                  (ANALYTICS_DB_URL, index, doc_type, current_date)
                 
                 r = requests.get(ANALYTICS_DB_API, headers=headers)
                 if r.status_code == 200:
@@ -2406,15 +2526,42 @@ def get_openedx_logged_in_users():
                 return jsonify(openedx_user_analytics)
 
             else:
-                abort(res.status_code)
+                current_app.logger.error\
+                  ("Error in getting nonopenedx usage, status_code = %s" %\
+                       (r.status_code))
+
         except Exception as e:
-            abort(500, str(e))
+            current_app.logger.error("Exception error = %s" % str(e))
+            message = "Exception occured : %s" % str(e)
+            abort(make_response(jsonify(message=message), 500))
+
     else:
-        return "Method is not allowed"
+        abort(make_response(jsonify(message="Method not allowed"), 405))
 
 #+END_SRC 
 
 *** Test Cases
+#+NAME: test_get_vlabs_logged_in_users
+#+BEGIN_SRC python
+class TestGetVlabsLoggedInUsers(TestCase):
+    TESTING = True
+    def create_app(self):
+        app = create_app(config)
+        return app
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_get_vlabs_logged_in_users(self):
+        print "test_get_vlabs_logged_in_users"
+        url = "/api/vlabs_user_analytics"
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+#+END_SRC
 
 
 
@@ -2510,6 +2657,7 @@ def get_openedx_logged_in_users():
 
 
 * Infra                                                         :boilerplate:
+
 ** sources
 *** Imports 
 #+name: imports_for_sources
@@ -2535,6 +2683,31 @@ api = Blueprint('APIs', __name__)
 #+end_src
 
 
+** tests
+*** Imports 
+#+name: imports_for_tests
+#+BEGIN_SRC python
+# -*- coding: utf-8 -*-
+import unittest
+import shutil
+from flask_testing import TestCase
+from runtime.rest.app import create_app
+from runtime.rest.api import *
+import datetime
+config = {
+         'SQLALCHEMY_DATABASE_URI': ''
+         }
+
+#+end_src
+
+*** Running tests
+#+NAME: run_test_cases
+#+BEGIN_SRC python
+if __name__ == '__main__':
+    unittest.main()
+
+#+END_SRC
+
 
 * Tangle                                                        :boilerplate:
 
@@ -2551,15 +2724,6 @@ api = Blueprint('APIs', __name__)
 <<add_nonopenedx_usage_analytics>>
 <<get_vlabs_logged_in_users>>
 <<get_vlabs_usage>>
-
-#<<get_analytics>>
-#<<get_openedx_usage>>
-#<<get_openedx_lab_wise_usage>>
-#<<get_openedx_search_usage>>
-#<<get_nonopenedx_usage>>
-#<<get_nonopenedx_lab_wise_usage>>
-#<<get_nonopenedx_search_usage>>
-
 #+END_SRC
 
 #+BEGIN_SRC conf :tangle openedx-logged-in-users.conf :eval no :noweb yes
@@ -2568,4 +2732,18 @@ api = Blueprint('APIs', __name__)
 
 #+END_SRC
 
+
+** tests
+#+BEGIN_SRC python :tangle test_api.py :eval no :noweb yes
+<<imports_for_tests>>
+<<test_get_usage_entity>>
+<<test_get_entity_openedx>>
+<<test_get_entity_non_openedx>>
+#<<test_get_vlabs_usage>>
+<<test_get_entity_openedx_search>>
+<<test_add_openedx_usage_analytics>>
+<<test_add_nonopenedx_usage_analytics>>
+#<<test_get_vlabs_logged_in_users>>
+<<run_test_cases>>
+#+end_src
 
