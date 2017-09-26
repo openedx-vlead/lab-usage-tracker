@@ -1,4 +1,4 @@
-#+TITLE: Plan for Virtual Labas Analytics Service
+#+TITLE: Plan for Virtual Labs Analytics Service
 #+AUTHOR: VLEAD
 #+DATE: [2017-09-11 Mon]
 #+PROPERTY: results output
