@@ -24,10 +24,10 @@ APP_URL = "http://localhost:5000"
 KEY = "defaultkey"
 
 # Lab Data Service URL
-LDS_URL = "http://lds.vlabs.ac.in"
+LDS_URL = "http://ld.base4.vlabs.ac.in"
 
 # Analytics database (i.e elasticsearch) URL
-ANALYTICS_DB_URL = "http://192.168.33.3"
+ANALYTICS_DB_URL = "http://analytics-db1.base4.vlabs.ac.in"
 
 # Analytics database (i.e elasticsearch) indexes & doc_types to store the
 # analytics data
