@@ -226,7 +226,7 @@ def get_openedx_usage(entity):
             query = {
                 "query": {
                     "range": {
-                        "date_of_experiment": {
+                        "date": {
                             "lte": till_date,
                             "format": "yyyy-MM-dd"
                         }
@@ -694,7 +694,7 @@ def get_openedx_lab_wise_usage(entity):
         query =  {
             "query": {
                 "range": {
-                    "date_of_experiment": {
+                    "date": {
                         "lte": till_date,
                         "format": "yyyy-MM-dd"
                         }
@@ -2395,6 +2395,7 @@ class TestPostAnalytics(TestCase):
 
 #+END_SRC
 
+
 ** Add usage analytics of labs running on nonopenedx platform
 
    1. This API reads the records from the file =/root/nonopenedx-lab-usage-info.txt=
@@ -2545,6 +2546,7 @@ class TestAddNonOpenedxUsageAnalytics(TestCase):
         self.assertEqual(response.status_code, 200)
 
 #+END_SRC
+
 
 ** Get current logged in users and total registered users in outreach portal
 *** API Design
