@@ -19,11 +19,11 @@
   :PROPERTIES:
   :CUSTOM_ID: get_non_openedx_usage
   :END:          
+  
+  This API returns the analytics of labs hosted on =nonopenedx= platform
 **** API design  
-     
-     This API return the total usage of labs hosted on =nonopenedx= platform
 
-    - URL :: /usage/nonopenedx
+    - URL :: /analytics/nonopenedx
 
     - Method :: GET
 
@@ -42,12 +42,14 @@
       + Code: 200
       + Content : 
       #+BEGIN_EXAMPLE
-        {
-        "hits": 41314869,
-        "till_date": "2017-09-20",
-        "usage": 585045,
-        "visits": 9908263
-        }
+      {
+      "analytics": {
+        "hits": 41275716,
+        "usage": 584613,
+        "visits": 9896579
+        },
+      "till_date": "2017-10-06"
+      }
       #+END_EXAMPLE
     - Error Response ::
       + Code : 400
@@ -66,7 +68,7 @@
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost/usage/nonopenedx?till_date=2017-09-20
+      http://localhost:5000/analytics/nonopenedx
       #+END_EXAMPLE
     - Notes ::
                If query parameter =till_date= not passed by default server
@@ -77,14 +79,14 @@
   :CUSTOM_ID: get_openedx_usage
   :END:          
 
-   1. This API returns total usage of all the labs hosted on openedx platform
+   1. This API returns analytics of all the labs hosted on openedx platform
       (i.e from the date =2016-10-07=)
       
    2. As of date =2017-09-27= total labs hosted on openedx platform are =90=
 
 **** API design  
 
-    - URL :: /usage/openedx
+    - URL :: /analytics/openedx
 
     - Method :: GET
 
@@ -104,8 +106,10 @@
       + Content : 
       #+BEGIN_EXAMPLE
       {
-      "till_date": "2017-09-20",
-      "usage": 887
+      "analytics": {
+         "usage": 10081
+         },
+       "till_date": "2017-10-06"
       }
       #+END_EXAMPLE
     - Error Response ::
@@ -125,7 +129,7 @@
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost/usage/openedx?till_date=2017-09-20
+      http://localhost:5000/analytics/openedx
       #+END_EXAMPLE
     - Notes ::
                If query parameter =till_date= not passed by default server
@@ -138,7 +142,7 @@
   :END:          
 **** API design  
 
-    - URL :: /usage/vlabs
+    - URL :: /analytics/vlabs
 
     - Method :: GET
 
@@ -158,12 +162,18 @@
       + Content : 
       #+BEGIN_EXAMPLE
       {
-      "till_date": "2017-09-20",
-      "usage": {
-               "nonopenedx_usage": 585045,
-               "openedx_usage": 887,
-               "total_usage": 585932
-               }
+      "analytics": {
+         "nonopenedx": {
+            "hits": 41275716,
+            "usage": 584613,
+            "visits": 9896579
+         },
+         "openedx": {
+            "usage": 10081
+         },
+        "total_usage": 594694
+        },
+      "till_date": "2017-10-06"
       }
       #+END_EXAMPLE
     - Error Response ::
@@ -183,25 +193,25 @@
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost/usage/vlabs?till_date=2017-09-20
+      http://localhost:5000/analytics/vlabs
       #+END_EXAMPLE
     - Notes ::
                If query parameter =till_date= not passed by default server
                calculates =till_date= as today's date
-
+               
 *** Implementation
 #+NAME: get_usage_entity
 #+BEGIN_SRC python
 
 #@api.route('/api/elkusage', methods=['GET'])
-@api.route('/usage/<entity>', methods=['GET'])
-def get_openedx_usage(entity):
+@api.route('/analytics/<platform>', methods=['GET'])
+def get_openedx_usage(platform):
 
     if request.method == 'GET':
         index = VLABS_USAGE
 
-        if entity not in ALLOWED_PLATFORMS:
-            message = "Not found results for entity : %s" % entity
+        if platform not in ALLOWED_PLATFORMS:
+            message = "Not found results for platform : %s" % platform
             abort(make_response(jsonify(message=message), 404))
 
         allowed_query_params = ["till_date"]
@@ -218,7 +228,7 @@ def get_openedx_usage(entity):
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
 
-        if entity == "openedx":
+        if platform == "openedx":
 
             doc_type = OPENEDX_USAGE
             query = {
@@ -265,7 +275,7 @@ def get_openedx_usage(entity):
                 abort(make_response(jsonify(message=message), status_code))
 
 
-        elif entity == "nonopenedx":
+        elif platform == "nonopenedx":
 
             doc_type = NONOPENEDX_USAGE
 
@@ -308,15 +318,17 @@ def get_openedx_usage(entity):
 
         else:
 
-            ANALYTICS_DB_API_FOR_EDX_USAGE = "%s/usage/openedx?till_date=%s" %\
+            ANALYTICS_DB_API_FOR_EDX_USAGE = "%s/analytics/openedx?till_date=%s" %\
               (APP_URL, till_date)
             ANALYTICS_DB_API_FOR_NONEDX_USAGE = \
-              "%s/usage/nonopenedx?till_date=%s" % (APP_URL, till_date)
+              "%s/analytics/nonopenedx?till_date=%s" % (APP_URL, till_date)
 
             try:
                 headers = {'Content-Type': 'application/json'}
                 res = requests.get(ANALYTICS_DB_API_FOR_EDX_USAGE, \
-                                 headers=headers)
+                                   headers=headers)
+                current_app.logger.debug("analytics_db_api_for_edx_usage = %s"\
+                                         % (ANALYTICS_DB_API_FOR_EDX_USAGE))
             except Exception as e:
                 current_app.logger.error("Exception error = %s" % str(e))
                 message = "Exception occured : %s" % str(e)
@@ -396,7 +408,7 @@ class TestGetUsageEntity(TestCase):
 
         headers = {'Content-Type': 'application/json'}
 
-        response = self.client.get("/usage/openedx?till_date=2017-09-21")
+        response = self.client.get("/analytics/openedx")
         self.assertEqual(response.status_code, 200)
 
     def test_get_usage_nonopenedx(self):
@@ -404,7 +416,15 @@ class TestGetUsageEntity(TestCase):
         
         headers = {'Content-Type': 'application/json'}
     
-        response = self.client.get("/usage/nonopenedx?till_date=2017-09-21")
+        response = self.client.get("/analytics/nonopenedx")
+        self.assertEqual(response.status_code, 200)
+
+    def test_get_usage_vlabs(self):
+        print "test_get_usage_vlabs"
+        
+        headers = {'Content-Type': 'application/json'}
+    
+        response = self.client.get("/analytics/vlabs")
         self.assertEqual(response.status_code, 200)
 
 
@@ -414,8 +434,8 @@ class TestGetUsageEntity(TestCase):
 ** Get usage analytics of (openedx or nonopenedx) platform
    
 *** Get usage analytics of labs
-    This API return usage fanalytics of labs hosted on =openedx= and
-    =nonopenedx= platforms
+    This API returns analytics of labs hosted on =openedx= and =nonopenedx=
+    platforms
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
@@ -446,26 +466,60 @@ class TestGetUsageEntity(TestCase):
     - Data Params :: None
 
           
-    - Success Response ::
+    - Success Response :: for <platform> : =openedx=
       + Code: 200
       + Content : 
       #+BEGIN_EXAMPLE
       [
         {
-          "discipline_name": "Computer Science and Engineering",
-          "institute_name": "IIIT Hyderabad",
-          "lab_id": "cse01",
-          "lab_name": "Data Structures",
-          "usage": 119
+         "analytics": {
+            "usage": 1776
+        },
+        "discipline_name": "Computer Science and Engineering",
+        "institute_name": "IIIT Hyderabad",
+        "lab_id": "cse01",
+        "lab_name": "Data Structures"
+       },
+       {
+        "analytics": {
+            "usage": 1066
+       },
+       "discipline_name": "Computer Science and Engineering",
+       "institute_name": "IIIT Hyderabad",
+       "lab_id": "cse02",
+       "lab_name": "Computer Programming"
+       }
+     
+      ] 
+      #+END_EXAMPLE
+    - Success Response :: for <platform> : =nonopenedx=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+            "analytics": {
+                "hits": 4075798,
+                "usage": 88477,
+                "visits": 322608
+            },
+            "discipline_name": "Chemical Engineering",
+            "institute_name": "NIT Surathkal",
+            "lab_id": "chem05",
+            "lab_name": "unit operation, reaction engg. & process control"
         },
         {
-          "discipline_name": "Electronics and Communication",
-          "institute_name": "IIT Bombay",
-          "lab_id": "ece40",
-          "lab_name": "Electronic Devices and Circuits",
-          "usage": 46
-         }
-      ] 
+            "analytics": {
+                "hits": 1905058,
+                "usage": 56373,
+                "visits": 523592
+            },
+            "discipline_name": "Computer Science and Engineering",
+            "institute_name": "IIIT Hyderabad",
+            "lab_id": "cse02",
+            "lab_name": "Computer Programming"
+        }
+      ]
       #+END_EXAMPLE
     - Error Response ::
       + Code : 400
@@ -485,7 +539,8 @@ class TestGetUsageEntity(TestCase):
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost:5000/labs/openedx?top=2&till_date=2017-09-20
+      http://localhost:5000/analytics/labs/openedx
+      http://localhost:5000/analytics/labs/nonopenedx
       #+END_EXAMPLE
     - Notes ::
 
@@ -499,8 +554,8 @@ class TestGetUsageEntity(TestCase):
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
   :END:          
-  This API return usage analytics of institute's labs hosted on =openedx= and
-  =nonopenedx= platforms
+  This API returns analytics of all the labs belongs to respective institutes
+  which are hosted on =openedx= and =nonopenedx= platforms
     - URL :: /institutes/<platform>
 
              where =<platform>=
@@ -527,23 +582,53 @@ class TestGetUsageEntity(TestCase):
     - Data Params :: None
 
           
-    - Success Response ::
+    - Success Response :: for <platform> : =openedx=
       + Code: 200
       + Content : 
       #+BEGIN_EXAMPLE
       [
         {
-          "institute_id": "iiith",
-          "institute_name": "IIIT Hyderabad",
-          "usage": 460
+            "analytics": {
+                "usage": 5748
+            },
+            "institute_id": "iiith",
+            "institute_name": "IIIT Hyderabad"
         },
         {
-          "institute_id": "iitg",
-          "institute_name": "IIT Guwahati",
-          "usage": 111
-        }  
+            "analytics": {
+                "usage": 1004
+            },
+            "institute_id": "iitg",
+            "institute_name": "IIT Guwahati"
+        }
       ]
       #+END_EXAMPLE
+    - Success Response :: for <platform> : =nonopenedx=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+            "analytics": {
+                "hits": 14825575,
+                "usage": 253581,
+                "visits": 5236638
+            },
+            "institute_id": "iiith",
+            "institute_name": "IIIT Hyderabad"
+        },
+        {
+            "analytics": {
+                "hits": 11840749,
+                "usage": 218094,
+                "visits": 1142212
+            },
+            "institute_id": "nitk",
+            "institute_name": "NIT Surathkal"
+        }
+      ]
+      #+END_EXAMPLE
+
     - Error Response ::
       + Code : 400
       + Content :
@@ -562,7 +647,8 @@ class TestGetUsageEntity(TestCase):
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost:5000/institutes/openedx?top=2&till_date=2017-09-20
+      http://localhost:5000/analytics/institutes/openedx
+      http://localhost:5000/analytics/institutes/nonopenedx
       #+END_EXAMPLE
     - Notes ::
 
@@ -571,14 +657,15 @@ class TestGetUsageEntity(TestCase):
       + If query parameter =top= is not passed by default API returns all the
         labs in =descending= order
 *** Get usage analytics of disciplines labs
+    This API return analytics of all the labs belongs to respective disciplines
+    which are hosted on =openedx= and =nonopenedx= platforms
+
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
   :END:          
-    This API return usage analytics of disciplien's labs hosted on =openedx=
-    and =nonopenedx= platforms
   
-    - URL :: /disciplines/<platform>
+    - URL :: /analytics/disciplines/<platform>
 
              where =<platform>=
              
@@ -604,25 +691,57 @@ class TestGetUsageEntity(TestCase):
     - Data Params :: None
 
           
-    - Success Response ::
+    - Success Response ::  for <platform> : =openedx=
       + Code: 200
       + Content : 
       #+BEGIN_EXAMPLE
       [
         {
-          "discipline_id": "cse",
-          "discipline_name": "Computer Science and Engineering",
-          "institute_name": "IIIT Hyderabad",
-          "usage": 277
+            "analytics": {
+                "usage": 3991
+            },
+            "discipline_id": "cse",
+            "discipline_name": "Computer Science and Engineering",
+            "institute_name": "IIIT Hyderabad"
         },
         {
-          "discipline_id": "ece",
-          "discipline_name": "Electronics and Communication",
-          "institute_name": "IIT Guwahati",
-          "usage": 124
+            "analytics": {
+                "usage": 1196
+            },
+            "discipline_id": "ee",
+            "discipline_name": "Electrical Engineering",
+            "institute_name": "IIT Roorkee"
         }
       ]
       #+END_EXAMPLE
+    - Success Response ::  for <platform> : =nonopenedx=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+            "analytics": {
+                "hits": 9428523,
+                "usage": 167751,
+                "visits": 3733589
+            },
+            "discipline_id": "cse",
+            "discipline_name": "Computer Science and Engineering",
+            "institute_name": "IIIT Hyderabad"
+        },
+        {
+            "analytics": {
+                "hits": 4075798,
+                "usage": 88477,
+                "visits": 322608
+            },
+            "discipline_id": "chem-engg",
+            "discipline_name": "Chemical Engineering",
+            "institute_name": "NIT Surathkal"
+        }
+      ]
+      #+END_EXAMPLE  
+
     - Error Response ::
       + Code : 400
       + Content :
@@ -641,7 +760,8 @@ class TestGetUsageEntity(TestCase):
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost:5000/disciplines/openedx?top=2&till_date=2017-09-20
+      http://localhost:5000/analytics/disciplines/openedx
+      http://localhost:5000/analytics/disciplines/nonopenedx
       #+END_EXAMPLE
     - Notes ::
 
@@ -653,7 +773,7 @@ class TestGetUsageEntity(TestCase):
 *** Implementation for openedx platform
 #+NAME: get_entity_openedx
 #+BEGIN_SRC python
-@api.route('/<entity>/openedx', methods=['GET'])
+@api.route('/analytics/<entity>/openedx', methods=['GET'])
 def get_openedx_lab_wise_usage(entity):
 
     if request.method == 'GET':
@@ -804,19 +924,19 @@ class TestGetEntityOpenedx(TestCase):
     def test_get_labs_openedx(self):
 	print "test_get_labs_openedx"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/labs/openedx")
+	response = self.client.get("/analytics/labs/openedx")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_institutes_openedx(self):
 	print "test_get_institutes_openedx"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/institutes/openedx")
+	response = self.client.get("/analytics/institutes/openedx")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_disciplines_openedx(self):
 	print "test_get_disciplines_openedx"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/disciplines/openedx")
+	response = self.client.get("/analytics/disciplines/openedx")
 	self.assertEqual(response.status_code, 200)
 
 #+END_SRC
@@ -826,7 +946,7 @@ class TestGetEntityOpenedx(TestCase):
 #+BEGIN_SRC python
 
 #@api.route('/analytics/labs', methods=['POST', 'GET'])
-@api.route('/<entity>/nonopenedx', methods=['GET'])
+@api.route('/analytics/<entity>/nonopenedx', methods=['GET'])
 #@api.cache.cached(timeout=360)
 def nonopenedx_search_usage(entity):
     
@@ -973,19 +1093,19 @@ class TestGetEntityNonOpenedx(TestCase):
     def test_get_labs_non_openedx(self):
 	print "test_get_labs_non_openedx"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/labs/nonopenedx")
+	response = self.client.get("/analytics/labs/nonopenedx")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_institutes_non_openedx(self):
 	print "test_get_institutes_non_openedx"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/institutes/nonopenedx")
+	response = self.client.get("/analytics/institutes/nonopenedx")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_disciplines_non_openedx(self):
 	print "test_get_disciplines_non_openedx"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/disciplines/nonopenedx")
+	response = self.client.get("/analytics/disciplines/nonopenedx")
 	self.assertEqual(response.status_code, 200)
 
 #+END_SRC
@@ -993,14 +1113,15 @@ class TestGetEntityNonOpenedx(TestCase):
 
 ** Get usage analytics of labs on vlabs (openedx+nonopenedx) platform
 *** Get usage analytics of labs
+    This API return usage analytics of labs hosted on vlabs (=openedx= +
+    =nonopenedx=) platform
+
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
   :END:          
-  This API return usage analytics of labs hosted on vlabs (=openedx= +
-  =nonopenedx=) platform
     
-    - URL :: /labs/vlabs
+    - URL :: /analytics/labs/vlabs
 
     - Method :: GET
 
@@ -1025,26 +1146,21 @@ class TestGetEntityNonOpenedx(TestCase):
       #+BEGIN_EXAMPLE
       [
         {
-          "discipline_name": "Chemical Engineering",
-          "institute_name": "NIT Surathkal",
-          "lab_id": "chem05",
-          "lab_name": "unit operation, reaction engg. & process control",
-          "usage": {
-            "nonopenedx_usage": 88477,
-            "openedx_usage": 0,
-            "total_usage": 88477
-          }
-        },
-        {
-          "discipline_name": "Computer Science and Engineering",
-          "institute_name": "IIIT Hyderabad",
-          "lab_id": "cse02",
-          "lab_name": "Computer Programming",
-          "usage": {
-            "nonopenedx_usage": 56373,
-            "openedx_usage": 0,
-            "total_usage": 56373
-          }
+            "analytics": {
+                "nonopenedx": {
+                    "hits": 4075798,
+                    "usage": 88477,
+                    "visits": 322608
+                },
+                "openedx": {
+                    "usage": 72
+                },
+                "total_usage": 88549
+            },
+            "discipline_name": "Chemical Engineering",
+            "institute_name": "NIT Surathkal",
+            "lab_id": "chem05",
+            "lab_name": "unit operation, reaction engg. & process control"
         }
       ]
       #+END_EXAMPLE
@@ -1066,7 +1182,7 @@ class TestGetEntityNonOpenedx(TestCase):
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost:5000/labs/vlabs?top=2&till_date=2017-09-20
+      http://localhost:5000/analytics/labs/vlabs
       #+END_EXAMPLE
     - Notes ::
 
@@ -1076,14 +1192,16 @@ class TestGetEntityNonOpenedx(TestCase):
         labs in =descending= order
 
 *** Get usage analytics of institutes
+    This API return usage analytics of institute's labs hosted on vlabs
+    (=openedx= + =nonopenedx=) platform
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
   :END:          
-  This API return usage analytics of institute's labs hosted on vlabs
-  (=openedx= + =nonopenedx=) platform
+  
 
-    - URL :: /institutes/vlabs?top=n&till_date=<YYYY-MM-DD>
+
+    - URL :: /analytics/institutes/vlabs
 
     - Method :: GET
 
@@ -1107,24 +1225,21 @@ class TestGetEntityNonOpenedx(TestCase):
       + Content : 
       #+BEGIN_EXAMPLE
       [
-          {
-              "institute_id": "iiith",
-              "institute_name": "IIIT Hyderabad",
-              "usage": {
-                  "nonopenedx_usage": 253581,
-                  "openedx_usage": 0,
-                  "total_usage": 253581
-              }
-          },
-          {
-              "institute_id": "nitk",
-              "institute_name": "NIT Surathkal",
-              "usage": {
-                  "nonopenedx_usage": 218094,
-                  "openedx_usage": 0,
-                  "total_usage": 218094
-              }
-          }
+        {
+            "analytics": {
+                "nonopenedx": {
+                    "hits": 14825575,
+                    "usage": 253581,
+                    "visits": 5236638
+                },
+                "openedx": {
+                    "usage": 5748
+                },
+                "total_usage": 259329
+            },
+            "institute_id": "iiith",
+            "institute_name": "IIIT Hyderabad"
+        }
       ]
       #+END_EXAMPLE
     - Error Response ::
@@ -1145,7 +1260,7 @@ class TestGetEntityNonOpenedx(TestCase):
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost:5000/institutes/vlabs?top=2&till_date=2017-09-20
+      http://localhost:5000/analytics/institutes/vlabs
       #+END_EXAMPLE
     - Notes ::
 
@@ -1154,14 +1269,14 @@ class TestGetEntityNonOpenedx(TestCase):
       + If query parameter =top= is not passed by default API returns all the
         labs in =descending= order
 *** Get usage analytics of disciplines
+    This API return usage analytics of discipline's labs hosted on vlabs
+    (=openedx= + =nonopenedx=) platform
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
   :END:          
-  This API return usage analytics of discipline's labs hosted on vlabs
-  (=openedx= + =nonopenedx=) platform
   
-    - URL :: /disciplines/vlabs?top=n&till_date=<YYYY-MM-DD>
+    - URL :: /analytics/disciplines/vlabs
              
     - Method :: GET
 
@@ -1185,26 +1300,21 @@ class TestGetEntityNonOpenedx(TestCase):
       + Content : 
       #+BEGIN_EXAMPLE
       [
-          {
-              "discipline_id": "cse",
-              "discipline_name": "Computer Science and Engineering",
-              "institute_name": "IIIT Hyderabad",
-              "usage": {
-                  "nonopenedx_usage": 167751,
-                  "openedx_usage": 0,
-                  "total_usage": 167751
-              }
-          },
-          {
-              "discipline_id": "chem-engg",
-              "discipline_name": "Chemical Engineering",
-              "institute_name": "NIT Surathkal",
-              "usage": {
-                  "nonopenedx_usage": 88477,
-                  "openedx_usage": 0,
-                  "total_usage": 88477
-              }
-          }
+        {
+            "analytics": {
+                "nonopenedx": {
+                    "hits": 9428523,
+                    "usage": 167751,
+                    "visits": 3733589
+                },
+                "openedx": {
+                    "usage": 3991
+                },
+                "total_usage": 171742
+            },
+            "discipline_id": "cse",
+            "discipline_name": "Computer Science and Engineering",
+         }
       ]
       #+END_EXAMPLE
     - Error Response ::
@@ -1234,14 +1344,13 @@ class TestGetEntityNonOpenedx(TestCase):
       + If query parameter =top= is not passed by default API returns all the
         labs in =descending= order
 
-
 *** Implementation
 
 #+NAME: get_vlabs_usage
 #+BEGIN_SRC python
 
 #@api.route('/analytics/labs', methods=['POST', 'GET'])
-@api.route('/<entity>/vlabs', methods=['POST', 'GET'])
+@api.route('/analytics/<entity>/vlabs', methods=['POST', 'GET'])
 #@api.cache.cached(timeout=360)
 def vlabs_usage(entity):
     
@@ -1281,7 +1390,7 @@ def vlabs_usage(entity):
         else:
             entity_id = "institute_id"
             
-        ANALYTICS_DB_API = "%s/%s/openedx?top=%s&till_date=%s" % \
+        ANALYTICS_DB_API = "%s/analytics/%s/openedx?top=%s&till_date=%s" % \
           (APP_URL, entity, size, till_date)
         current_app.logger.debug("openedx usage url = %s" % (ANALYTICS_DB_API))
 
@@ -1301,7 +1410,7 @@ def vlabs_usage(entity):
             message = "Error code : %s" % status_code
             abort(make_response(jsonify(message=message), status_code))
 
-        ANALYTICS_DB_API = "%s/%s/nonopenedx?top=%s&till_date=%s" % \
+        ANALYTICS_DB_API = "%s/analytics/%s/nonopenedx?top=%s&till_date=%s" % \
           (APP_URL, entity, size, till_date)
         current_app.logger.debug("non openedx Usage url = %s" % \
                                  (ANALYTICS_DB_API))
@@ -1416,19 +1525,19 @@ class TestGetVlabsUsage(TestCase):
     def test_get_labs_vlabs(self):
 	print "test_get_labs_vlabs"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/labs/vlabs")
+	response = self.client.get("/analytics/labs/vlabs")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_institutes_vlabs(self):
 	print "test_get_institutes_vlabs"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/institutes/vlabs")
+	response = self.client.get("/analytics/institutes/vlabs")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_disciplines_vlabs(self):
 	print "test_get_disciplines_vlabs"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/disciplines/vlabs")
+	response = self.client.get("/analytics/disciplines/vlabs")
 	self.assertEqual(response.status_code, 200)
 
 #+END_SRC
@@ -1437,15 +1546,14 @@ class TestGetVlabsUsage(TestCase):
 ** Search usage analytics of vlabs
  
 *** Search lab usage analytics
+    This API returns usage analytics search results on labs hosted on (vlabs,
+    openedx or nonopenedx) platforms
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx-usage
   :END:          
-  This API returns usage analytics search results on labs hosted on (vlabs,
-  openedx or nonopenedx) platforms
 
-
-    - URL :: /labs/<platform>/_search
+    - URL :: /analytics/labs/<platform>/_search
              
              where =<platform>= is of follows
 
@@ -1482,17 +1590,62 @@ class TestGetVlabsUsage(TestCase):
     - Data Params :: None
 
           
-    - Success Response ::
+    - Success Response :: for <platform> : =openedx=
       + Code: 200
       + Content : 
       #+BEGIN_EXAMPLE
       [
-         {
-           "discipline_name": "Computer Science and Engineering",
-           "institute_name": "IIIT Hyderabad",
-           "lab_id": "cse04",
-           "lab_name": "Problem Solving",
-           "usage": 10
+        {
+            "analytics": {
+                "usage": 106
+            },
+            "discipline_name": "Computer Science and Engineering",
+            "institute_name": "IIIT Hyderabad",
+            "lab_id": "cse04",
+            "lab_name": "Problem Solving"
+        }
+
+      ]
+      #+END_EXAMPLE
+    - Success Response :: for <platform> : =nonopenedx=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+            "analytics": {
+                "hits": "1503571",
+                "usage": "1651",
+                "visits": "986320"
+            },
+            "discipline_name": "Computer Science and Engineering",
+            "institute_name": "IIIT Hyderabad",
+            "lab_id": "cse04",
+            "lab_name": "Problem Solving"
+        }
+      ]
+      #+END_EXAMPLE
+    - Success Response :: for <platform> : =vlabs=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+            "analytics": {
+                "nonopenedx": {
+                    "hits": "1503571",
+                    "usage": "1651",
+                    "visits": "986320"
+                },
+                "openedx": {
+                    "usage": 106
+                },
+                "total_usage": 1757
+            },
+            "discipline_name": "Computer Science and Engineering",
+            "institute_name": "IIIT Hyderabad",
+            "lab_id": "cse04",
+            "lab_name": "Problem Solving"
         }
       ]
       #+END_EXAMPLE
@@ -1513,20 +1666,23 @@ class TestGetVlabsUsage(TestCase):
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost:5000/labs/openedx/_search?lab_id=cse04&institute_id=iiith
+      http://localhost:5000/analytics/labs/openedx/_search?lab_id=cse04
+      http://localhost:5000/analytics/labs/nonopenedx/_search?lab_id=cse04
+      http://localhost:5000/analytics/labs/vlabs/_search?lab_id=cse04
       #+END_EXAMPLE
     - Notes ::
                
 *** Search institute usage analytics
+    This API returns usage analytics search results on institutes hosted on (vlabs,
+    openedx or nonopenedx) platforms
+
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx-usage
   :END:          
-  This API returns usage analytics search results on institutes hosted on (vlabs,
-  openedx or nonopenedx) platforms
   
   
-    - URL :: /institutes/<platform>/_search
+    - URL :: /analytics/institutes/<platform>/_search
              
              where =<platform>= is of follows
 
@@ -1563,15 +1719,17 @@ class TestGetVlabsUsage(TestCase):
     - Data Params :: None
 
           
-    - Success Response ::
+    - Success Response :: for <platform> : =openedx=
       + Code: 200
       + Content : 
       #+BEGIN_EXAMPLE
       [
         {
-          "institute_id": "iiith",
-          "institute_name": "IIIT Hyderabad",
-          "usage": 460
+            "analytics": {
+                "usage": 5748
+            },
+            "institute_id": "iiith",
+            "institute_name": "IIIT Hyderabad"
         }
       ]
       #+END_EXAMPLE
@@ -1678,7 +1836,7 @@ class TestGetVlabsUsage(TestCase):
 *** Implementation
 #+NAME: get_entity_openedx_search
 #+BEGIN_SRC python
-@api.route('/<entity>/<platform>/_search', methods=['GET'])
+@api.route('/analytics/<entity>/<platform>/_search', methods=['GET'])
 def get_openedx_search_usage(entity, platform):
 
     if request.method == 'GET':
@@ -1753,7 +1911,7 @@ def get_openedx_search_usage(entity, platform):
                 else:
                     script = "[doc.institute_id.value, "+\
                       "doc.institute_name.value, doc.hits.value, "+\
-                      "doc.vistis.value, doc.usage.value].join('::')"
+                      "doc.visits.value, doc.usage.value].join('::')"
 
             else:
                 args = request.args.to_dict()
@@ -1857,9 +2015,9 @@ def get_openedx_search_usage(entity, platform):
                                 if platform == "openedx":
                                     usage_dict['analytics']['usage'] = inst_count
                                 else:
-                                    usage_dict['analytics']['usage'] = lab[4]
-                                usage_dict['analytics']['hits'] = lab[2]
-                                usage_dict['analytics']['visits'] = lab[3]
+                                    usage_dict['analytics']['usage'] = institute[4]
+                                usage_dict['analytics']['hits'] = institute[2]
+                                usage_dict['analytics']['visits'] = institute[3]
 
                             except Exception as e:
                                 pass
@@ -1880,9 +2038,9 @@ def get_openedx_search_usage(entity, platform):
                                 if platform == "openedx":
                                     usage_dict['analytics']['usage'] = dis_count
                                 else:
-                                    usage_dict['analytics']['usage'] = lab[5]
-                                usage_dict['analytics']['hits'] = lab[3]
-                                usage_dict['analytics']['visits'] = lab[4]
+                                    usage_dict['analytics']['usage'] = discipline[5]
+                                usage_dict['analytics']['hits'] = discipline[3]
+                                usage_dict['analytics']['visits'] = discipline[4]
 
                             except Exception as e:
                                 pass
@@ -1899,7 +2057,8 @@ def get_openedx_search_usage(entity, platform):
                     abort(make_response(jsonify(message=message), 500))
         else:
             form_user_query_params = urlencode(user_query_params)
-            ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = "%s/%s/openedx/_search?%s"\
+            ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = \
+              "%s/analytics/%s/openedx/_search?%s"\
               % (APP_URL, entity, form_user_query_params)
             current_app.logger.debug\
               ("ANALYTICS_DB_SEARCH_API_FOR_EDX_USAGE = %s" % \
@@ -1921,7 +2080,7 @@ def get_openedx_search_usage(entity, platform):
                 current_app.logger.error("Error code = %s" % (status_code))
 
             ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE = \
-              "%s/%s/nonopenedx/_search?%s" % \
+              "%s/analytics/%s/nonopenedx/_search?%s" % \
               (APP_URL, entity, form_user_query_params)
             current_app.logger.debug\
               ("ANALYTICS_DB_SEARCH_API_FOR_NONEDX_USAGE = %s" % \
@@ -2041,37 +2200,42 @@ class TestGetEntityPlatformSearch(TestCase):
     def test_get_labs_openedx_search(self):
 	print "test_get_labs_openedx_search"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/labs/openedx/_search?lab_id=cse04")
+	response = self.client.get("/analytics/labs/openedx/_search?lab_id=cse04")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_labs_non_openedx_search(self):
 	print "test_get_labs_non_openedx_search"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/labs/nonopenedx/_search?lab_id=cse04")
+	response = self.client.get\
+      ("/analytics/labs/nonopenedx/_search?lab_id=cse04")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_institutes_openedx_search(self):
 	print "test_get_institutes_openedx_search"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/institutes/openedx/_search?lab_id=cse04")
+	response = self.client.get\
+      ("/analytics/institutes/openedx/_search?lab_id=cse04")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_institutes_non_openedx_search(self):
 	print "test_get_institutes_non_openedx_search"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/institutes/nonopenedx/_search?lab_id=cse04")
+	response = self.client.get\
+      ("/analytics/institutes/nonopenedx/_search?lab_id=cse04")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_disciplines_openedx_search(self):
 	print "test_get_disciplines_openedx_search"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/disciplines/openedx/_search?lab_id=cse04")
+	response = self.client.get\
+      ("/analytics/disciplines/openedx/_search?lab_id=cse04")
 	self.assertEqual(response.status_code, 200)
 
     def test_get_disciplines_non_openedx_search(self):
 	print "test_get_labs_non_openedx_search"
 	headers = {'Content-Type': 'application/json'}
-	response = self.client.get("/labs/nonopenedx/_search?lab_id=cse04")
+	response = self.client.get\
+      ("/analytics/labs/nonopenedx/_search?lab_id=cse04")
 	self.assertEqual(response.status_code, 200)
 
 
@@ -2805,7 +2969,7 @@ if __name__ == '__main__':
 <<test_get_usage_entity>>
 <<test_get_entity_openedx>>
 <<test_get_entity_non_openedx>>
-#<<test_get_vlabs_usage>>
+<<test_get_vlabs_usage>>
 <<test_get_entity_openedx_search>>
 #<<test_add_openedx_usage_analytics>>
 #<<test_add_nonopenedx_usage_analytics>>
