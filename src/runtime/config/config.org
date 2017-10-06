@@ -27,7 +27,7 @@ KEY = "defaultkey"
 LDS_URL = "http://ld.base4.vlabs.ac.in"
 
 # Analytics database (i.e elasticsearch) URL
-ANALYTICS_DB_URL = "http://192.168.33.3"
+ANALYTICS_DB_URL = "http://192.168.33.2"
 
 # Analytics database (i.e elasticsearch) indexes & doc_types to store the
 # analytics data
@@ -38,15 +38,16 @@ VLABS_USAGE = "vlabs"
 ## Types to store openedx & nonopenedx usages
 OPENEDX_USAGE = "openedx_usage"
 NONOPENEDX_USAGE = "nonopenedx_usage"
-
+ALLOWED_PLATFORMS = ["openedx", "nonopenedx", "vlabs"]
+ALLOWED_ENTITIES = ["labs", "institutes", "disciplines"]
 # PATH to analytics of nonopenedx labs file which is copied from
 # stats.vlabs.ac.in server
 
 NONOPENEDX_USAGE_INFO_FILE_PATH = "/home/sripathi/output.txt"
 
 ###Credentials to analytics-db
-USER="sripathi"
-PASSWORD="sudswathi"
+USER="vlead"
+PASSWORD="vlead123"
 #+END_SRC
 
 

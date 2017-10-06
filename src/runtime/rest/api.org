@@ -15,7 +15,6 @@
   
 ** Get total usage analytics of labs
 
-
 *** Get total usage analytics of labs hosted on non-openedx platform
   :PROPERTIES:
   :CUSTOM_ID: get_non_openedx_usage
@@ -201,8 +200,7 @@ def get_openedx_usage(entity):
     if request.method == 'GET':
         index = VLABS_USAGE
 
-        allowed_entities = ["openedx", "nonopenedx", "vlabs"]
-        if entity not in allowed_entities:
+        if entity not in ALLOWED_PLATFORMS:
             message = "Not found results for entity : %s" % entity
             abort(make_response(jsonify(message=message), 404))
 
@@ -235,8 +233,8 @@ def get_openedx_usage(entity):
             }
             ANALYTICS_DB_API = "%s/%s/%s/_count" % \
               (ANALYTICS_DB_URL, index, doc_type)
-            current_app.logger.debug("openedx usage url = %s" % \
-                                     (ANALYTICS_DB_API))
+            current_app.logger.debug("openedx usage url = %s, query = %s" % \
+                                     (ANALYTICS_DB_API, query))
 
             try:
                 res = requests.get(ANALYTICS_DB_API, data=json.dumps(query))
@@ -246,13 +244,14 @@ def get_openedx_usage(entity):
                 message = "Exception occured : %s" % str(e)
                 abort(make_response(jsonify(message=message), 500))
 
-
             if res.status_code == 200:
                 usage = res.json()['count']
                 if usage != 0:
                     usage_dict = {
                         "till_date" : till_date,
-                        "usage" : usage
+                        "analytics" :{
+                            "usage" : usage
+                            }
                     }
                     return jsonify(usage_dict)
                 else:
@@ -272,6 +271,9 @@ def get_openedx_usage(entity):
 
             ANALYTICS_DB_API = "%s/%s/%s/_search?q=date:%s&size=10000" % \
               (ANALYTICS_DB_URL, index, doc_type, till_date)
+            current_app.logger.debug("nonopenedx usage url = %s" % \
+                                     (ANALYTICS_DB_API))
+
             try:
                 res = requests.get(ANALYTICS_DB_API)
 
@@ -290,9 +292,14 @@ def get_openedx_usage(entity):
                         visits = visits + int(lab['_source']['visits'])
                         hits = hits + int(lab['_source']['hits'])
                         usage = usage + int(lab['_source']['usage'])
-                    analytics_data = {"visits" : visits, "hits" : hits, \
-                                          "usage" : usage, \
-                                          "till_date" : till_date}
+                    analytics_data = {
+                        "till_date" : till_date,
+                        "analytics" : {
+                            "visits" : visits, 
+                            "hits" : hits, 
+                            "usage" : usage
+                            }
+                        }
                 else:
                     message = "No records found on till_date : %s" % till_date
                     abort(make_response(jsonify(message=message), 404))
@@ -339,22 +346,27 @@ def get_openedx_usage(entity):
 
             vlabs_usage = {}
             vlabs_usage['till_date'] = till_date
-            vlabs_usage['usage'] = {}
+            vlabs_usage['analytics'] = {}
+            vlabs_usage['analytics']['openedx'] = {}
+            vlabs_usage['analytics']['nonopenedx'] = {}
 
             try:
-                vlabs_usage['usage']['openedx_usage'] = openedx_usage['usage']
+                vlabs_usage['analytics']['openedx'] = \
+                  openedx_usage['analytics']
 
             except Exception as e:
-                vlabs_usage['usage']['openedx_usage'] = 0
+                vlabs_usage['analytics']['openedx'] = {'usage' : 0}
 
             try:
-                vlabs_usage['usage']['nonopenedx_usage'] = nonopenedx_usage['usage']
+                vlabs_usage['analytics']['nonopenedx'] = \
+                  nonopenedx_usage['analytics']
 
             except Exception as e:
-                vlabs_usage['usage']['nonopenedx_usage'] = 0
+                vlabs_usage['analytics']['nonopenedx'] = {'usage' : 0}
 
-            vlabs_usage['usage']['total_usage'] = vlabs_usage['usage']['nonopenedx_usage']+\
-              vlabs_usage['usage']['openedx_usage']
+            vlabs_usage['analytics']['total_usage'] = vlabs_usage['analytics']\
+              ['nonopenedx']['usage'] + \
+              vlabs_usage['analytics']['openedx']['usage']
 
             current_app.logger.debug("vlabs_usage =  %s" % (vlabs_usage))
 
@@ -641,7 +653,6 @@ class TestGetUsageEntity(TestCase):
 *** Implementation for openedx platform
 #+NAME: get_entity_openedx
 #+BEGIN_SRC python
-
 @api.route('/<entity>/openedx', methods=['GET'])
 def get_openedx_lab_wise_usage(entity):
 
@@ -649,9 +660,8 @@ def get_openedx_lab_wise_usage(entity):
 
         index = VLABS_USAGE
         doc_type = OPENEDX_USAGE
-
-        allowed_entities = ["labs", "disciplines", "institutes"]
-        if entity not in allowed_entities:
+        
+        if entity not in ALLOWED_ENTITIES:
             message = "Not found results for entity : %s" % entity
             abort(make_response(jsonify(message=message), 404))
 
@@ -759,8 +769,9 @@ def get_openedx_lab_wise_usage(entity):
                       str(entity_details[1])
                     entity_usage_dict['institute_name'] = \
                       str(entity_details[2])
-
-                entity_usage_dict['usage'] = entity_usage['doc_count']
+                entity_usage_dict['analytics'] = {}
+                entity_usage_dict['analytics']['usage'] = \
+                  entity_usage['doc_count']
                 usage_list.append(entity_usage_dict)
                 
             return jsonify(usage_list)
@@ -823,8 +834,7 @@ def nonopenedx_search_usage(entity):
         index = VLABS_USAGE
         doc_type = NONOPENEDX_USAGE
 
-        allowed_entities = ["labs", "disciplines", "institutes"]
-        if entity not in allowed_entities:
+        if entity not in ALLOWED_ENTITIES:
             message = "Not found results for entity : %s" % entity
             abort(make_response(jsonify(message=message), 404))
 
@@ -850,7 +860,8 @@ def nonopenedx_search_usage(entity):
 
         if entity == "labs":
             script = "[doc.lab_id.value, doc.lab_name.value, "+\
-              "doc.discipline_name.value, doc.institute_name.value].join('::')"
+              "doc.discipline_name.value, doc.institute_name.value, doc.hits.value, doc.visits.value].join('::')" 
+
             
         elif entity == "institutes":
             script = "[doc.institute_id.value, "+\
@@ -875,6 +886,16 @@ def nonopenedx_search_usage(entity):
                     "usage": {
                     "sum": {
                         "field": "usage"
+                        }
+                    },
+                    "hits": {
+                    "sum": {
+                        "field": "hits"
+                        }
+                    },
+                    "visits": {
+                    "sum": {
+                        "field": "visits"
                         }
                     }
                 }
@@ -901,7 +922,12 @@ def nonopenedx_search_usage(entity):
 
             for entity_bucket in entity_buckets:
                 temp_dict = {}
-                temp_dict['usage'] = entity_bucket['usage']['value']
+                temp_dict['analytics'] = {}
+                temp_dict['analytics']['usage'] = \
+                  entity_bucket['usage']['value']
+                temp_dict['analytics']['hits'] = entity_bucket['hits']['value']
+                temp_dict['analytics']['visits'] = \
+                  entity_bucket['visits']['value']
                 entity_info = entity_bucket['key'].split("::")
                 if entity == "labs":
                     temp_dict['lab_id'] = entity_info[0]
@@ -1223,8 +1249,7 @@ def vlabs_usage(entity):
         index = VLABS_USAGE
         doc_type = NONOPENEDX_USAGE
 
-        allowed_entities = ["labs", "disciplines", "institutes"]
-        if entity not in allowed_entities:
+        if entity not in ALLOWED_ENTITIES:
             message = "Not found results for entity : %s" % entity
             abort(make_response(jsonify(message=message), 404))
 
@@ -1322,40 +1347,43 @@ def vlabs_usage(entity):
                 else:
                     non_openedx_lab = True
                     non_openedx_dict = non_openedx_usage[0]
-
                 if (openedx_lab and non_openedx_lab):
-                    non_openedx_usage = non_openedx_dict['usage']
-                    openedx_usage = openedx_dict['usage']
-                    openedx_dict['usage'] = {}
-                    openedx_dict['usage']["nonopenedx_usage"] = \
+                    openedx_usage = openedx_dict['analytics']
+                    non_openedx_usage = non_openedx_dict['analytics']
+                    non_openedx_dict['analytics'] = {}
+                    non_openedx_dict['analytics']["nonopenedx"] = {}
+                    non_openedx_dict['analytics']["nonopenedx"] = \
                       non_openedx_usage
-                    openedx_dict['usage']["openedx_usage"] = openedx_usage
-                    vlabs_dict = openedx_dict
+                    non_openedx_dict['analytics']["openedx"] = {}
+                    non_openedx_dict['analytics']["openedx"] = openedx_usage
+                    vlabs_dict = non_openedx_dict
 
                 elif (not openedx_lab and non_openedx_lab):
-                    non_openedx_usage = non_openedx_dict['usage']
-                    non_openedx_dict['usage'] = {}
-                    non_openedx_dict['usage']["nonopenedx_usage"] = \
+                    non_openedx_usage = non_openedx_dict['analytics']
+                    non_openedx_dict['analytics'] = {}
+                    non_openedx_dict['analytics']["nonopenedx"] = {}
+                    non_openedx_dict['analytics']["nonopenedx"] = \
                       non_openedx_usage
-                    non_openedx_dict['usage']["openedx_usage"] = 0
+                    non_openedx_dict['analytics']["openedx"] = {'usage' : 0}
                     vlabs_dict = non_openedx_dict
 
                 elif (openedx_lab and not non_openedx_lab):
-                    openedx_usage = openedx_dict['usage']
-                    openedx_dict['usage'] = {}
-                    openedx_dict['usage']["nonopenedx_usage"] = 0
-                    openedx_dict['usage']["openedx_usage"] = openedx_usage
+                    openedx_usage = openedx_dict['analytics']
+                    openedx_dict['analytics'] = {}
+                    openedx_dict['analytics']["nonopenedx"] = {'usage' : 0}
+                    openedx_dict['analytics']["openedx"] = {}
+                    openedx_dict['analytics']["openedx"] = openedx_usage
                     vlabs_dict = openedx_dict
 
                 else:
                     pass
-
-                total_usage = vlabs_dict['usage']['openedx_usage'] + \
-                  vlabs_dict['usage']['nonopenedx_usage']
-                vlabs_dict['usage']['total_usage'] = total_usage
+                current_app.logger.debug("vlabs_dict %s = " % vlabs_dict)
+                total_usage = vlabs_dict['analytics']['openedx']['usage'] + \
+                  vlabs_dict['analytics']['nonopenedx']['usage']
+                vlabs_dict['analytics']['total_usage'] = total_usage
                 vlabs_usage.append(vlabs_dict)
 
-            vlabs_usage.sort(key=lambda e: e['usage']['total_usage'], \
+            vlabs_usage.sort(key=lambda e: e['analytics']['total_usage'], \
                              reverse=True)
 
             if size == 0 or len(vlabs_usage )== size:
@@ -1656,14 +1684,11 @@ def get_openedx_search_usage(entity, platform):
     if request.method == 'GET':
         index = VLABS_USAGE
 
-        allowed_entities = ["labs", "disciplines", "institutes"]
-        if entity not in allowed_entities:
+        if entity not in ALLOWED_ENTITIES:
             message = "Not found results for entity : %s" % entity
             abort(make_response(jsonify(message=message), 404))
 
-        allowed_platforms = ["openedx", "nonopenedx", "vlabs"]
-
-        if platform not in allowed_platforms:
+        if platform not in ALLOWED_PLATFORMS:
             message = "Not found results for entity : %s" % platform
             abort(make_response(jsonify(message=message), 404))
 
@@ -1698,8 +1723,16 @@ def get_openedx_search_usage(entity, platform):
                     query.append(query_dict)
                 current_app.logger.debug("query_list = %s" %
                                         (query))
-                script = "[doc.lab_id.value, doc.lab_name.value, " +\
-                  "doc.discipline_name.value, doc.institute_name.value].join('::')"
+                
+                if platform == "openedx":
+                    script = "[doc.lab_id.value, doc.lab_name.value, " +\
+                      "doc.discipline_name.value, "+\
+                      "doc.institute_name.value].join('::')"
+                else:
+                    script = "[doc.lab_id.value, doc.lab_name.value, " +\
+                      "doc.discipline_name.value, doc.institute_name.value, "+\
+                      "doc.hits.value, doc.visits.value, "+\
+                      "doc.usage.value].join('::')"
 
             elif entity == "institutes":
                 args = request.args.to_dict()
@@ -1714,8 +1747,14 @@ def get_openedx_search_usage(entity, platform):
                 current_app.logger.debug("query_list = %s" %
                                         (query))
 
-                script = "[doc.institute_id.value, "+\
-                "doc.institute_name.value].join('::')"
+                if platform == "openedx":
+                    script = "[doc.institute_id.value, "+\
+                      "doc.institute_name.value].join('::')"
+                else:
+                    script = "[doc.institute_id.value, "+\
+                      "doc.institute_name.value, doc.hits.value, "+\
+                      "doc.vistis.value, doc.usage.value].join('::')"
+
             else:
                 args = request.args.to_dict()
                 for arg in args:
@@ -1728,9 +1767,17 @@ def get_openedx_search_usage(entity, platform):
                     query.append(query_dict)
                 current_app.logger.debug("query_list = %s" %
                                         (query))
+            
+                if platform == "openedx":
+                    script = "[doc.discipline_id.value, "+\
+                      "doc.discipline_name.value, "+\
+                      "doc.institute_name.value].join('::')"
+                else:
+                    script = "[doc.discipline_id.value, "+\
+                      "doc.discipline_name.value, "+\
+                      "doc.institute_name.value, doc.hits.value, "+\
+                      "doc.visits.value, doc.usage.value].join('::')"
 
-                script = "[doc.discipline_id.value, doc.discipline_name.value, "+\
-                  "doc.institute_name.value].join('::')"
 
             headers = {'Content-Type': 'application/json'}
             query =  {
@@ -1777,37 +1824,73 @@ def get_openedx_search_usage(entity, platform):
                     if entity == "labs":
 
                         for lab in search_result:
+                            lab_count = lab['doc_count']
                             usage_dict = {}
-                            usage_dict['usage'] = lab['doc_count']
+                            usage_dict['analytics'] = {}
                             lab = lab['key'].split("::")
                             usage_dict['lab_id'] = lab[0]
                             usage_dict['lab_name'] = lab[1]
                             usage_dict['discipline_name'] = lab[2]
                             usage_dict['institute_name'] = lab[3]
+                            try:
+                                if platform == "openedx":
+                                    usage_dict['analytics']['usage'] = lab_count
+                                else:
+                                    usage_dict['analytics']['usage'] = lab[6]
+                                usage_dict['analytics']['hits'] = lab[4]
+                                usage_dict['analytics']['visits'] = lab[5]
+
+                            except Exception as e:
+                                pass
                             usage_list.append(usage_dict)
-                            
+
                     elif entity == "institutes":
 
                         for institute in search_result:
+                            inst_count = institute['doc_count']
                             usage_dict = {}
-                            usage_dict['usage'] = institute['doc_count']
+                            usage_dict['analytics'] = {}
                             institute = institute['key'].split("::")
                             usage_dict['institute_id'] = institute[0]
                             usage_dict['institute_name'] = institute[1]
+                            try:
+                                if platform == "openedx":
+                                    usage_dict['analytics']['usage'] = inst_count
+                                else:
+                                    usage_dict['analytics']['usage'] = lab[4]
+                                usage_dict['analytics']['hits'] = lab[2]
+                                usage_dict['analytics']['visits'] = lab[3]
+
+                            except Exception as e:
+                                pass
+
                             usage_list.append(usage_dict)
 
                     elif entity == "disciplines":
 
                         for discipline in search_result:
+                            dis_count = discipline['doc_count']
                             usage_dict = {}
-                            usage_dict['usage'] = discipline['doc_count']
+                            usage_dict['analytics'] = {}
                             discipline = discipline['key'].split("::")
                             usage_dict['discipline_id'] = discipline[0]
                             usage_dict['discipline_name'] = discipline[1]
                             usage_dict['institute_name'] = discipline[2]
+                            try:
+                                if platform == "openedx":
+                                    usage_dict['analytics']['usage'] = dis_count
+                                else:
+                                    usage_dict['analytics']['usage'] = lab[5]
+                                usage_dict['analytics']['hits'] = lab[3]
+                                usage_dict['analytics']['visits'] = lab[4]
+
+                            except Exception as e:
+                                pass
+
                             usage_list.append(usage_dict)
                     else:
                         pass
+
                     return jsonify(usage_list)
 
                 except Exception as e:
@@ -1892,40 +1975,42 @@ def get_openedx_search_usage(entity, platform):
                     else:
                         non_openedx_lab = True
                         non_openedx_dict = non_openedx_usage[0]
-
+                    
                     if (openedx_lab and non_openedx_lab):
-                        non_openedx_usage = non_openedx_dict['usage']
-                        openedx_usage = openedx_dict['usage']
-                        openedx_dict['usage'] = {}
-                        openedx_dict['usage']["nonopenedx_usage"] = \
-                          non_openedx_usage
-                        openedx_dict['usage']["openedx_usage"] = openedx_usage
+                        non_openedx_usage = non_openedx_dict['analytics']
+                        openedx_usage = openedx_dict['analytics']
+                        openedx_dict['analytics'] = {}
+                        openedx_dict['analytics']["nonopenedx"] = {}
+                        openedx_dict['analytics']["nonopenedx"] = non_openedx_usage
+                        openedx_dict['analytics']["openedx"] = {}
+                        openedx_dict['analytics']["openedx"] = openedx_usage
                         vlabs_dict = openedx_dict
 
                     elif (not openedx_lab and non_openedx_lab):
-                        non_openedx_usage = non_openedx_dict['usage']
-                        non_openedx_dict['usage'] = {}
-                        non_openedx_dict['usage']["nonopenedx_usage"] = \
-                          non_openedx_usage
-                        non_openedx_dict['usage']["openedx_usage"] = 0
+                        non_openedx_usage = non_openedx_dict['analytics']
+                        non_openedx_dict['analytics'] = {}
+                        non_openedx_dict['analytics']["nonopenedx"] = {}
+                        non_openedx_dict['analytics']["nonopenedx"] = non_openedx_usage
+                        non_openedx_dict['analytics']["openedx"] = {'usage' : 0}
                         vlabs_dict = non_openedx_dict
 
                     elif (openedx_lab and not non_openedx_lab):
-                        openedx_usage = openedx_dict['usage']
-                        openedx_dict['usage'] = {}
-                        openedx_dict['usage']["nonopenedx_usage"] = 0
-                        openedx_dict['usage']["openedx_usage"] = openedx_usage
+                        openedx_usage = openedx_dict['analytics']
+                        openedx_dict['analytics'] = {}
+                        openedx_dict['analytics']["nonopenedx"] = {'usage' : 0}
+                        openedx_dict['analytics']["openedx"] = {}
+                        openedx_dict['analytics']["openedx"] = openedx_usage
                         vlabs_dict = openedx_dict
 
                     else:
                         pass
-
-                    total_usage = vlabs_dict['usage']['openedx_usage'] + \
-                      vlabs_dict['usage']['nonopenedx_usage']
-                    vlabs_dict['usage']['total_usage'] = total_usage
+                    current_app.logger.debug("vlabs_dict = %s" %(vlabs_dict))
+                    total_usage = int(vlabs_dict['analytics']['openedx']['usage']) + \
+                      int(vlabs_dict['analytics']['nonopenedx']['usage'])
+                    vlabs_dict['analytics']['total_usage'] = total_usage
                     vlabs_usage.append(vlabs_dict)
 
-                vlabs_usage.sort(key=lambda e: e['usage']['total_usage'], \
+                vlabs_usage.sort(key=lambda e: e['analytics']['total_usage'], \
                                  reverse=True)
                 return jsonify(vlabs_usage)
 
