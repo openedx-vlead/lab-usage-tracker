@@ -5,6 +5,9 @@
 ** Run vlabs-analytics-service on development environment
    Use [[https://github.com/vlead/vlabs-analytics-service/blob/analytics-apis/src/deployment/index.org#run-vlabs-analytics-serevice-on-development-environment][documentation]] to run the service on development environment
 ** Post installation steps
-   Follow [[https://github.com/vlead/vlabs-analytics-service/blob/analytics-apis/src/runtime/config/config.org#configuration][documentation]] to configure the application variables
+*** setup configuration   
+    Follow [[https://github.com/vlead/vlabs-analytics-service/blob/analytics-apis/src/runtime/config/config.org#configuration][documentation]] to configure the application variables
+*** Integrate services
+    Follow [[https://github.com/vlead/vlabs-analytics-service/blob/refactor-api-design/src/deployment/index.org#integration-with-other-services][Documentation]] to configure the steps at other services
 ** API documentation
    Visit [[https://github.com/vlead/vlabs-analytics-service/blob/analytics-apis/src/runtime/rest/api.org#rest-api][link]] to refer the API documentation
