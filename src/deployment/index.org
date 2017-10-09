@@ -211,9 +211,43 @@ server {
       #+END_EXAMPLE
 
 
-* Setup logstash service
-** Installation 
-*** Pre requisites =java= version =8=    
+* Integration with other services
+  =vlabs-analytics-service= aggregates all the analytics data from different
+  services. This is achieved by setting up =cronjob= on all services to push
+  the analytics to =analytics-db= via REST APIs of =vlabs-analytics-service=
+  for every regular interval of time
+  
+** stats-server
+   1. This server contains all the analytics of the labs (usage, hits and visits)
+      running on =nonopenedx= platform
+   2. Usage, hits and visits of labs running on nonopendx platform are
+      processed by erlang program and output statistics results were stored
+      into **output.txt** file on **stats.vlabs.ac.in** server and this will
+      happen for every 2 hrs regular interval of time
+   3. Every line in =output.txt= file has the following format
+      #+BEGIN_EXAMPLE
+      lab_id, lab_name, hits, visits, usages
+      #+END_EXAMPLE
+   4. location of =output.txt= on server
+      #+BEGIN_EXAMPLE
+      cd /root/
+      #+END_EXAMPLE
+   5. Setup cron job to copy the source path file =/root/output.txt= of
+      =stats.vlabs.ac.in= server to destination path
+      =/root/nonopenedx-usage.txt= of =vlabs-analytics-service= server for
+      every =3hrs= of interval
+      #+BEGIN_EXAMPLE
+      * 3 * * * root rsync -avz /root/output.txt root@vlabs-analytics.vlabs.ac.in:/root/nonopenedx-usage.txt
+      #+END_EXAMPLE
+   6. Ensure that value of configuration variable
+      =NONOPENEDX_USAGE_INFO_FILE_PATH= at [[https://github.com/vlead/vlabs-analytics-service/blob/analytics-apis/src/runtime/config/config.org#system-config][link]] is same as step(5) destination
+      path
+** feedback-service
+*** Setup cron job on feedback.vlabs.ac.in
+** Openedx-platform VM running vlabs (http://vlabs.ac.in)
+*** Setup logstash service
+**** Installation 
+***** Pre requisites =java= version =8=    
     =java= version =8= is the pre-requisite to install =elasticsearch=
     #+BEGIN_EXAMPLE
     sudo apt-add-repository ppa:webupd8team/java -y
@@ -221,7 +255,7 @@ server {
     echo 'oracle-java8-installer shared/accepted-oracle-license-v1-1 select true' | sudo debconf-set-selections
     sudo apt-get install oracle-java8-installer -y
     #+END_EXAMPLE
-*** Install logstash
+***** Install logstash
     Download and install the Public Signing Key:
     #+BEGIN_EXAMPLE
     wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
@@ -236,14 +270,15 @@ server {
     #+BEGIN_EXAMPLE
     sudo apt-get update && sudo apt-get install logstash
     #+END_EXAMPLE
-*** Run logstash  
+***** Run logstash  
     To run =logstash= service
     #+BEGIN_EXAMPLE
     service logstash start
     #+END_EXAMPLE
-** Configuration file 
+**** Configuration file 
    - Configuration to dump the =login= and =logout= =nginx= server logs into
      the =analytics-db= (i.e elasticsearch) database service
+   - Copy below code snippet into =/etc/logstash/conf.d/analytics.conf=
      #+NAME: logged_in_users
      #+BEGIN_SRC conf
      input {
@@ -328,7 +363,6 @@ server {
      output {
 
             elasticsearch {
-                 #protocol => "http"
                  hosts => "192.168.33.3:80"
                  user => "user"
                  password => "pswd"
@@ -339,8 +373,7 @@ server {
 
      #+END_SRC
      
-
-* Script to get openedx user analytics
+*** Script to get openedx user analytics
 
   1. This scripts gets the user analytics (registred, active and inactive) from
      openedx mysql database and forms the json record.
