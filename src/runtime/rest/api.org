@@ -864,9 +864,9 @@ def get_openedx_lab_wise_usage(entity):
             abort(make_response(jsonify(message=message), 500))
                                 
         if res.status_code == 200:
-
+            
             entity_usages = res.json()['aggregations']['entity']['buckets']
-
+            current_app.logger.debug("entity usage %s" % (entity_usages))
             for entity_usage in entity_usages:
                 entity_usage_dict = {}
                 entity_usage_dict[field] = str(entity_usage['key'])
@@ -1882,15 +1882,9 @@ def get_openedx_search_usage(entity, platform):
                 current_app.logger.debug("query_list = %s" %
                                         (query))
                 
-                if platform == "openedx":
-                    script = "[doc.lab_id.value, doc.lab_name.value, " +\
-                      "doc.discipline_name.value, "+\
-                      "doc.institute_name.value].join('::')"
-                else:
-                    script = "[doc.lab_id.value, doc.lab_name.value, " +\
-                      "doc.discipline_name.value, doc.institute_name.value, "+\
-                      "doc.hits.value, doc.visits.value, "+\
-                      "doc.usage.value].join('::')"
+                script = "[doc.lab_id.value, doc.lab_name.value, " +\
+                  "doc.discipline_name.value, "+\
+                  "doc.institute_name.value].join('::')"
 
             elif entity == "institutes":
                 args = request.args.to_dict()
@@ -1905,13 +1899,8 @@ def get_openedx_search_usage(entity, platform):
                 current_app.logger.debug("query_list = %s" %
                                         (query))
 
-                if platform == "openedx":
-                    script = "[doc.institute_id.value, "+\
-                      "doc.institute_name.value].join('::')"
-                else:
-                    script = "[doc.institute_id.value, "+\
-                      "doc.institute_name.value, doc.hits.value, "+\
-                      "doc.visits.value, doc.usage.value].join('::')"
+                script = "[doc.institute_id.value, "+\
+                  "doc.institute_name.value].join('::')"
 
             else:
                 args = request.args.to_dict()
@@ -1926,16 +1915,9 @@ def get_openedx_search_usage(entity, platform):
                 current_app.logger.debug("query_list = %s" %
                                         (query))
             
-                if platform == "openedx":
-                    script = "[doc.discipline_id.value, "+\
-                      "doc.discipline_name.value, "+\
-                      "doc.institute_name.value].join('::')"
-                else:
-                    script = "[doc.discipline_id.value, "+\
-                      "doc.discipline_name.value, "+\
-                      "doc.institute_name.value, doc.hits.value, "+\
-                      "doc.visits.value, doc.usage.value].join('::')"
-
+                script = "[doc.discipline_id.value, "+\
+                  "doc.discipline_name.value, "+\
+                  "doc.institute_name.value].join('::')"
 
             headers = {'Content-Type': 'application/json'}
             query =  {
@@ -1948,12 +1930,32 @@ def get_openedx_search_usage(entity, platform):
                         "entity_details": {
                             "terms": {
                                 "script": script,
-                                "size": 0
-                                }
+                                "size": 0,
+                                "order": {
+                                    "usage": "desc"
+                                    }
+                            },
+                            "aggs": {
+                                "usage": {
+                                    "sum": {
+                                        "field": "usage"
+                                        }
+                                    },
+                                "hits": {
+                                    "sum": {
+                                        "field": "hits"
+                                        }
+                                    },
+                                "visits": {
+                                    "sum": {
+                                        "field": "visits"
+                                        }
+                                    }
                             }
                         }
-                }
-
+                    }
+            }
+                
 
             ANALYTICS_DB_API = "%s/%s/%s/_search" % (ANALYTICS_DB_URL, index, \
                                                          doc_type)
@@ -1985,18 +1987,21 @@ def get_openedx_search_usage(entity, platform):
                             lab_count = lab['doc_count']
                             usage_dict = {}
                             usage_dict['analytics'] = {}
-                            lab = lab['key'].split("::")
-                            usage_dict['lab_id'] = lab[0]
-                            usage_dict['lab_name'] = lab[1]
-                            usage_dict['discipline_name'] = lab[2]
-                            usage_dict['institute_name'] = lab[3]
+                            lab_details = lab['key'].split("::")
+                            usage_dict['lab_id'] = lab_details[0]
+                            usage_dict['lab_name'] = lab_details[1]
+                            usage_dict['discipline_name'] = lab_details[2]
+                            usage_dict['institute_name'] = lab_details[3]
                             try:
                                 if platform == "openedx":
                                     usage_dict['analytics']['usage'] = lab_count
                                 else:
-                                    usage_dict['analytics']['usage'] = lab[6]
-                                usage_dict['analytics']['hits'] = lab[4]
-                                usage_dict['analytics']['visits'] = lab[5]
+                                    usage_dict['analytics']['usage'] = \
+                                      lab['visits']['value']
+                                    usage_dict['analytics']['hits'] = \
+                                      lab['hits']['value']
+                                    usage_dict['analytics']['visits'] = \
+                                      lab['visits']['value']
 
                             except Exception as e:
                                 pass
@@ -2008,16 +2013,19 @@ def get_openedx_search_usage(entity, platform):
                             inst_count = institute['doc_count']
                             usage_dict = {}
                             usage_dict['analytics'] = {}
-                            institute = institute['key'].split("::")
-                            usage_dict['institute_id'] = institute[0]
-                            usage_dict['institute_name'] = institute[1]
+                            institute_details = institute['key'].split("::")
+                            usage_dict['institute_id'] = institute_details[0]
+                            usage_dict['institute_name'] = institute_details[1]
                             try:
                                 if platform == "openedx":
                                     usage_dict['analytics']['usage'] = inst_count
                                 else:
-                                    usage_dict['analytics']['usage'] = institute[4]
-                                usage_dict['analytics']['hits'] = institute[2]
-                                usage_dict['analytics']['visits'] = institute[3]
+                                    usage_dict['analytics']['usage'] = \
+                                      institute['usage']['value']
+                                    usage_dict['analytics']['hits'] = \
+                                      institute['hits']['value']
+                                    usage_dict['analytics']['visits'] = \
+                                      institute['visits']['value']
 
                             except Exception as e:
                                 pass
@@ -2030,17 +2038,20 @@ def get_openedx_search_usage(entity, platform):
                             dis_count = discipline['doc_count']
                             usage_dict = {}
                             usage_dict['analytics'] = {}
-                            discipline = discipline['key'].split("::")
-                            usage_dict['discipline_id'] = discipline[0]
-                            usage_dict['discipline_name'] = discipline[1]
-                            usage_dict['institute_name'] = discipline[2]
+                            discipline_details = discipline['key'].split("::")
+                            usage_dict['discipline_id'] = discipline_details[0]
+                            usage_dict['discipline_name'] = discipline_details[1]
+                            usage_dict['institute_name'] = discipline_details[2]
                             try:
                                 if platform == "openedx":
                                     usage_dict['analytics']['usage'] = dis_count
                                 else:
-                                    usage_dict['analytics']['usage'] = discipline[5]
-                                usage_dict['analytics']['hits'] = discipline[3]
-                                usage_dict['analytics']['visits'] = discipline[4]
+                                    usage_dict['analytics']['usage'] = \
+                                      discipline['visits']['value']
+                                    usage_dict['analytics']['hits'] = \
+                                      discipline['hits']['value']
+                                    usage_dict['analytics']['visits'] = \
+                                      discipline['visits']['value']
 
                             except Exception as e:
                                 pass
