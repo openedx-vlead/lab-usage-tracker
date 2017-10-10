@@ -1546,8 +1546,8 @@ class TestGetVlabsUsage(TestCase):
 ** Search usage analytics of vlabs
  
 *** Search lab usage analytics
-    This API returns usage analytics search results on labs hosted on (vlabs,
-    openedx or nonopenedx) platforms
+    This API returns lab search analytics results hosted on (vlabs, openedx or
+    nonopenedx) platforms
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx-usage
@@ -1673,7 +1673,7 @@ class TestGetVlabsUsage(TestCase):
     - Notes ::
                
 *** Search institute usage analytics
-    This API returns usage analytics search results on institutes hosted on (vlabs,
+    This API returns institutes search analytics results hosted on (vlabs,
     openedx or nonopenedx) platforms
 
 **** API Design
@@ -1733,6 +1733,45 @@ class TestGetVlabsUsage(TestCase):
         }
       ]
       #+END_EXAMPLE
+    - Success Response :: for <platform> : =nonopenedx=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+      {
+        "analytics": {
+            "hits": 14825575,
+            "usage": 253581,
+            "visits": 5236638
+        },
+        "institute_id": "iiith",
+        "institute_name": "IIIT Hyderabad"
+       } 
+      ]
+      #+END_EXAMPLE
+    - Success Response :: for <platform> : =vlabs=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+       {
+        "analytics": {
+            "nonopenedx": {
+                "hits": 14825575,
+                "usage": 253581,
+                "visits": 5236638
+            },
+            "openedx": {
+                "usage": 3732
+            },
+            "total_usage": 257313
+        },
+        "institute_id": "iiith",
+        "institute_name": "IIIT Hyderabad"
+       }
+      ]
+      #+END_EXAMPLE
+
     - Error Response ::
       + Code : 400
       + Content :
@@ -1750,7 +1789,9 @@ class TestGetVlabsUsage(TestCase):
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost:5000/institutes/openedx/_search?institute_id=iiith
+      http://localhost:5000/analytics/institutes/openedx/_search?institute_id=iiith
+      http://localhost:5000/analytics/institutes/nonopenedx/_search?institute_id=iiith
+      http://localhost:5000/analytics/institutes/vlabs/_search?institute_id=iiith
       #+END_EXAMPLE
     - Notes ::
                
@@ -1759,10 +1800,10 @@ class TestGetVlabsUsage(TestCase):
   :PROPERTIES:
   :CUSTOM_ID: openedx-usage
   :END:          
-  This API returns usage analytics search results on disciplines hosted on
-  (vlabs, openedx or nonopenedx) platforms
+  This API returns disciplines search analytics results hosted on (vlabs,
+  openedx or nonopenedx) platforms
 
-    - URL :: /disciplines/<platform>/_search
+    - URL :: /analytics/disciplines/<platform>/_search
              
              where =<platform>= is of follows
 
@@ -1799,19 +1840,62 @@ class TestGetVlabsUsage(TestCase):
     - Data Params :: None
 
           
-    - Success Response ::
+    - Success Response :: for <platfrom> : =openedx=
       + Code: 200
       + Content : 
       #+BEGIN_EXAMPLE
       [
-          {
-              "discipline_id": "cse",
-              "discipline_name": "Computer Science and Engineering",
-              "institute_name": "IIIT Hyderabad",
-              "usage": 277
-          }
+       {
+        "analytics": {
+            "usage": 2513
+        },
+        "discipline_id": "cse",
+        "discipline_name": "Computer Science and Engineering",
+        "institute_name": "IIIT Hyderabad"
+       }
       ]
       #+END_EXAMPLE
+    - Success Response :: for <platfrom> : =nonopenedx=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+        "analytics": {
+            "hits": 9428523,
+            "usage": 167751,
+            "visits": 3733589
+        },
+        "discipline_id": "cse",
+        "discipline_name": "Computer Science and Engineering",
+        "institute_name": "IIIT Hyderabad"
+        }
+      ]
+      #+END_EXAMPLE
+    - Success Response :: for <platfrom> : =vlabs=
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      [
+        {
+        "analytics": {
+            "nonopenedx": {
+                "hits": 9428523,
+                "usage": 167751,
+                "visits": 3733589
+            },
+            "openedx": {
+                "usage": 2513
+            },
+            "total_usage": 170264
+        },
+        "discipline_id": "cse",
+        "discipline_name": "Computer Science and Engineering",
+        "institute_name": "IIIT Hyderabad"
+        }
+      ]
+      #+END_EXAMPLE
+
     - Error Response ::
       + Code : 400
       + Content :
@@ -1829,7 +1913,9 @@ class TestGetVlabsUsage(TestCase):
       #+END_EXAMPLE
     - Example call ::
       #+BEGIN_EXAMPLE
-      curl -XGET http://localhost:5000/disciplines/openedx/_search?discipline_id=cse
+      http://localhost:5000/analytics/disciplines/openedx/_search?discipline_id=cse
+      http://localhost:5000/analytics/disciplines/nonopenedx/_search?discipline_id=cse
+      http://localhost:5000/analytics/disciplines/vlabs/_search?discipline_id=cse
       #+END_EXAMPLE
     - Notes ::
 
