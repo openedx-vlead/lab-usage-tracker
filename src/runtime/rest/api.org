@@ -15,12 +15,70 @@
   
 ** Get total usage analytics of labs
 
-*** Get total usage analytics of labs hosted on non-openedx platform
+*** Get total analytics of labs hosted on openedx platform
+  :PROPERTIES:
+  :CUSTOM_ID: get_openedx_usage
+  :END:          
+
+  This API returns total analytics of all the labs hosted on openedx platform
+  (i.e from the date =2016-10-07= to =till date=)
+**** API design  
+
+    - URL :: /analytics/openedx
+
+    - Method :: GET
+
+    - URL Params ::
+
+      + Required : None
+
+      + Optional : till_date=[YYYY-MM-DD]
+
+        - example : till_date=2017-09-20
+
+    - Data Params :: None
+
+          
+    - Success Response ::
+      + Code: 200
+      + Content : 
+      #+BEGIN_EXAMPLE
+      {
+      "analytics": {
+         "usage": 10081
+         },
+       "till_date": "2017-10-06"
+      }
+      #+END_EXAMPLE
+    - Error Response ::
+      + Code : 400
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "Invalid query parameters : ['till_dae']"
+      }
+      #+END_EXAMPLE  
+      + Code : 404
+      + Content :
+      #+BEGIN_EXAMPLE
+      {
+      "message": "No records found on till_date : 2012-09-20"
+      }
+      #+END_EXAMPLE
+    - Example call ::
+      #+BEGIN_EXAMPLE
+      http://localhost:5000/analytics/openedx
+      #+END_EXAMPLE
+    - Notes ::
+               If query parameter =till_date= not passed by default server
+               calculates =till_date= as today's date
+
+*** Get total analytics of labs hosted on non-openedx platform
   :PROPERTIES:
   :CUSTOM_ID: get_non_openedx_usage
   :END:          
   
-  This API returns the analytics of labs hosted on =nonopenedx= platform
+  This API returns the total analytics of labs hosted on =nonopenedx= platform
 **** API design  
 
     - URL :: /analytics/nonopenedx
@@ -73,70 +131,9 @@
     - Notes ::
                If query parameter =till_date= not passed by default server
                calculates =till_date= as today's date
-
-*** Get total usage analytics of labs hosted on openedx platform
-  :PROPERTIES:
-  :CUSTOM_ID: get_openedx_usage
-  :END:          
-
-   1. This API returns analytics of all the labs hosted on openedx platform
-      (i.e from the date =2016-10-07=)
-      
-   2. As of date =2017-09-27= total labs hosted on openedx platform are =90=
-
-**** API design  
-
-    - URL :: /analytics/openedx
-
-    - Method :: GET
-
-    - URL Params ::
-
-      + Required : None
-
-      + Optional : till_date=[YYYY-MM-DD]
-
-        - example : till_date=2017-09-20
-
-    - Data Params :: None
-
-          
-    - Success Response ::
-      + Code: 200
-      + Content : 
-      #+BEGIN_EXAMPLE
-      {
-      "analytics": {
-         "usage": 10081
-         },
-       "till_date": "2017-10-06"
-      }
-      #+END_EXAMPLE
-    - Error Response ::
-      + Code : 400
-      + Content :
-      #+BEGIN_EXAMPLE
-      {
-      "message": "Invalid query parameters : ['till_dae']"
-      }
-      #+END_EXAMPLE  
-      + Code : 404
-      + Content :
-      #+BEGIN_EXAMPLE
-      {
-      "message": "No records found on till_date : 2012-09-20"
-      }
-      #+END_EXAMPLE
-    - Example call ::
-      #+BEGIN_EXAMPLE
-      http://localhost:5000/analytics/openedx
-      #+END_EXAMPLE
-    - Notes ::
-               If query parameter =till_date= not passed by default server
-               calculates =till_date= as today's date
-
 *** Get total vlabs(openedx+nonopenedx) usage
-    This API returns total usage labs hosted on openedx and other platforms
+    This API returns the total analytics of labs hosted on openedx and
+    non-openedx
   :PROPERTIES:
   :CUSTOM_ID: vlabs_usage
   :END:          
@@ -431,11 +428,11 @@ class TestGetUsageEntity(TestCase):
 #+END_SRC
 
 
-** Get usage analytics of (openedx or nonopenedx) platform
+** Get detailed analytics of =openedx= or =nonopenedx= platform labs
    
-*** Get usage analytics of labs
-    This API returns analytics of labs hosted on =openedx= and =nonopenedx=
-    platforms
+*** Get detailed analytics of labs
+    This API returns the detailed analytics of labs hosted on =openedx= and
+    =nonopenedx= platforms
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
@@ -549,13 +546,17 @@ class TestGetUsageEntity(TestCase):
       + If query parameter =top= is not passed by default API returns all the
         labs in =descending= order
 
-*** Get usage analytics of institutes
+*** Get detailed analytics of institutes
+    This API returns the detailed analytics of all the labs belongs to
+    respective institutes which are hosted on =openedx= or =nonopenedx=
+    platforms
+
 **** API Design
-  :PROPERTIES:
-  :CUSTOM_ID: openedx_usage
-  :END:          
-  This API returns analytics of all the labs belongs to respective institutes
-  which are hosted on =openedx= and =nonopenedx= platforms
+     
+    :PROPERTIES:
+    :CUSTOM_ID: openedx_usage
+    :END:          
+
     - URL :: /institutes/<platform>
 
              where =<platform>=
@@ -656,9 +657,9 @@ class TestGetUsageEntity(TestCase):
         =till_date= as today's date
       + If query parameter =top= is not passed by default API returns all the
         labs in =descending= order
-*** Get usage analytics of disciplines labs
-    This API return analytics of all the labs belongs to respective disciplines
-    which are hosted on =openedx= and =nonopenedx= platforms
+*** Get detailed analytics of disciplines labs
+    This API return the analytics of all the labs belongs to respective
+    disciplines which are hosted on =openedx= or =nonopenedx= platforms
 
 **** API Design
   :PROPERTIES:
@@ -1111,9 +1112,9 @@ class TestGetEntityNonOpenedx(TestCase):
 #+END_SRC
 
 
-** Get usage analytics of labs on vlabs (openedx+nonopenedx) platform
-*** Get usage analytics of labs
-    This API return usage analytics of labs hosted on vlabs (=openedx= +
+** Get detailed analytics of vlabs (openedx+nonopenedx) platform
+*** Get detailed analytics of labs
+    This API return the detailed analytics of labs hosted on vlabs (=openedx= +
     =nonopenedx=) platform
 
 **** API Design
@@ -1191,15 +1192,13 @@ class TestGetEntityNonOpenedx(TestCase):
       + If query parameter =top= is not passed by default API returns all the
         labs in =descending= order
 
-*** Get usage analytics of institutes
-    This API return usage analytics of institute's labs hosted on vlabs
-    (=openedx= + =nonopenedx=) platform
+*** Get detailed analytics of institutes
+    This API returns the detailed analytics of labs belongs to respective
+    institutes which are hosted on vlabs (=openedx= + =nonopenedx=) platform
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
   :END:          
-  
-
 
     - URL :: /analytics/institutes/vlabs
 
@@ -1268,9 +1267,9 @@ class TestGetEntityNonOpenedx(TestCase):
         =till_date= as today's date
       + If query parameter =top= is not passed by default API returns all the
         labs in =descending= order
-*** Get usage analytics of disciplines
-    This API return usage analytics of discipline's labs hosted on vlabs
-    (=openedx= + =nonopenedx=) platform
+*** Get detailed analytics of disciplines
+    This API return the detailed analytics of labs belongs to respective
+    disciplines which are hosted on vlabs (=openedx= + =nonopenedx=) platform
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx_usage
@@ -1543,11 +1542,11 @@ class TestGetVlabsUsage(TestCase):
 #+END_SRC
 
 
-** Search usage analytics of vlabs
+** Search analytics of vlabs
  
 *** Search lab usage analytics
-    This API returns lab search analytics results hosted on (vlabs, openedx or
-    nonopenedx) platforms
+    This API returns the search analytics results on labs hosted on (vlabs,
+    openedx or nonopenedx) platforms
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx-usage
@@ -1673,8 +1672,8 @@ class TestGetVlabsUsage(TestCase):
     - Notes ::
                
 *** Search institute usage analytics
-    This API returns institutes search analytics results hosted on (vlabs,
-    openedx or nonopenedx) platforms
+    This API returns the search analytics results on institutes hosted on
+    (vlabs, openedx or nonopenedx) platforms
 
 **** API Design
   :PROPERTIES:
@@ -1796,12 +1795,13 @@ class TestGetVlabsUsage(TestCase):
     - Notes ::
                
 *** Search discipline usage analytics
+    This API returns the search analytics results on disciplines hosted on
+    (vlabs, openedx or nonopenedx) platforms
+
 **** API Design
   :PROPERTIES:
   :CUSTOM_ID: openedx-usage
   :END:          
-  This API returns disciplines search analytics results hosted on (vlabs,
-  openedx or nonopenedx) platforms
 
     - URL :: /analytics/disciplines/<platform>/_search
              
@@ -2342,11 +2342,13 @@ class TestGetEntityPlatformSearch(TestCase):
 ** Get users analytics of vlabs.ac.in
 
 *** API Design
+    This API returns the user analytics of =openedx= platform running Virtual
+    Labs
+
   :PROPERTIES:
   :CUSTOM_ID: get_total_session_vlabs
   :END:    
-  This API returns the user analytics of =openedx= platform running Virtual
-  Labs
+
   - URL :: /api/vlabs_user_analytics
 
   - Method :: GET

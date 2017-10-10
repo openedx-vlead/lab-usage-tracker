@@ -479,8 +479,6 @@ if __name__== "__main__":
 
 #+END_SRC
 
-o
-
 
 * Tangle                                       :boilerplate:
 
