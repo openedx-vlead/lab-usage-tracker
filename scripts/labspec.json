@@ -96,7 +96,7 @@
         },
         "installer": [
 	    "apt-get update -y",
-	    "apt-get install python-pip python-dev nginx",
+	    "apt-get install python-pip python-dev nginx -y",
 	    "python /usr/share/nginx/html/deployment/setup.py install",
 	    "cp /usr/share/nginx/html/deployment/analytics-service.conf /etc/init/",
 	    "start analytics-service",
