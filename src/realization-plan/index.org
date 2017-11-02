@@ -14,20 +14,18 @@
 
 
 * Milestones Snapshot
-  |---+----+----+-----+--------------------+------+--------+-----+-----+--------|
-  |   | S. | Mi | Req | Milestone          | Plan | Status | Est | Act | Issues |
-  |   | no | no | Map |                    |      |        | hrs | hrs |        |
-  |---+----+----+-----+--------------------+------+--------+-----+-----+--------|
-  |   |  1 | [[https://github.com/vlead/analytics-db/milestone/2][2]]  |     | [[https://github.com/vlead/analytics-db/milestone/2][Service deployment]] |      | Closed | 104 | 132 | [[https://github.com/vlead/analytics-db/milestones/ADS%2520deployment%2520and%2520implementation%2520of%2520backup%2520restore%2520script][ref]]    |
-  |---+----+----+-----+--------------------+------+--------+-----+-----+--------|
-  |   |  2 | [[https://github.com/vlead/lab-data-service/milestone/1][1]]  |     | [[https://github.com/vlead/analytics-db/milestone/1][Define data-model]]  |      | Closed | 146 | 167 | [[https://github.com/vlead/analytics-db/milestones/define%2520database%2520model%2520and%2520caputre%2520the%2520design][ref]]    |
-  |---+----+----+-----+--------------------+------+--------+-----+-----+--------|
-  |   |    |    |     | Total              |      |        | 250 | 299 |        |
-  | ^ |    |    |     |                    |      |        |  et |  at |        |
-  |---+----+----+-----+--------------------+------+--------+-----+-----+--------|
+  |---+----+----+-----+----------------------------------+------+--------+-----+-----+--------|
+  |   | S. | Mi | Req | Milestone                        | Plan | Status | Est | Act | Issues |
+  |   | no | no | Map |                                  |      |        | hrs | hrs |        |
+  |---+----+----+-----+----------------------------------+------+--------+-----+-----+--------|
+  |   | 1  | [[https://github.com/vlead/analytics-db/milestone/1][1]]  |     | [[https://github.com/vlead/vlabs-analytics-service/milestone/1][Implement REST API(s) interfaces]] |      | Closed | 113 | 0   | [[https://github.com/vlead/analytics-db/milestones/ADS%2520deployment%2520and%2520implementation%2520of%2520backup%2520restore%2520script][ref]]    |
+  |---+----+----+-----+----------------------------------+------+--------+-----+-----+--------|
+  |   |    |    |     | Total                            |      |        | 113 | 0   |        |
+  | ^ |    |    |     |                                  |      |        | et  | at  |        |
+  |---+----+----+-----+----------------------------------+------+--------+-----+-----+--------|
   #+TBLFM: $2=@#-2
-  #+TBLFM: @3$8=remote(tbl-rlz-pln-ml-2, $est)
-  #+TBLFM: @3$9=remote(tbl-rlz-pln-ml-2, $act)
+  #+TBLFM: @3$8=remote(tbl-realization-plan, $est)
+  #+TBLFM: @3$9=remote(tbl-realization-plan, $act)
   #+TBLFM: @4$8=remote(tbl-rlz-pln-ml-1, $est)
   #+TBLFM: @4$9=remote(tbl-rlz-pln-ml-1, $act)
   #+TBLFM: $et=vsum(@II+1..@-1)
