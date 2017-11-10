@@ -33,6 +33,7 @@
   #+TBLFM: $et=vsum(@II+1..@-1)
   #+TBLFM: $at=vsum(@II+1..@-1)
 
+
 * Detailed Plan 
 ** Implement REST API(s) interfaces  
    This [[https://github.com/vlead/vlabs-analytics-service/milestone/1][milestone]] includes the following features:

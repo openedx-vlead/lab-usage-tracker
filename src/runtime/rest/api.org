@@ -15,13 +15,15 @@
   
 ** Get total usage analytics of labs
 
-*** Get total analytics of labs hosted on openedx platform
+*** Get total usage analytics of labs hosted on openedx platform
   :PROPERTIES:
   :CUSTOM_ID: get_openedx_usage
   :END:          
+  T
 
-  This API returns total analytics of all the labs hosted on openedx platform
-  (i.e from the date =2016-10-07= to =till date=)
+  This API returns total usage analytics of all the labs
+  hosted on openedx platform (i.e from the date =2016-10-07=
+  to =till date=)
 **** API design  
 
     - URL :: /analytics/openedx
@@ -73,12 +75,13 @@
                If query parameter =till_date= not passed by default server
                calculates =till_date= as today's date
 
-*** Get total analytics of labs hosted on non-openedx platform
+*** Get total usage analytics of labs hosted on non-openedx platform
   :PROPERTIES:
   :CUSTOM_ID: get_non_openedx_usage
   :END:          
   
-  This API returns the total analytics of labs hosted on =nonopenedx= platform
+  This API returns the total usage analytics of labs hosted
+  on =nonopenedx= platform
 **** API design  
 
     - URL :: /analytics/nonopenedx
@@ -131,7 +134,7 @@
     - Notes ::
                If query parameter =till_date= not passed by default server
                calculates =till_date= as today's date
-*** Get total vlabs(openedx+nonopenedx) usage
+*** Get total vlabs(openedx+nonopenedx) usage analytics
     This API returns the total analytics of labs hosted on openedx and
     non-openedx
   :PROPERTIES:
