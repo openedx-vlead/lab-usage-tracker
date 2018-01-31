@@ -19,7 +19,7 @@
   :PROPERTIES:
   :CUSTOM_ID: get_openedx_usage
   :END:          
-  T
+
 
   This API returns total usage analytics of all the labs
   hosted on openedx platform (i.e from the date =2016-10-07=
@@ -2599,9 +2599,10 @@ class TestGetVlabsLoggedInUsers(TestCase):
    :CUSTOM_ID: openedx-usage
    :END:          
 
-    - URL :: /server_url,user_id,lab_id,lab_name,exp_id,exp_name
+    # - URL :: /server_url,user_id,lab_id,lab_name,exp_id,exp_name
+    - URL :: /openedx/add_usage
 
-    - Method :: GET
+    - Method :: POST
 
     - URL Params :: None
 
@@ -2617,22 +2618,19 @@ class TestGetVlabsLoggedInUsers(TestCase):
 #+NAME: add_openedx_usage_analytics
 #+BEGIN_SRC python
 
-@api.route('/<exp_details>',methods= ['GET'])
+#@api.route('/<exp_details>',methods= ['GET'])
+@api.route('/openedx/add_usage',methods= ['POST'])
 def add_openedx_usage_analytics(exp_details):
 
-    if request.method == 'GET':
-
-        exp_details = exp_details.split(",")
-        if len(exp_details) != 5:
-            message = "Invalid  number of query parameters : %s " \
-              % exp_details
-            abort(make_response(jsonify(message=message), 404))
+    if request.method == 'POST':
+        data_json = request.get_json()
+        
         try:
-            student_id = exp_details[0]
-            lab_id = exp_details[1].lower()
-            lab_name = exp_details[2]
-            exp_id = exp_details[3].lower()
-            exp_name = exp_details[4]
+            student_id = data_json['user_id']
+            lab_id = data_json['lab_id'].lower()
+            lab_name = data_json['lab_name']
+            exp_id = data_json['exp_id'].lower()
+            exp_name = data_json['exp_name']
 
             data_dict = {}
             data_dict["student_id"] = student_id
@@ -2641,11 +2639,12 @@ def add_openedx_usage_analytics(exp_details):
 
             data_dict["experiment_id"] = exp_id
             data_dict["experiment_name"] = exp_name
+
         except Exception as e:
             current_app.logger.error("Exception error = %s" % str(e))
             message = "Exception occured : %s" % str(e)
             abort(make_response(jsonify(message=message), 500))
-            
+
         LDS_API = "%s/labs?lab_id=%s" % (LDS_URL, lab_id)
         try:
             r = requests.get(LDS_API)
@@ -2670,7 +2669,7 @@ def add_openedx_usage_analytics(exp_details):
             current_app.logger.error("Exception error = %s" % str(e))
             message = "Exception occured : %s" % str(e)
             abort(make_response(jsonify(message=message), 500))
-            
+
         LDS_API = "%s/experiments?exp_id=%s" % (LDS_URL, exp_id)
         try:
             r = requests.get(LDS_API)
@@ -2712,7 +2711,7 @@ def add_openedx_usage_analytics(exp_details):
                   ("Error in adding usage record = %s, staus_code = %s" % \
                        (json_data, res.status_code))
                 return jsonify({"status" : "failed" })
-            
+
         except Exception as e:
             current_app.logger.error("Exception error = %s" % str(e))
             message = "Exception occured : %s" % str(e)
@@ -3042,10 +3041,11 @@ if __name__ == '__main__':
 
 
 * Tangle                                                        :boilerplate:
-
+  
 ** sources
 
- #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
+ #
++BEGIN_SRC python :tangle api.py :eval no :noweb yes
 
 <<imports_for_sources>>
 <<get_usage_entity>>
