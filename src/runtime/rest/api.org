@@ -2620,7 +2620,7 @@ class TestGetVlabsLoggedInUsers(TestCase):
 
 #@api.route('/<exp_details>',methods= ['GET'])
 @api.route('/openedx/add_usage',methods= ['POST'])
-def add_openedx_usage_analytics(exp_details):
+def add_openedx_usage_analytics():
 
     if request.method == 'POST':
         data_json = request.get_json()
