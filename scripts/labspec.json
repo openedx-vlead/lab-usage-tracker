@@ -99,6 +99,7 @@
 	    "apt-get update -y",
             "service apache2 stop",
 	    "apt-get install python-pip python-dev nginx -y",
+            "pip install flask-testing flask flask-cors",
 	    "python /usr/share/nginx/html/deployment/setup.py install",
 	    "cp /usr/share/nginx/html/deployment/analytics-service.conf /etc/init/",
 	    "start analytics-service",
