@@ -71,6 +71,7 @@
               "cd ../;make build"
           ],
           "post_build": [
+              "apt-get install nginx -y",
 	      "cp -R ../build/code/* /usr/share/nginx/html/",
               "chmod -R 755 /usr/share/nginx/html/",
               "mkdir /usr/share/nginx/html/logs",
@@ -96,6 +97,7 @@
         },
         "installer": [
 	    "apt-get update -y",
+            "service apache2 stop",
 	    "apt-get install python-pip python-dev nginx -y",
 	    "python /usr/share/nginx/html/deployment/setup.py install",
 	    "cp /usr/share/nginx/html/deployment/analytics-service.conf /etc/init/",
