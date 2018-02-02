@@ -20,9 +20,9 @@
 from setuptools import setup
 
 requires = [
-    'flask',
-    'flask-cors',
-    'flask-testing',
+    'Flask',
+    'Flask-cors',
+    'Flask-testing',
     'requests',
     'pyyaml',
     'GitPython',
