@@ -1374,7 +1374,8 @@ def vlabs_usage(entity):
 
             
         if 'till_date' in request.args:
-            till_date = request.args['till_date']
+            date_text = str(request.args['till_date'])
+            till_date = validate(date_text)
         else:
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
@@ -2987,6 +2988,19 @@ class TestAddNonOpenedxUsageAnalytics(TestCase):
    
 
 
+** Date Validation
+#+NAME: validate_date
+#+BEGIN_SRC python
+def validate(date_text):
+    try:
+        datetime.datetime.strptime(date_text, '%Y-%m-%d')
+        till_date = date_text
+        return till_date
+    except ValueError:
+        message = "Incorrect data format, should be YYYY-MM-DD : %s" % date_text
+        abort(make_response(jsonify(message=message), 400))
+
+#+END_SRC
 * Infra                                                         :boilerplate:
 
 ** sources
@@ -3047,6 +3061,7 @@ if __name__ == '__main__':
  #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
 
 <<imports_for_sources>>
+<<validate_date>>
 <<get_usage_entity>>
 <<get_entity_openedx>>
 <<get_entity_openedx_search>>
