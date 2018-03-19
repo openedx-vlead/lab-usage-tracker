@@ -2999,10 +2999,11 @@ def validate(date_text):
         datetime.datetime.strptime(date_text, '%Y-%m-%d')
         return date_text
     except ValueError:
-        message = "Incorrect data format, should be YYYY-MM-DD : %s" % date_text
+        message = "Incorrect data format %s provided. Should be YYYY-MM-DD " % date_text
         abort(make_response(jsonify(message=message), 400))
 
 #+END_SRC
+
 * Infra                                                         :boilerplate:
 
 ** sources
