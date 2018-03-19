@@ -223,7 +223,8 @@ def get_openedx_usage(platform):
             abort(make_response(jsonify(message=message), 400))
 
         if 'till_date' in request.args:
-            till_date = request.args['till_date']
+            date_text = str(request.args['till_date'])
+            till_date = validate(date_text)
         else:
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
@@ -799,7 +800,8 @@ def get_openedx_lab_wise_usage(entity):
 
             
         if 'till_date' in request.args:
-            till_date = request.args['till_date']
+            date_text = str(request.args['till_date'])
+            till_date = validate(date_text)
         else:
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
@@ -972,7 +974,8 @@ def nonopenedx_search_usage(entity):
 
             
         if 'till_date' in request.args:
-            till_date = request.args['till_date']
+            date_text = str(request.args['till_date'])
+            till_date = validate(date_text)
         else:
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
@@ -2994,8 +2997,7 @@ class TestAddNonOpenedxUsageAnalytics(TestCase):
 def validate(date_text):
     try:
         datetime.datetime.strptime(date_text, '%Y-%m-%d')
-        till_date = date_text
-        return till_date
+        return date_text
     except ValueError:
         message = "Incorrect data format, should be YYYY-MM-DD : %s" % date_text
         abort(make_response(jsonify(message=message), 400))
