@@ -79,13 +79,14 @@ exec gunicorn --workers 3 --bind unix:analytics-service.sock -m 007 wsgi
 
 * Nginx socket configuration and security hardening
   Below set of configuration does the following things to
-  protect the nginx server configuration from the hackers
+  protect the nginx server configuration from the
+  hackers. Steps are referred from [[https://geekflare.com/nginx-webserver-security-hardening-guide/][link]]
   1. Server does not allow unwanted methods like DELETE and
      OPTIONS
   2. Sets CORS to only allowed domains
   3. Adds =X-XSS-Protection=
   4. Protects from click jacking attack
-
+     
 #+BEGIN_SRC python :tangle analytics-service :eval no
 server {
     listen 80;
@@ -109,10 +110,11 @@ server {
 
 
 * Disable nginx server version 
-  Following command disables the server version
+  Following command disables the server version. Steps are
+  referred from [[https://enable-cors.org/server_nginx.html][link]]
   #+NAME: disble-nginx-version
   #+BEGIN_SRC shell
-sed -i 's/#server_tokens off/server_tokens off/g' /etc/nginx/nginx.conf
+sed -i 's/# server_tokens off/server_tokens off/g' /etc/nginx/nginx.conf
   
   #+END_SRC
 
