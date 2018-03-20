@@ -101,7 +101,7 @@
 	    "apt-get install python-pip python-dev nginx -y",
             "pip install flask-testing flask flask-cors",
 	    "python /usr/share/nginx/html/deployment/setup.py install",
-            "sh ../deployment/nginx-conf.sh",
+            "sh /usr/share/nginx/html/deployment/nginx-conf.sh",
             "cp /usr/share/nginx/html/deployment/analytics-service.conf /etc/init/",
 	    "start analytics-service",
 	    "cp /usr/share/nginx/html/deployment/analytics-service /etc/nginx/sites-available/",

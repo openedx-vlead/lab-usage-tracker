@@ -518,7 +518,7 @@ print "deployment package"
 #+END_SRC
 
 #+BEGIN_SRC shell :tangle nginx-conf.sh :eval no :noweb yes
-!#/bin/sh
+#!/bin/sh
 <<disble-nginx-version>>
 if [ $? -ne 0 ]; then
    echo "Failed to configure nginx server"
