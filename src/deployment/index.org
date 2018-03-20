@@ -78,17 +78,23 @@ exec gunicorn --workers 3 --bind unix:analytics-service.sock -m 007 wsgi
 
 
 * Nginx socket configuration
-
+  
 #+BEGIN_SRC python :tangle analytics-service :eval no
-
 server {
     listen 80;
     server_name localhost;
+    if ($request_method !~ ^(POST|GET|HEAD|PUT)$ ) {
+        return 444;
+    }
 
     location / {
         include proxy_params;
         proxy_pass http://unix:/usr/share/nginx/html/deployment/analytics-service.sock;
     }
+    add_header X-XSS-Protection "1; mode=block";
+    add_header X-Content-Type-Options nosniff;
+    add_header 'Access-Control-Allow-Origin' '*.vlabs.ac.in';
+
 }
 
 #+END_SRC
