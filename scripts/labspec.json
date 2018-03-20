@@ -101,12 +101,13 @@
 	    "apt-get install python-pip python-dev nginx -y",
             "pip install flask-testing flask flask-cors",
 	    "python /usr/share/nginx/html/deployment/setup.py install",
-	    "cp /usr/share/nginx/html/deployment/analytics-service.conf /etc/init/",
+            "sh ../deployment/nginx-conf.sh",
+            "cp /usr/share/nginx/html/deployment/analytics-service.conf /etc/init/",
 	    "start analytics-service",
 	    "cp /usr/share/nginx/html/deployment/analytics-service /etc/nginx/sites-available/",
 	    "ln -s /etc/nginx/sites-available/analytics-service /etc/nginx/sites-enabled",
 	    "rm -v /etc/nginx/sites-enabled/default",
-	    "nginx -t",
+            "nginx -t",
 	    "service nginx restart"
         ],
         "lab_actions": {
