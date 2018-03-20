@@ -77,8 +77,15 @@ exec gunicorn --workers 3 --bind unix:analytics-service.sock -m 007 wsgi
 #+END_SRC
 
 
-* Nginx socket configuration
-  
+* Nginx socket configuration and security hardening
+  Below set of configuration does the following things to
+  protect the nginx server configuration from the hackers
+  1. Server does not allow unwanted methods like DELETE and
+     OPTIONS
+  2. Sets CORS to only allowed domains
+  3. Adds =X-XSS-Protection=
+  4. Protects from click jacking attack
+
 #+BEGIN_SRC python :tangle analytics-service :eval no
 server {
     listen 80;
@@ -91,6 +98,7 @@ server {
         include proxy_params;
         proxy_pass http://unix:/usr/share/nginx/html/deployment/analytics-service.sock;
     }
+    add_header X-Frame-Options "SAMEORIGIN";
     add_header X-XSS-Protection "1; mode=block";
     add_header X-Content-Type-Options nosniff;
     add_header 'Access-Control-Allow-Origin' '*.vlabs.ac.in';
@@ -98,6 +106,15 @@ server {
 }
 
 #+END_SRC
+
+
+* Disable nginx server version 
+  Following command disables the server version
+  #+NAME: disble-nginx-version
+  #+BEGIN_SRC shell
+sed -i 's/#server_tokens off/server_tokens off/g' /etc/nginx/nginx.conf
+  
+  #+END_SRC
 
 
 * Run vlabs-analytics-serevice on development environment
@@ -498,5 +515,15 @@ print "deployment package"
 
 #+BEGIN_SRC python :tangle openedx-users-analytics.py :eval no :noweb yes
 <<openedx_user_analytics>>
+#+END_SRC
+
+#+BEGIN_SRC shell :tangle nginx-conf.sh :eval no :noweb yes
+!#/bin/sh
+<<disble-nginx-version>>
+if [ $? -ne 0 ]; then
+   echo "Failed to configure nginx server"
+   exit 1;
+fi
+
 #+END_SRC
 
