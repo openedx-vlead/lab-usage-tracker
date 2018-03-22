@@ -442,7 +442,7 @@ class TestGetUsageEntity(TestCase):
   :CUSTOM_ID: openedx_usage
   :END:          
 
-    - URL :: /labs/<platform>
+    - URL :: /analytics/labs/<platform>
 
              where =<platform>=
 
@@ -561,7 +561,7 @@ class TestGetUsageEntity(TestCase):
     :CUSTOM_ID: openedx_usage
     :END:          
 
-    - URL :: /institutes/<platform>
+    - URL :: /analytics/institutes/<platform>
 
              where =<platform>=
              
@@ -807,7 +807,7 @@ def get_openedx_lab_wise_usage(entity):
             till_date = today_date
 
         if "top" in request.args:
-            size = int(request.args.get("top"))
+            size = validate_top(request.args.get("top"))
         else:
             size = 0
     
@@ -981,7 +981,7 @@ def nonopenedx_search_usage(entity):
             till_date = today_date
 
         if "top" in request.args:
-            size = int(request.args.get("top"))
+            size = validate_top(request.args.get("top"))
         else:
             size = 0
 
@@ -1384,7 +1384,7 @@ def vlabs_usage(entity):
             till_date = today_date
 
         if "top" in request.args:
-            size = int(request.args.get("top"))
+            size = validate_top(request.args.get("top"))
         else:
             size = 0
 
@@ -2992,6 +2992,7 @@ class TestAddNonOpenedxUsageAnalytics(TestCase):
 
 
 ** Date Validation
+   This function validates the given input is of type =Date=.
 #+NAME: validate_date
 #+BEGIN_SRC python
 def validate(date_text):
@@ -3004,8 +3005,23 @@ def validate(date_text):
 
 #+END_SRC
 
-* Infra                                                         :boilerplate:
+** Size Validation
+   This function validates the given input is of type =Integer=.
+#+NAME: validate_top
+#+BEGIN_SRC python
+def validate_top(top_value):
+    try:
+        size= int(top_value)
+        return size
+    except ValueError:
+        message = "Incorrect data format. Top Value should be Integer"
+        abort(make_response(jsonify(message=message), 400))
 
+#+END_SRC
+
+
+* Infra                                                         :boilerplate:
+  
 ** sources
 *** Imports 
 #+name: imports_for_sources
@@ -3065,6 +3081,7 @@ if __name__ == '__main__':
 
 <<imports_for_sources>>
 <<validate_date>>
+<<validate_top>>
 <<get_usage_entity>>
 <<get_entity_openedx>>
 <<get_entity_openedx_search>>
