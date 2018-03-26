@@ -223,7 +223,8 @@ def get_openedx_usage(platform):
             abort(make_response(jsonify(message=message), 400))
 
         if 'till_date' in request.args:
-            till_date = request.args['till_date']
+            date_text = str(request.args['till_date'])
+            till_date = validate(date_text)
         else:
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
@@ -441,7 +442,7 @@ class TestGetUsageEntity(TestCase):
   :CUSTOM_ID: openedx_usage
   :END:          
 
-    - URL :: /labs/<platform>
+    - URL :: /analytics/labs/<platform>
 
              where =<platform>=
 
@@ -560,7 +561,7 @@ class TestGetUsageEntity(TestCase):
     :CUSTOM_ID: openedx_usage
     :END:          
 
-    - URL :: /institutes/<platform>
+    - URL :: /analytics/institutes/<platform>
 
              where =<platform>=
              
@@ -799,13 +800,14 @@ def get_openedx_lab_wise_usage(entity):
 
             
         if 'till_date' in request.args:
-            till_date = request.args['till_date']
+            date_text = str(request.args['till_date'])
+            till_date = validate(date_text)
         else:
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
 
         if "top" in request.args:
-            size = int(request.args.get("top"))
+            size = validate_top(request.args.get("top"))
         else:
             size = 0
     
@@ -972,13 +974,14 @@ def nonopenedx_search_usage(entity):
 
             
         if 'till_date' in request.args:
-            till_date = request.args['till_date']
+            date_text = str(request.args['till_date'])
+            till_date = validate(date_text)
         else:
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
 
         if "top" in request.args:
-            size = int(request.args.get("top"))
+            size = validate_top(request.args.get("top"))
         else:
             size = 0
 
@@ -1374,13 +1377,14 @@ def vlabs_usage(entity):
 
             
         if 'till_date' in request.args:
-            till_date = request.args['till_date']
+            date_text = str(request.args['till_date'])
+            till_date = validate(date_text)
         else:
             today_date = str(datetime.datetime.today()).split()[0]
             till_date = today_date
 
         if "top" in request.args:
-            size = int(request.args.get("top"))
+            size = validate_top(request.args.get("top"))
         else:
             size = 0
 
@@ -2987,8 +2991,37 @@ class TestAddNonOpenedxUsageAnalytics(TestCase):
    
 
 
-* Infra                                                         :boilerplate:
+** Date Validation
+   This function validates the given input is of type =Date=.
+#+NAME: validate_date
+#+BEGIN_SRC python
+def validate(date_text):
+    try:
+        datetime.datetime.strptime(date_text, '%Y-%m-%d')
+        return date_text
+    except ValueError:
+        message = "Incorrect data format %s provided. Should be YYYY-MM-DD " % date_text
+        abort(make_response(jsonify(message=message), 400))
 
+#+END_SRC
+
+** Size Validation
+   This function validates the given input is of type =Integer=.
+#+NAME: validate_top
+#+BEGIN_SRC python
+def validate_top(top_value):
+    try:
+        size= int(top_value)
+        return size
+    except ValueError:
+        message = "Incorrect data format. Top Value should be Integer"
+        abort(make_response(jsonify(message=message), 400))
+
+#+END_SRC
+
+
+* Infra                                                         :boilerplate:
+  
 ** sources
 *** Imports 
 #+name: imports_for_sources
@@ -3047,6 +3080,8 @@ if __name__ == '__main__':
  #+BEGIN_SRC python :tangle api.py :eval no :noweb yes
 
 <<imports_for_sources>>
+<<validate_date>>
+<<validate_top>>
 <<get_usage_entity>>
 <<get_entity_openedx>>
 <<get_entity_openedx_search>>
