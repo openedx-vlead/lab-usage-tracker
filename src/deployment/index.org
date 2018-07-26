@@ -92,7 +92,7 @@ server {
     listen 80;
     server_name localhost;
     if ($request_method !~ ^(POST|GET|HEAD|PUT)$ ) {
-        return 444;
+        return 405;
     }
 
     location / {
